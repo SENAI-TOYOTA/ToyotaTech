@@ -27,8 +27,8 @@ O projeto está dividido em cinco partes principais:
 - *Apresentação*  
   Slides utilizados para explicar o projeto de forma visual e resumida.  
   ➤ [Ver apresentação](https://www.canva.com/design/DAGpVkXnpeA/-IqE3Sv6lRKOfNJXP_c3Bw/edit?utm_content=DAGpVkXnpeA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
-
-  - *Documentação*  
+  
+- *Documentação*  
   Aqui está todo o nosso projetO documento em PDF e nos padrões ABNT.  
   ➤ [Ver docuemntação](./ToyotaDocument.pdf)
 
