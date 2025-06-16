@@ -28,6 +28,11 @@ O projeto está dividido em cinco partes principais:
   Slides utilizados para explicar o projeto de forma visual e resumida.  
   ➤ [Ver apresentação](https://www.canva.com/design/DAGpVkXnpeA/-IqE3Sv6lRKOfNJXP_c3Bw/edit?utm_content=DAGpVkXnpeA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
+  - *Documentação*  
+  Aqui está todo o nosso projetO documento em PDF e nos padrões ABNT.  
+  ➤ [Ver docuemntação](./ToyotaDocument.pdf)
+
+
 ## Objetivo
 
 Nosso objetivo é demonstrar, de forma prática, como tecnologias integradas podem ser utilizadas para melhorar a experiência do cliente no setor automotivo, com foco em *transparência, controle e inovação* no processo de compra de veículos.
