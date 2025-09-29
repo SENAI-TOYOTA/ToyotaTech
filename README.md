@@ -13,9 +13,9 @@ O projeto está dividido em cinco partes principais:
 - *Banco de Dados*  
   Estrutura relacional que dá suporte à aplicação, com tabelas que simulam clientes, veículos, pedidos, pagamentos e muito mais.  
   ➤ [Acessar README de Banco de Dados](./BD.md)
-
-  - *Diagrama de Classes*
-   Modelo UML que mostra classes, atributos e relações, facilitando a visualização da estrutura do sistema.
+  
+- *Diagrama de Classes*
+  Modelo UML que mostra classes, atributos e relações, facilitando a visualização da estrutura do sistema.
   ➤ [Acessar README do Driagrama de Classes](./UML.md)
 
 - *Ciência de Dados*  
