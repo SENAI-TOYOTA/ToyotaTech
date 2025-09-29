@@ -16,6 +16,7 @@ O projeto está dividido em cinco partes principais:
   
 - *Diagrama de Classes*
   Modelo UML que mostra classes, atributos e relações, facilitando a visualização da estrutura do sistema.
+  
   ➤ [Acessar README do Driagrama de Classes](./UML.md)
 
 - *Ciência de Dados*  
