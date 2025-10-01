@@ -22,8 +22,17 @@
         class Endereco{
             - id_endereco : int
             - id_cliente : int
-            - logradouro : string
+            - cep : string
+            - rua : string
+            - numero : int
+            - complemento : string
+            - bairro : string
+            - cidade: string
+            - estado : string
             + CRUD ()
+            + BuscarEnderecoPorId (int id_endereco) : string
+            + BuscarEnderecoPorCliente (int id_cliente) : string
+            + ResumoEndreco (string rua, int numero, string bairro, string cidade, string estado,string cep, string complemento) : string
         }
 ```
 
@@ -36,6 +45,8 @@
             - id_cliente : int
             - numero : string
             + CRUD ()
+            + BuscarTelefonePorId (int id_telefone) : string
+            + BuscarTelefonePorCliente (int id_cliente) : string
         }
 ```
 
@@ -48,6 +59,8 @@
             - id_cliente : int
             - email : string
             + CRUD ()
+            + BuscarEmailPorId (int id_email) : string
+            + BuscarEmailPorCliente (int id_cliente) : string
         }
 ```
 
@@ -76,6 +89,7 @@
             - id_financiamento : int
             - data_pedido : date
             + CRUD ()
+            + BuscarPeloId (int id_pedido) : string
         }
 ```
 
