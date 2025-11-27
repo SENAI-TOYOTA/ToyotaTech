@@ -23,14 +23,17 @@ namespace api.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
-            return await _context.User.ToListAsync();
+            return await _context.User
+                .Include(u => u.Addresses)
+                .ToListAsync();
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(int id)
         {
             var user = await _context.User
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .Include(u => u.Addresses)
+                .FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)
             {
