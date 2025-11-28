@@ -1,6 +1,7 @@
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
 using api.Data;
+using api.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
+
+// Registrar Repositories
+builder.Services.AddScoped<TelefoneRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -21,6 +25,7 @@ builder.Services.AddSwaggerGen(c =>
         Description = "API do sistema Toyota Tech.",
     });
 });
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 

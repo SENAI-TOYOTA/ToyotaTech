@@ -9,17 +9,27 @@ namespace api.Data
             : base(options)
         {
         }
+            
         public DbSet<User> User { get; set; } = default!;
         public DbSet<Address> Address { get; set; } = default!;
+        public DbSet<Telefone> Telefone { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+            // Relacionamento User - Address
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Addresses)
                 .WithOne(a => a.User)
                 .HasForeignKey(a => a.ClientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relacionamento User - Telefone
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Telefones)
+                .WithOne(t => t.User)
+                .HasForeignKey(t => t.IdCliente)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
