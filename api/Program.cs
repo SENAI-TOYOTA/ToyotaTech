@@ -15,6 +15,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Registrar Repositories
 builder.Services.AddScoped<TelefoneRepository>();
 builder.Services.AddScoped<PedidoRepository>();
+builder.Services.AddScoped<VeiculoRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
