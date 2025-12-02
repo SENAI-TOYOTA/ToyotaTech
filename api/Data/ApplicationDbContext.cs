@@ -14,6 +14,8 @@ namespace api.Data
         public DbSet<Address> Address { get; set; } = default!;
         public DbSet<Telefone> Telefone { get; set; } = default!;
         public DbSet<Pedido> Pedido { get; set; } = default!;
+        public DbSet<Financiamento> Financiamento { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
