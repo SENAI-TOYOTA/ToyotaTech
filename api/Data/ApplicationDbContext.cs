@@ -13,6 +13,8 @@ namespace api.Data
         public DbSet<User> User { get; set; } = default!;
         public DbSet<Address> Address { get; set; } = default!;
         public DbSet<Telefone> Telefone { get; set; } = default!;
+        public DbSet<Financiamento> Financiamento { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
