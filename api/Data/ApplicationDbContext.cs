@@ -13,6 +13,7 @@ namespace api.Data
         public DbSet<User> User { get; set; } = default!;
         public DbSet<Address> Address { get; set; } = default!;
         public DbSet<Telefone> Telefone { get; set; } = default!;
+        public DbSet<Pedido> Pedido { get; set; } = default!;
         public DbSet<Financiamento> Financiamento { get; set; }
 
 
@@ -32,6 +33,13 @@ namespace api.Data
                 .HasMany(u => u.Telefones)
                 .WithOne(t => t.User)
                 .HasForeignKey(t => t.IdCliente)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relacionamento User - Pedido
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Pedidos)
+                .WithOne(p => p.User)
+                .HasForeignKey(p => p.IdCliente)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

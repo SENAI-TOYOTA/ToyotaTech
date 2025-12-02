@@ -11,5 +11,6 @@ namespace api.Models
 
         public virtual List<Address> Addresses { get; set; } = new();
         public virtual List<Telefone> Telefones { get; set; } = new();
+        public virtual List<Pedido> Pedidos { get; set; } = new();
     }
 }
