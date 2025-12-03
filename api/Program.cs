@@ -15,6 +15,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     )
 );
 
+// Registrar Repositories
+builder.Services.AddScoped<TelefoneRepository>();
+builder.Services.AddScoped<PedidoRepository>();
+builder.Services.AddScoped<VeiculoRepository>();
 // JWT
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
 
