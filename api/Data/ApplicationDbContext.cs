@@ -16,6 +16,8 @@ namespace api.Data
         public DbSet<Pedido> Pedido { get; set; } = default!;
         public DbSet<Veiculo> Veiculo { get; set; } = default!;
         public DbSet<Financiamento> Financiamento { get; set; } = default!;
+        public DbSet<PessoaFisica> PessoasFisicas { get; set; } = default!;
+        public DbSet<PessoaJuridica> PessoasJuridicas { get; set; } = default!;
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
