@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using api.Data;
 
@@ -10,9 +11,11 @@ using api.Data;
 namespace api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251212162259_RevisaoV1")]
+    partial class RevisaoV1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -108,16 +111,9 @@ namespace api.Migrations
                         .HasColumnType("int")
                         .HasColumnName("id_vendedor");
 
-                    b.Property<int?>("UsuarioId")
-                        .HasColumnType("int");
-
                     b.HasKey("IdPedido");
 
                     b.HasIndex("IdCliente");
-
-                    b.HasIndex("IdVendedor");
-
-                    b.HasIndex("UsuarioId");
 
                     b.ToTable("Pedido");
                 });
@@ -259,25 +255,13 @@ namespace api.Migrations
 
             modelBuilder.Entity("api.Models.Pedido", b =>
                 {
-                    b.HasOne("api.Models.Usuario", "ClienteUsuario")
-                        .WithMany()
-                        .HasForeignKey("IdCliente")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("api.Models.Usuario", "VendedorUsuario")
-                        .WithMany()
-                        .HasForeignKey("IdVendedor")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("api.Models.Usuario", null)
+                    b.HasOne("api.Models.Usuario", "Usuario")
                         .WithMany("Pedidos")
-                        .HasForeignKey("UsuarioId");
+                        .HasForeignKey("IdCliente")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("ClienteUsuario");
-
-                    b.Navigation("VendedorUsuario");
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("api.Models.Telefone", b =>

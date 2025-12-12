@@ -1,6 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using api.Data; // Adicionado
 using api.Models;
-using api.Repositories;
 
 namespace api.Controllers
 {
@@ -8,18 +13,19 @@ namespace api.Controllers
     [ApiController]
     public class TelefoneController : ControllerBase
     {
-        private readonly TelefoneRepository _repository;
+        private readonly ApplicationDbContext _context;
 
-        public TelefoneController(TelefoneRepository repository)
+        public TelefoneController(ApplicationDbContext context) // Mudança: Construtor alterado
         {
-            _repository = repository;
+            _context = context;
         }
 
         // GET: api/Telefone
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Telefone>>> GetTelefones()
         {
-            var telefones = await _repository.GetAll();
+            // Mudança: Acesso direto ao DbContext
+            var telefones = await _context.Telefone.ToListAsync();
             return Ok(telefones);
         }
 
@@ -27,7 +33,8 @@ namespace api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Telefone>> GetTelefone(int id)
         {
-            var telefone = await _repository.GetById(id);
+            // Mudança: Acesso direto ao DbContext
+            var telefone = await _context.Telefone.FindAsync(id);
 
             if (telefone == null)
             {
@@ -41,7 +48,10 @@ namespace api.Controllers
         [HttpGet("Cliente/{idCliente}")]
         public async Task<ActionResult<IEnumerable<Telefone>>> GetTelefonesPorCliente(int idCliente)
         {
-            var telefones = await _repository.GetByClienteId(idCliente);
+            // Reescrita do método com LINQ
+            var telefones = await _context.Telefone
+                .Where(t => t.IdCliente == idCliente) // Assumindo que a PK do Cliente está aqui
+                .ToListAsync();
             return Ok(telefones);
         }
 
@@ -54,8 +64,11 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
 
-            var novoTelefone = await _repository.Create(telefone);
-            return CreatedAtAction(nameof(GetTelefone), new { id = novoTelefone.IdTelefone }, novoTelefone);
+            // Mudança: Acesso direto ao DbContext
+            _context.Telefone.Add(telefone);
+            await _context.SaveChangesAsync();
+            
+            return CreatedAtAction(nameof(GetTelefone), new { id = telefone.IdTelefone }, telefone);
         }
 
         // PUT: api/Telefone/5
@@ -72,32 +85,39 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (!await _repository.Exists(id))
-            {
-                return NotFound(new { message = "Telefone não encontrado" });
-            }
+            // Mudança: Acesso direto ao DbContext
+            _context.Entry(telefone).State = EntityState.Modified;
 
             try
             {
-                await _repository.Update(telefone);
-                return NoContent();
+                await _context.SaveChangesAsync();
             }
-            catch (Exception ex)
+            catch (DbUpdateConcurrencyException)
             {
-                return StatusCode(500, new { message = "Erro ao atualizar telefone", error = ex.Message });
+                if (!_context.Telefone.Any(e => e.IdTelefone == id)) // Uso direto do Any()
+                {
+                    return NotFound(new { message = "Telefone não encontrado" });
+                }
+                throw;
             }
+
+            return NoContent();
         }
 
         // DELETE: api/Telefone/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTelefone(int id)
         {
-            var deleted = await _repository.Delete(id);
+            // Mudança: Acesso direto ao DbContext
+            var telefone = await _context.Telefone.FindAsync(id);
 
-            if (!deleted)
+            if (telefone == null)
             {
                 return NotFound(new { message = "Telefone não encontrado" });
             }
+
+            _context.Telefone.Remove(telefone);
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }

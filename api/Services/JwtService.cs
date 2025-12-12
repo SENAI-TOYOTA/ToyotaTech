@@ -15,7 +15,7 @@ namespace api.Services
             _config = config;
         }
 
-        public string GenerateToken(User user)
+        public string GenerateToken(Usuario usuario)
         {
             var key = Encoding.UTF8.GetBytes(_config["Jwt:Key"]);
             var issuer = _config["Jwt:Issuer"];
@@ -23,8 +23,8 @@ namespace api.Services
 
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
-                new Claim("userId", user.Id.ToString())
+                new Claim(JwtRegisteredClaimNames.Sub, usuario.Email),
+                new Claim("usuarioId", usuario.Id.ToString())
             };
 
             var token = new JwtSecurityToken(

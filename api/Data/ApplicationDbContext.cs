@@ -10,8 +10,8 @@ namespace api.Data
         {
         }
             
-        public DbSet<User> User { get; set; } = default!;
-        public DbSet<Address> Address { get; set; } = default!;
+        public DbSet<Usuario> Usuario { get; set; } = default!;
+        public DbSet<Endereco> Endereco { get; set; } = default!;
         public DbSet<Telefone> Telefone { get; set; } = default!;
         public DbSet<Pedido> Pedido { get; set; } = default!;
         public DbSet<Veiculo> Veiculo { get; set; } = default!;
@@ -24,26 +24,32 @@ namespace api.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Relacionamento User - Address
-            modelBuilder.Entity<User>()
-                .HasMany(u => u.Addresses)
-                .WithOne(a => a.User)
-                .HasForeignKey(a => a.ClientId)
+            // Relacionamento Usuario - Endereco
+            modelBuilder.Entity<Usuario>()
+                .HasMany(u => u.Enderecos)
+                .WithOne(a => a.Usuario)
+                .HasForeignKey(a => a.ClienteId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Relacionamento User - Telefone
-            modelBuilder.Entity<User>()
+            // Relacionamento Usuario - Telefone
+            modelBuilder.Entity<Usuario>()
                 .HasMany(u => u.Telefones)
-                .WithOne(t => t.User)
+                .WithOne(t => t.Usuario)
                 .HasForeignKey(t => t.IdCliente)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Relacionamento User - Pedido
-            modelBuilder.Entity<User>()
-                .HasMany(u => u.Pedidos)
-                .WithOne(p => p.User)
-                .HasForeignKey(p => p.IdCliente)
-                .OnDelete(DeleteBehavior.Cascade);
+            // Relacionamento Usuario - Pedido
+            modelBuilder.Entity<Pedido>()
+                .HasOne(p => p.ClienteUsuario)      
+                .WithMany()                        
+                .HasForeignKey(p => p.IdCliente)  
+                .OnDelete(DeleteBehavior.Restrict); 
+
+            modelBuilder.Entity<Pedido>()
+                .HasOne(p => p.VendedorUsuario)     
+                .WithMany()                         
+                .HasForeignKey(p => p.IdVendedor)   
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

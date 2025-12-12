@@ -3,7 +3,7 @@ using api.Models;
 
 namespace api.Models{
 
-public class PessoaJuridica : User
+public class PessoaJuridica : Usuario
 {
     public PessoaJuridica()
     {

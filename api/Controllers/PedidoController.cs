@@ -1,6 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using api.Data; // Adicionado
 using api.Models;
-using api.Repositories;
 
 namespace api.Controllers
 {
@@ -8,18 +13,19 @@ namespace api.Controllers
     [ApiController]
     public class PedidoController : ControllerBase
     {
-        private readonly PedidoRepository _repository;
+        private readonly ApplicationDbContext _context;
 
-        public PedidoController(PedidoRepository repository)
+        public PedidoController(ApplicationDbContext context) // Mudança: Construtor alterado
         {
-            _repository = repository;
+            _context = context;
         }
 
         // GET: api/Pedido
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Pedido>>> GetPedidos()
         {
-            var pedidos = await _repository.GetAll();
+            // Mudança: Acesso direto ao DbContext
+            var pedidos = await _context.Pedido.ToListAsync();
             return Ok(pedidos);
         }
 
@@ -27,7 +33,8 @@ namespace api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Pedido>> GetPedido(int id)
         {
-            var pedido = await _repository.GetById(id);
+            // Mudança: Acesso direto ao DbContext
+            var pedido = await _context.Pedido.FindAsync(id);
 
             if (pedido == null)
             {
@@ -41,7 +48,10 @@ namespace api.Controllers
         [HttpGet("Cliente/{idCliente}")]
         public async Task<ActionResult<IEnumerable<Pedido>>> GetPedidosPorCliente(int idCliente)
         {
-            var pedidos = await _repository.GetByClienteId(idCliente);
+            // Reescrita do método com LINQ
+            var pedidos = await _context.Pedido
+                .Where(p => p.IdCliente == idCliente) // Assumindo que a PK do Cliente está aqui
+                .ToListAsync();
             return Ok(pedidos);
         }
 
@@ -54,8 +64,11 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
 
-            var novoPedido = await _repository.Create(pedido);
-            return CreatedAtAction(nameof(GetPedido), new { id = novoPedido.IdPedido }, novoPedido);
+            // Mudança: Acesso direto ao DbContext
+            _context.Pedido.Add(pedido);
+            await _context.SaveChangesAsync();
+            
+            return CreatedAtAction(nameof(GetPedido), new { id = pedido.IdPedido }, pedido);
         }
 
         // PUT: api/Pedido/5
@@ -72,32 +85,39 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (!await _repository.Exists(id))
-            {
-                return NotFound(new { message = "Pedido não encontrado" });
-            }
+            // Mudança: Acesso direto ao DbContext
+            _context.Entry(pedido).State = EntityState.Modified;
 
             try
             {
-                await _repository.Update(pedido);
-                return NoContent();
+                await _context.SaveChangesAsync();
             }
-            catch (Exception ex)
+            catch (DbUpdateConcurrencyException)
             {
-                return StatusCode(500, new { message = "Erro ao atualizar pedido", error = ex.Message });
+                if (!_context.Pedido.Any(e => e.IdPedido == id)) // Uso direto do Any()
+                {
+                    return NotFound(new { message = "Pedido não encontrado" });
+                }
+                throw;
             }
+
+            return NoContent();
         }
 
         // DELETE: api/Pedido/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePedido(int id)
         {
-            var deleted = await _repository.Delete(id);
+            // Mudança: Acesso direto ao DbContext
+            var pedido = await _context.Pedido.FindAsync(id);
 
-            if (!deleted)
+            if (pedido == null)
             {
                 return NotFound(new { message = "Pedido não encontrado" });
             }
+
+            _context.Pedido.Remove(pedido);
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }

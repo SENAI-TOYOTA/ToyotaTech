@@ -25,24 +25,24 @@ namespace api.Controllers
         [HttpPost("login")]
         public IActionResult Login(LoginRequest request)
         {
-            var user = _context.User.FirstOrDefault(u =>
-                u.Email == request.Email && u.Password == request.Password);
+            var usuario = _context.Usuario.FirstOrDefault(u =>
+                u.Email == request.Email && u.Senha == request.Senha);
 
-            if (user == null)
+            if (usuario == null)
                 return Unauthorized("Credenciais inválidas");
 
-            var token = GenerateJwtToken(user);
+            var token = GenerateJwtToken(usuario);
             return Ok(new { token });
         }
 
-        private string GenerateJwtToken(api.Models.User user)
+        private string GenerateJwtToken(api.Models.Usuario usuario)
         {
             var key = Encoding.UTF8.GetBytes(_config["Jwt:Key"]!);
 
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim("email", user.Email)
+                new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
+                new Claim("email", usuario.Email)
             };
 
             var creds = new SigningCredentials(

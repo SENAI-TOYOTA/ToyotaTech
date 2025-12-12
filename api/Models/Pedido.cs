@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace api.Models
 {
@@ -31,6 +32,9 @@ namespace api.Models
         public DateTime DataPedido { get; set; }
 
         // Propriedade de navegação
-        public User? User { get; set; }
+        [JsonIgnore]
+        public Usuario? ClienteUsuario { get; set; }
+        [JsonIgnore]
+        public Usuario? VendedorUsuario { get; set; }
     }
 }

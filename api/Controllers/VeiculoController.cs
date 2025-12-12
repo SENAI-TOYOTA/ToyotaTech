@@ -1,6 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using api.Data; // Adicionado
 using api.Models;
-using api.Repositories;
 
 namespace api.Controllers
 {
@@ -8,18 +13,21 @@ namespace api.Controllers
     [ApiController]
     public class VeiculoController : ControllerBase
     {
-        private readonly VeiculoRepository _repository;
+        // 1. Mudança: Injetar ApplicationDbContext
+        private readonly ApplicationDbContext _context;
 
-        public VeiculoController(VeiculoRepository repository)
+        // 2. Mudança: Construtor recebe ApplicationDbContext
+        public VeiculoController(ApplicationDbContext context)
         {
-            _repository = repository;
+            _context = context;
         }
 
         // GET: api/Veiculo
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Veiculo>>> GetVeiculos()
         {
-            var veiculos = await _repository.GetAll();
+            // 3. Mudança: Usar _context.Veiculo diretamente
+            var veiculos = await _context.Veiculo.ToListAsync();
             return Ok(veiculos);
         }
 
@@ -27,7 +35,8 @@ namespace api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Veiculo>> GetVeiculo(int id)
         {
-            var veiculo = await _repository.GetById(id);
+            // 4. Mudança: Usar FindAsync no _context.Veiculo
+            var veiculo = await _context.Veiculo.FindAsync(id);
 
             if (veiculo == null)
             {
@@ -36,12 +45,15 @@ namespace api.Controllers
 
             return Ok(veiculo);
         }
-
+        
+        // ** Métodos GetByMarca e GetByModelo requerem reescrita com LINQ **
         // GET: api/Veiculo/Marca/Toyota
         [HttpGet("Marca/{marca}")]
         public async Task<ActionResult<IEnumerable<Veiculo>>> GetVeiculosPorMarca(string marca)
         {
-            var veiculos = await _repository.GetByMarca(marca);
+            var veiculos = await _context.Veiculo
+                .Where(v => v.Marca == marca) // Usando LINQ
+                .ToListAsync();
             return Ok(veiculos);
         }
 
@@ -49,7 +61,9 @@ namespace api.Controllers
         [HttpGet("Modelo/{modelo}")]
         public async Task<ActionResult<IEnumerable<Veiculo>>> GetVeiculosPorModelo(string modelo)
         {
-            var veiculos = await _repository.GetByModelo(modelo);
+            var veiculos = await _context.Veiculo
+                .Where(v => v.Modelo == modelo) // Usando LINQ
+                .ToListAsync();
             return Ok(veiculos);
         }
 
@@ -62,8 +76,12 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
 
-            var novoVeiculo = await _repository.Create(veiculo);
-            return CreatedAtAction(nameof(GetVeiculo), new { id = novoVeiculo.IdVeiculo }, novoVeiculo);
+            // 5. Mudança: Usar Add e SaveChangesAsync
+            _context.Veiculo.Add(veiculo);
+            await _context.SaveChangesAsync();
+            
+            // NOTE: Ajuste o nome da propriedade da PK se não for 'IdVeiculo'
+            return CreatedAtAction(nameof(GetVeiculo), new { id = veiculo.IdVeiculo }, veiculo);
         }
 
         // PUT: api/Veiculo/5
@@ -80,34 +98,46 @@ namespace api.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (!await _repository.Exists(id))
-            {
-                return NotFound(new { message = "Veículo não encontrado" });
-            }
+            // 6. Mudança: Usar Entry e EntityState.Modified
+            _context.Entry(veiculo).State = EntityState.Modified;
 
             try
             {
-                await _repository.Update(veiculo);
-                return NoContent();
+                await _context.SaveChangesAsync();
             }
-            catch (Exception ex)
+            catch (DbUpdateConcurrencyException)
             {
-                return StatusCode(500, new { message = "Erro ao atualizar veículo", error = ex.Message });
+                if (!VeiculoExists(id)) // Usar método auxiliar
+                {
+                    return NotFound(new { message = "Veículo não encontrado" });
+                }
+                throw;
             }
+
+            return NoContent();
         }
 
         // DELETE: api/Veiculo/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteVeiculo(int id)
         {
-            var deleted = await _repository.Delete(id);
-
-            if (!deleted)
+            var veiculo = await _context.Veiculo.FindAsync(id);
+            if (veiculo == null)
             {
                 return NotFound(new { message = "Veículo não encontrado" });
             }
 
+            // 7. Mudança: Usar Remove e SaveChangesAsync
+            _context.Veiculo.Remove(veiculo);
+            await _context.SaveChangesAsync();
+
             return NoContent();
+        }
+
+        // 8. Mudança: Adicionar método auxiliar EnderecoExists
+        private bool VeiculoExists(int id)
+        {
+            return _context.Veiculo.Any(e => e.IdVeiculo == id);
         }
     }
 }
