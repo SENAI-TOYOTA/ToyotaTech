@@ -23,18 +23,18 @@ namespace api.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PessoaJuridica>>> GetPessoasJuridicas()
         {
-            return await _context.User
+            return await _context.Usuario
                 .OfType<PessoaJuridica>()
-                .Include(p => p.Addresses)
+                .Include(p => p.Enderecos)
                 .ToListAsync();
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<PessoaJuridica>> GetPessoaJuridica(int id)
         {
-            var pessoaJuridica = await _context.User
+            var pessoaJuridica = await _context.Usuario
                 .OfType<PessoaJuridica>()
-                .Include(p => p.Addresses)
+                .Include(p => p.Enderecos)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (pessoaJuridica == null)
@@ -86,7 +86,7 @@ namespace api.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePessoaJuridica(int id)
         {
-            var pessoaJuridica = await _context.User
+            var pessoaJuridica = await _context.Usuario
                 .OfType<PessoaJuridica>()
                 .FirstOrDefaultAsync(p => p.Id == id);
             
@@ -95,7 +95,7 @@ namespace api.Controllers
                 return NotFound();
             }
 
-            _context.User.Remove(pessoaJuridica);
+            _context.Usuario.Remove(pessoaJuridica);
             await _context.SaveChangesAsync();
 
             return NoContent();
@@ -103,7 +103,7 @@ namespace api.Controllers
 
         private bool PessoaJuridicaExists(int id)
         {
-            return _context.User.OfType<PessoaJuridica>().Any(p => p.Id == id);
+            return _context.Usuario.OfType<PessoaJuridica>().Any(p => p.Id == id);
         }
     }
 }

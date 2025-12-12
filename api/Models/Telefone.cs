@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace api.Models
 {
@@ -20,6 +21,7 @@ namespace api.Models
         public string Numero { get; set; } = string.Empty;
 
         // Propriedade de navegação
-        public User? User { get; set; }
+        [JsonIgnore]
+        public Usuario? Usuario { get; set; }
     }
 }

@@ -13,53 +13,53 @@ namespace api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AddressController : ControllerBase
+    public class EnderecoController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
 
-        public AddressController(ApplicationDbContext context)
+        public EnderecoController(ApplicationDbContext context)
         {
             _context = context;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Address>>> GetAddresss()
+        public async Task<ActionResult<IEnumerable<Endereco>>> GetEnderecos()
         {
-            return await _context.Address.Include(e => e.User).ToListAsync();
+            return await _context.Endereco.Include(e => e.Usuario).ToListAsync();
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Address>> GetAddress(int id)
+        public async Task<ActionResult<Endereco>> GetEndereco(int id)
         {
-            var address = await _context.Address
-                .Include(e => e.User)
+            var endereco = await _context.Endereco
+                .Include(e => e.Usuario)
                 .FirstOrDefaultAsync(e => e.Id == id);
 
-            if (address == null)
+            if (endereco == null)
                 return NotFound();
 
-            return address;
+            return endereco;
         }
 
         [HttpPost]
-        public async Task<ActionResult<Address>> PostAddress(Address address)
+        public async Task<ActionResult<Endereco>> PostEndereco(Endereco endereco)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            _context.Address.Add(address);
+            _context.Endereco.Add(endereco);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetAddress), new { id = address.Id }, address);
+            return CreatedAtAction(nameof(GetEndereco), new { id = endereco.Id }, endereco);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAddress(int id, Address address)
+        public async Task<IActionResult> PutEndereco(int id, Endereco endereco)
         {
-            if (id != address.Id)
+            if (id != endereco.Id)
                 return BadRequest();
 
-            _context.Entry(address).State = EntityState.Modified;
+            _context.Entry(endereco).State = EntityState.Modified;
 
             try
             {
@@ -67,7 +67,7 @@ namespace api.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!AddressExists(id))
+                if (!EnderecoExists(id))
                     return NotFound();
                 throw;
             }
@@ -76,21 +76,21 @@ namespace api.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteAddress(int id)
+        public async Task<IActionResult> DeleteEndereco(int id)
         {
-            var address = await _context.Address.FindAsync(id);
-            if (address == null)
+            var endereco = await _context.Endereco.FindAsync(id);
+            if (endereco == null)
                 return NotFound();
 
-            _context.Address.Remove(address);
+            _context.Endereco.Remove(endereco);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
-        private bool AddressExists(int id)
+        private bool EnderecoExists(int id)
         {
-            return _context.Address.Any(e => e.Id == id);
+            return _context.Endereco.Any(e => e.Id == id);
         }
     }
 }

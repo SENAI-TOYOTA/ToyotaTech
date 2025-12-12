@@ -11,56 +11,58 @@ namespace api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class UserController : ControllerBase
+    public class UsuarioController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
 
-        public UserController(ApplicationDbContext context)
+        public UsuarioController(ApplicationDbContext context)
         {
             _context = context;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+        public async Task<ActionResult<IEnumerable<Usuario>>> GetUsuarios()
         {
-            return await _context.User
-                .Include(u => u.Addresses)
+            return await _context.Usuario
+                .Include(u => u.Enderecos)
+                .Include(u => u.Telefones)
                 .ToListAsync();
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
+        public async Task<ActionResult<Usuario>> GetUsuario(int id)
         {
-            var user = await _context.User
-                .Include(u => u.Addresses)
+            var usuario = await _context.Usuario
+                .Include(u => u.Enderecos)
+                .Include(u => u.Telefones)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
-            if (user == null)
+            if (usuario == null)
             {
                 return NotFound();
             }
 
-            return user;
+            return usuario;
         }
 
         [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
+        public async Task<ActionResult<Usuario>> PostUsuario(Usuario usuario)
         {
-            _context.Add(user);
+            _context.Add(usuario);
             await _context.SaveChangesAsync();
             
-            return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
+            return CreatedAtAction(nameof(GetUsuario), new { id = usuario.Id }, usuario);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(int id, User user)
+        public async Task<IActionResult> PutUsuario(int id, Usuario usuario)
         {
-            if (id != user.Id)
+            if (id != usuario.Id)
             {
                 return BadRequest();
             }
 
-            _context.Entry(user).State = EntityState.Modified;
+            _context.Entry(usuario).State = EntityState.Modified;
 
             try
             {
@@ -68,7 +70,7 @@ namespace api.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!UserExists(id))
+                if (!UsuarioExists(id))
                 {
                     return NotFound();
                 }
@@ -82,23 +84,23 @@ namespace api.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(int id)
+        public async Task<IActionResult> DeleteUsuario(int id)
         {
-            var user = await _context.User.FindAsync(id);
-            if (user == null)
+            var usuario = await _context.Usuario.FindAsync(id);
+            if (usuario == null)
             {
                 return NotFound();
             }
 
-            _context.User.Remove(user);
+            _context.Usuario.Remove(usuario);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
 
-        private bool UserExists(int id)
+        private bool UsuarioExists(int id)
         {
-            return _context.User.Any(e => e.Id == id);
+            return _context.Usuario.Any(e => e.Id == id);
         }
     }
 }

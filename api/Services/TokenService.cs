@@ -16,15 +16,15 @@ namespace api.Services
             _config = config;
         }
 
-        public string GenerateToken(User user)
+        public string GenerateToken(Usuario usuario)
         {
             var jwtSettings = _config.GetSection("Jwt");
             var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email)
+                new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+                new Claim(ClaimTypes.Email, usuario.Email)
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor
