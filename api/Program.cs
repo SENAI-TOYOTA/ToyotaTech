@@ -7,15 +7,14 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// CONEXÃO MYSQL
+// 🔹 POSTGRESQL (Npgsql)
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
 
-// JWT
+// 🔐 JWT
 var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -39,9 +38,14 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 
 // Swagger + JWT
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Toyota Tech API",
+        Version = "v1"
+    });
 
     var securityScheme = new OpenApiSecurityScheme
     {
@@ -50,20 +54,18 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Insira o token JWT aqui"
+        Description = "Digite: Bearer {seu token}"
     };
 
     c.AddSecurityDefinition("Bearer", securityScheme);
 
-    var securityRequirement = new OpenApiSecurityRequirement
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             securityScheme,
             new string[] {}
         }
-    };
-
-    c.AddSecurityRequirement(securityRequirement);
+    });
 });
 
 var app = builder.Build();
@@ -71,7 +73,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseAuthentication(); // JWT
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
