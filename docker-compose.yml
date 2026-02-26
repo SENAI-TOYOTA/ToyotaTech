@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: toyota_postgres
+    environment:
+      POSTGRES_DB: db_toyotatech
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: toyota_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@toyota.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    restart: always
+
+volumes:
+  postgres_data:
+  pgadmin_data:
