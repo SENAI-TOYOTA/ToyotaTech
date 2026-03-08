@@ -1,0 +1,312 @@
+06-frontend
+Mapeamento Técnico do Frontend
+
+Sistema de Gestão Automotiva (Interface Web)
+
+Este documento representa o estado atual das telas desenvolvidas no frontend, considerando apenas a interface do usuário (UI), sem integração com backend.
+
+1. Levantamento Inicial Obrigatório
+1.1 Pilha Tecnológica
+
+Pilha Identificada
+
+Tecnologia	Descrição
+Linguagem	TypeScript
+Biblioteca	React
+Framework Web	Next.js
+Estilização	Tailwind CSS
+Estrutura de Componentes	JSX / TSX
+Modelo de Interface	SPA (Single Page Application)
+Gerenciamento de Rotas	Router do Next.js
+Organização de UI	Componentização
+2. Arquitetura Atual do Frontend
+2.1 Estrutura de Camadas
+
+A aplicação frontend está organizada da seguinte forma:
+
+Pages (Telas)
+↓
+Componentes UI
+↓
+Componentes de Layout
+↓
+Estilização Tailwind
+
+Camadas identificadas
+
+Pages (Telas do sistema)
+
+Componentes reutilizáveis
+
+Layout (menu, sidebar, dashboard)
+
+Estilização com Tailwind
+
+Camadas não identificadas
+
+Camada de serviços
+
+Gerenciamento global de estado
+
+Hooks de dados
+
+Middleware de autenticação
+
+3. Componentização Identificada
+
+Componentes utilizados no frontend:
+
+Componente	Função
+Input	Campos de formulário
+Button	Botões de ação
+Card	Exibição de informações
+Sidebar	Menu lateral
+Navbar	Navegação superior
+Form	Estrutura de cadastro
+VehicleCard	Exibição de veículos
+4. Documentação Formal das Telas
+Tela 1 – Login ADM
+
+Nome da Funcionalidade
+Autenticação de usuário (interface)
+
+Tela
+Login ADM
+
+Descrição
+
+Tela responsável pela entrada do usuário no sistema administrativo.
+
+Campos presentes
+
+Email
+Senha
+Botão Entrar
+
+Componentes utilizados
+
+LoginForm.tsx
+Input.tsx
+Button.tsx
+Logo.tsx
+
+Fluxo da Interface
+
+Usuário acessa página de login
+↓
+Preenche email
+↓
+Preenche senha
+↓
+Clica em Entrar
+↓
+Sistema redireciona para Dashboard
+Tela 2 – Dashboard Administrativo
+
+Nome da Funcionalidade
+Painel administrativo
+
+Tela
+Dashboard ADM
+
+Descrição
+
+Painel central com indicadores do sistema.
+
+Informações exibidas
+
+Resumo de pedidos
+Resumo de veículos
+Resumo de vendas
+Gráficos de desempenho
+
+Componentes utilizados
+
+DashboardPage.tsx
+StatsCard.tsx
+Chart.tsx
+Sidebar.tsx
+Navbar.tsx
+
+Elementos visuais
+
+Cards de métricas
+Gráficos
+Tabela de dados
+Menu lateral
+Tela 3 – Menu do Sistema
+
+Nome da Funcionalidade
+Navegação da aplicação
+
+Tela
+Menu lateral
+
+Descrição
+
+Menu responsável pela navegação entre as telas do sistema.
+
+Itens identificados
+
+Dashboard
+Clientes
+Pedidos
+Veículos
+Financiamentos
+Perfil
+
+Componentes
+
+Sidebar.tsx
+MenuItem.tsx
+Icon.tsx
+Tela 4 – Home (Catálogo de Veículos)
+
+Nome da Funcionalidade
+Visualização de veículos
+
+Tela
+Home
+
+Descrição
+
+Página pública com listagem de veículos disponíveis.
+
+Elementos exibidos
+
+Imagem do veículo
+Nome do modelo
+Descrição
+Preço
+Botão de ação
+
+Componentes
+
+VehicleCard.tsx
+VehicleList.tsx
+FilterBar.tsx
+Tela 5 – Cadastro de Usuário
+
+Nome da Funcionalidade
+Cadastro de conta
+
+Tela
+Cadastro
+
+Descrição
+
+Tela utilizada para criação de novos usuários no sistema.
+
+Campos identificados
+
+Nome
+Email
+Senha
+Confirmar senha
+
+Componentes utilizados
+
+RegisterForm.tsx
+Input.tsx
+Button.tsx
+Tela 6 – Cadastro de Cliente
+
+Nome da Funcionalidade
+Cadastro de cliente
+
+Tela
+Cadastro Cliente
+
+Descrição
+
+Tela utilizada para registrar novos clientes.
+
+Campos presentes
+
+Nome
+CPF ou CNPJ
+Telefone
+Email
+Endereço
+
+Componentes
+
+ClientForm.tsx
+Input.tsx
+FormLayout.tsx
+Tela 7 – Gestão de Veículos
+
+Nome da Funcionalidade
+Gerenciamento de veículos
+
+Tela
+Gestão de Veículos
+
+Descrição
+
+Interface para administração dos veículos cadastrados.
+
+Elementos presentes
+
+Tabela de veículos
+Botão adicionar veículo
+Botão editar
+Botão excluir
+
+Componentes
+
+VehicleTable.tsx
+VehicleForm.tsx
+ActionButtons.tsx
+Tela 8 – Financiamento
+
+Nome da Funcionalidade
+Simulação de financiamento
+
+Tela
+Financiamento
+
+Descrição
+
+Interface para cálculo e registro de financiamento de veículos.
+
+Campos identificados
+
+Valor do veículo
+Entrada
+Número de parcelas
+Taxa de juros
+
+Componentes
+
+FinanceForm.tsx
+Calculator.tsx
+FinanceTable.tsx//
+5. Rotas do Frontend
+
+Rotas identificadas no sistema:
+
+/login
+/dashboard
+/home
+/cadastro
+/clientes
+/veiculos
+/pedidos
+/financiamento
+/perfi
+8. Conclusão Técnica
+
+O frontend apresenta estrutura funcional e moderna, utilizando tecnologias atuais como React, TypeScript e Tailwind.
+
+A interface está organizada em múltiplas telas que cobrem as principais funcionalidades do sistema de gestão automotiva, incluindo autenticação, administração, cadastro de clientes, gestão de veículos e simulação de financiamento.
+
+ /A evolução futura deverá focar em:
+
+organização de estado global
+
+integração com backend
+
+padronização de componentes
+
+melhoria da validação de formulários./
