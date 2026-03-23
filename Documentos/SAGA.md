@@ -55,7 +55,7 @@ Como solução, será explorado o uso de sensores IoT conectados a um sistema ba
 
 
 ## 📷 Evidência da Demanda (SAGA)
-![Demanda SAGA](../Diagramas/SAGA.png)
+![Demanda SAGA](Diagramas/SAGA.png)
 
 
 ## 📎 Observação
