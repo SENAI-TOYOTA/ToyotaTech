@@ -1,0 +1,16 @@
+# Pastas de build e cache
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Logs e backups
+*.log
+*.bak
+*.tmp
+
+# Arquivos de configuração locais
+appsettings.Local.json
