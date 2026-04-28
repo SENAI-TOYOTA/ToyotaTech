@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import Checkbox from "expo-checkbox";
 
@@ -12,6 +13,8 @@ import { colors, fonts, fontSize, spacing } from "@/constants/theme";
 const googleIcon = require("@/assets/images/google-icon.png");
 
 export default function LoginScreen() {
+  const router = useRouter();
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -44,6 +47,7 @@ export default function LoginScreen() {
             variant="primary"
             icon={<ArrowRight size={36} strokeWidth={3} color={colors.white} strokeLinecap="butt" strokeLinejoin="round" />}
             style={styles.continueButton}
+            onPress={() => router.push("/(auth)/password")}
           />
           <Text style={styles.footerText}>
             todos os direitos reservados © 2026

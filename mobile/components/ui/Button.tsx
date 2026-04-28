@@ -1,6 +1,7 @@
 import {
   Text,
   TouchableOpacity,
+  TouchableOpacityProps,
   StyleSheet,
   ViewStyle,
   TextStyle,
@@ -16,6 +17,7 @@ interface ButtonProps {
   icon?: React.ReactNode;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  onPress?: TouchableOpacityProps["onPress"];
 }
 
 export default function Button({
@@ -24,6 +26,7 @@ export default function Button({
   icon,
   style,
   textStyle,
+  onPress,
 }: ButtonProps) {
   if (variant === "primary") {
     return (
@@ -32,6 +35,7 @@ export default function Button({
         <TouchableOpacity
           style={[styles.base, variantStyles[variant]]}
           activeOpacity={0.8}
+          onPress={onPress}
         >
           <View style={styles.contentWrapper}>
             <Text style={[styles.text, variantTextStyles[variant], textStyle]}>
@@ -48,6 +52,7 @@ export default function Button({
     <TouchableOpacity
       style={[styles.base, variantStyles[variant], style]}
       activeOpacity={0.8}
+      onPress={onPress}
     >
       <View style={styles.contentWrapper}>
         <Text style={[styles.text, variantTextStyles[variant], textStyle]}>
