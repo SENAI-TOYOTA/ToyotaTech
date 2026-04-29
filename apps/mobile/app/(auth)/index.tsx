@@ -1,14 +1,13 @@
 import { View, Text, StyleSheet, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import Checkbox from "expo-checkbox";
 
-import Logo from "@/components/Logo";
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import SocialButton from "@/components/ui/SocialButton";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { AuthScreenLayout } from "./_layout";
 
 const googleIcon = require("@/assets/images/google-icon.png");
 
@@ -22,32 +21,11 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.topSection}>
-          <View style={styles.logoContainer}>
-            <Logo size={fontSize.logo} />
-          </View>
-          <View style={styles.formSection}>
-            <SocialButton icon={googleIcon} />
-            <TextInput placeholder="ENDEREÇO DE EMAIL *" />
-            <View style={styles.termsContainer}>
-              <Checkbox
-                value={false}
-                style={styles.checkbox}
-                color={colors.black}
-              />
-              <Text style={styles.termsText}>
-                Ao clicar em prosseguir, você{"\n"}concorda com os{" "}
-                <Text style={styles.termsLink}>
-                  Termos e{"\n"}Condições ToyotaTech
-                </Text>
-                .
-              </Text>
-            </View>
-          </View>
-        </View>
-        <View style={styles.bottomSection}>
+    <AuthScreenLayout
+      contentSectionStyle={styles.contentSection}
+      footerTextColor={colors.textSecondary}
+      bottomContent={
+        <View style={styles.bottomContentContainer}>
           <Button
             title="Prosseguir"
             variant="primary"
@@ -55,33 +33,34 @@ export default function LoginScreen() {
             style={styles.continueButton}
             onPress={handleContinuePress}
           />
-          <Text style={styles.footerText}>
-            todos os direitos reservados © 2026
+        </View>
+      }
+    >
+      <View style={styles.formSection}>
+        <SocialButton icon={googleIcon} />
+        <TextInput placeholder="ENDEREÇO DE EMAIL *" />
+        <View style={styles.termsContainer}>
+          <Checkbox
+            value={false}
+            style={styles.checkbox}
+            color={colors.black}
+          />
+          <Text style={styles.termsText}>
+            Ao clicar em prosseguir, você{"\n"}concorda com os{" "}
+            <Text style={styles.termsLink}>
+              Termos e{"\n"}Condições ToyotaTech
+            </Text>
+            .
           </Text>
         </View>
       </View>
-    </SafeAreaView>
+    </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flex: 1,
-    justifyContent: "space-between",
-    paddingHorizontal: 55,
-    paddingTop: 48,
-    paddingBottom: 48,
-  },
-  topSection: {
-    gap: 60,
-  },
-  logoContainer: {
-    alignItems: "center",
-    paddingTop: spacing.xl,
+  contentSection: {
+    marginTop: spacing.xl + spacing.xl + spacing.sm,
   },
   formSection: {
     gap: spacing.lg,
@@ -110,16 +89,10 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
     fontFamily: fonts.medium,
   },
-  bottomSection: {
-    alignItems: "center",
-    gap: spacing.lg,
+  bottomContentContainer: {
+    width: "100%",
   },
   continueButton: {
     width: "100%",
-  },
-  footerText: {
-    fontFamily: fonts.regular,
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
   },
 });
