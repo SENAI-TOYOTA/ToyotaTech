@@ -1,4 +1,6 @@
 import {
+  Animated,
+  Easing,
   Text,
   TouchableOpacity,
   TouchableOpacityProps,
@@ -6,7 +8,9 @@ import {
   ViewStyle,
   TextStyle,
   View,
+  useWindowDimensions,
 } from "react-native";
+import { useRef } from "react";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
 
 type ButtonVariant = "primary" | "outline" | "ghost";
@@ -28,22 +32,71 @@ export default function Button({
   textStyle,
   onPress,
 }: ButtonProps) {
+  const { width } = useWindowDimensions();
+  const isCompactScreen = width <= 390;
+  const pressProgress = useRef(new Animated.Value(0)).current;
+  const AnimatedTouchableOpacity =
+    Animated.createAnimatedComponent(TouchableOpacity);
+
+  const animatePress = (toValue: number) => {
+    Animated.timing(pressProgress, {
+      toValue,
+      duration: 120,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  };
+
   if (variant === "primary") {
     return (
       <View style={[style, { marginLeft: 6, marginBottom: 6 }, styles.wrapperShadow]}>
         <View style={styles.shadowLayer} />
-        <TouchableOpacity
-          style={[styles.base, variantStyles[variant]]}
-          activeOpacity={0.8}
+        <AnimatedTouchableOpacity
+          style={[
+            styles.base,
+            variantStyles[variant],
+            {
+              transform: [
+                {
+                  translateX: pressProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -6],
+                  }),
+                },
+                {
+                  translateY: pressProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 6],
+                  }),
+                },
+              ],
+            },
+          ]}
+          activeOpacity={1}
+          onPressIn={() => animatePress(1)}
+          onPressOut={() => animatePress(0)}
           onPress={onPress}
         >
-          <View style={styles.contentWrapper}>
-            <Text style={[styles.text, variantTextStyles[variant], textStyle]}>
+          <View
+            style={[
+              styles.contentWrapper,
+              isCompactScreen && styles.contentWrapperCompact,
+            ]}
+          >
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.text,
+                variantTextStyles[variant],
+                isCompactScreen && styles.textCompact,
+                textStyle,
+              ]}
+            >
               {title}
             </Text>
             {icon && <View style={{ flexShrink: 0 }}>{icon}</View>}
           </View>
-        </TouchableOpacity>
+        </AnimatedTouchableOpacity>
       </View>
     );
   }
@@ -51,11 +104,24 @@ export default function Button({
   return (
     <TouchableOpacity
       style={[styles.base, variantStyles[variant], style]}
-      activeOpacity={0.8}
+      activeOpacity={1}
       onPress={onPress}
     >
-      <View style={styles.contentWrapper}>
-        <Text style={[styles.text, variantTextStyles[variant], textStyle]}>
+      <View
+        style={[
+          styles.contentWrapper,
+          isCompactScreen && styles.contentWrapperCompact,
+        ]}
+      >
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.text,
+            variantTextStyles[variant],
+            isCompactScreen && styles.textCompact,
+            textStyle,
+          ]}
+        >
           {title}
         </Text>
         {icon && <View style={{ flexShrink: 0 }}>{icon}</View>}
@@ -75,11 +141,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 40,
+    gap: spacing.lg,
+    minWidth: 0,
+  },
+  contentWrapperCompact: {
+    gap: spacing.md,
   },
   text: {
     fontFamily: fonts.semiBold,
     fontSize: fontSize.xxl,
+    flexShrink: 1,
+  },
+  textCompact: {
+    fontSize: 28,
   },
   shadowLayer: {
     position: "absolute",

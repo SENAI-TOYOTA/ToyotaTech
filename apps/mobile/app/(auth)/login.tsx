@@ -7,11 +7,11 @@ import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { colors, fonts, fontSize } from "@/constants/theme";
 
-export default function PasswordScreen() {
+export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <View style={styles.mainContent}>
+        <View style={styles.topSection}>
           <View style={styles.logoContainer}>
             <Logo size={60} />
           </View>
@@ -52,7 +52,9 @@ export default function PasswordScreen() {
           </View>
         </View>
 
-        <Text style={styles.footerText}>todos os direitos reservados © 2026</Text>
+        <View style={styles.bottomSection}>
+          <Text style={styles.footerText}>todos os direitos reservados © 2026</Text>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -65,20 +67,20 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 55,
     paddingTop: 48,
-    paddingBottom: 20,
+    paddingBottom: 48,
   },
-  mainContent: {
+  topSection: {
     width: "100%",
-    alignItems: "center",
   },
   logoContainer: {
+    alignItems: "center",
     marginTop: 10,
   },
   formContainer: {
-    width: 260,
+    width: "100%",
     marginTop: 168,
   },
   visibilityRow: {
@@ -123,6 +125,9 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     textDecorationLine: "underline",
     color: colors.textPrimary,
+  },
+  bottomSection: {
+    alignItems: "center",
   },
   footerText: {
     fontFamily: fonts.regular,

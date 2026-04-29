@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
@@ -14,6 +14,12 @@ const googleIcon = require("@/assets/images/google-icon.png");
 
 export default function LoginScreen() {
   const router = useRouter();
+  const handleContinuePress = () => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      (document.activeElement as HTMLElement | null)?.blur();
+    }
+    router.push("/(auth)/login");
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -47,7 +53,7 @@ export default function LoginScreen() {
             variant="primary"
             icon={<ArrowRight size={36} strokeWidth={3} color={colors.white} strokeLinecap="butt" strokeLinejoin="round" />}
             style={styles.continueButton}
-            onPress={() => router.push("/(auth)/password")}
+            onPress={handleContinuePress}
           />
           <Text style={styles.footerText}>
             todos os direitos reservados © 2026
