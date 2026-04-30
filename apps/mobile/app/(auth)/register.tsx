@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { ArrowRight, Eye } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
@@ -7,6 +8,16 @@ import { colors, fonts, fontSize, spacing } from "@/constants/theme";
 import { AuthScreenLayout } from "./_layout";
 
 export default function RegisterScreen() {
+  const router = useRouter();
+
+  const handleCreateAccountPress = () => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      (document.activeElement as HTMLElement | null)?.blur();
+    }
+
+    router.push("/(auth)/verify-email");
+  };
+
   return (
     <AuthScreenLayout>
       <Text style={styles.welcomeText}>BEM-VINDO(A)!</Text>
@@ -41,6 +52,7 @@ export default function RegisterScreen() {
             />
           }
           style={styles.createAccountButton}
+          onPress={handleCreateAccountPress}
         />
       </View>
     </AuthScreenLayout>

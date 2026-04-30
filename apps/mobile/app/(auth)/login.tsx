@@ -1,5 +1,6 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { ArrowRight, Eye } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
@@ -7,6 +8,16 @@ import { colors, fonts, fontSize } from "@/constants/theme";
 import { AuthScreenLayout } from "./_layout";
 
 export default function LoginScreen() {
+  const router = useRouter();
+
+  const handleLoginPress = () => {
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      (document.activeElement as HTMLElement | null)?.blur();
+    }
+
+    router.push("/home");
+  };
+
   return (
     <AuthScreenLayout>
       <View style={styles.formContainer}>
@@ -34,6 +45,7 @@ export default function LoginScreen() {
             />
           }
           style={styles.loginButton}
+          onPress={handleLoginPress}
         />
 
         <Text style={styles.termsText}>
