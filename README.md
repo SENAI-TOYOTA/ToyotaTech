@@ -13,17 +13,17 @@ O projeto está dividido em cinco partes principais:
 - *Banco de Dados*  
   Estrutura relacional que dá suporte à aplicação, com tabelas que simulam clientes, veículos, pedidos, pagamentos e muito mais.
   
-  ➤ [Acessar README de Banco de Dados](./BD.md)
+  ➤ [Acessar README de Banco de Dados](./docs/diagramas/BD.md)
   
 - *Diagrama de Classes*
   Modelo UML que mostra classes, atributos e relações, facilitando a visualização da estrutura do sistema.
   
-  ➤ [Acessar README do Driagrama de Classes](./UML.md)
+  ➤ [Acessar README do Driagrama de Classes](./docs/diagramas/UML.md)
 
 - *Ciência de Dados*  
   Análise e visualização de dados da operação, com insights sobre vendas, preferências de clientes, tempo de entrega, etc.
   
-  ➤ [Acessar README de Ciência de Dados](./CD.md)
+  ➤ [Acessar README de Ciência de Dados](./docs/diagramas/CD.md)
 
 - *Telas Web (Front-End)*  
   Protótipo funcional da aplicação, com páginas que simulam a interface utilizada pelos clientes da Toyota.
@@ -39,9 +39,9 @@ O projeto está dividido em cinco partes principais:
   
   
 - *Documentação*  
-  Aqui está todo o nosso projeto documento em PDF e nos padrões ABNT.
+  Aqui está todo o nosso projeto documentado em PDF e nos padrões ABNT.
   
-  ➤ [Ver documentação](./ToyotaDocument.pdf)
+  ➤ [Ver documentação](./docs/geral/ToyotaDocument.pdf)
 
 
 ## Objetivo
