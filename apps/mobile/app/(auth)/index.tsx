@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { View, Text, StyleSheet, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
@@ -13,11 +14,28 @@ const googleIcon = require("@/assets/images/google-icon.png");
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+  const canContinue = normalizedEmail.includes("@") && acceptedTerms;
+
   const handleContinuePress = () => {
+    if (!canContinue) {
+      setFormError("Preencha e-mail valido e aceite os termos.");
+      return;
+    }
+
+    setFormError(null);
     if (Platform.OS === "web" && typeof document !== "undefined") {
       (document.activeElement as HTMLElement | null)?.blur();
     }
-    router.push("/(auth)/login");
+
+    router.push({
+      pathname: "/(auth)/login",
+      params: { email: normalizedEmail },
+    });
   };
 
   return (
@@ -32,18 +50,26 @@ export default function LoginScreen() {
             icon={<ArrowRight size={36} strokeWidth={3} color={colors.white} strokeLinecap="butt" strokeLinejoin="round" />}
             style={styles.continueButton}
             onPress={handleContinuePress}
+            disabled={!canContinue}
           />
         </View>
       }
     >
       <View style={styles.formSection}>
         <SocialButton icon={googleIcon} />
-        <TextInput placeholder="ENDEREÇO DE EMAIL *" />
+        <TextInput
+          placeholder="ENDEREÇO DE EMAIL *"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
         <View style={styles.termsContainer}>
           <Checkbox
-            value={false}
+            value={acceptedTerms}
+            onValueChange={setAcceptedTerms}
             style={styles.checkbox}
-            color={colors.black}
+            color={acceptedTerms ? colors.black : undefined}
           />
           <Text style={styles.termsText}>
             Ao clicar em prosseguir, você{"\n"}concorda com os{" "}
@@ -53,6 +79,7 @@ export default function LoginScreen() {
             .
           </Text>
         </View>
+        {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
       </View>
     </AuthScreenLayout>
   );
@@ -88,6 +115,12 @@ const styles = StyleSheet.create({
   termsLink: {
     textDecorationLine: "underline",
     fontFamily: fonts.medium,
+  },
+  formErrorText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.primary,
   },
   bottomContentContainer: {
     width: "100%",

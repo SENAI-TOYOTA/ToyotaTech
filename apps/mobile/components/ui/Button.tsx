@@ -22,6 +22,7 @@ interface ButtonProps {
   style?: ViewStyle;
   textStyle?: TextStyle;
   onPress?: TouchableOpacityProps["onPress"];
+  disabled?: boolean;
 }
 
 export default function Button({
@@ -31,6 +32,7 @@ export default function Button({
   style,
   textStyle,
   onPress,
+  disabled = false,
 }: ButtonProps) {
   const { width } = useWindowDimensions();
   const isCompactScreen = width <= 390;
@@ -55,6 +57,7 @@ export default function Button({
           style={[
             styles.base,
             variantStyles[variant],
+            disabled && styles.disabled,
             {
               transform: [
                 {
@@ -73,9 +76,17 @@ export default function Button({
             },
           ]}
           activeOpacity={1}
-          onPressIn={() => animatePress(1)}
-          onPressOut={() => animatePress(0)}
-          onPress={onPress}
+          onPressIn={() => {
+            if (!disabled) {
+              animatePress(1);
+            }
+          }}
+          onPressOut={() => {
+            if (!disabled) {
+              animatePress(0);
+            }
+          }}
+          onPress={disabled ? undefined : onPress}
         >
           <View
             style={[
@@ -103,9 +114,9 @@ export default function Button({
 
   return (
     <TouchableOpacity
-      style={[styles.base, variantStyles[variant], style]}
+      style={[styles.base, variantStyles[variant], disabled && styles.disabled, style]}
       activeOpacity={1}
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
     >
       <View
         style={[
@@ -172,6 +183,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 4,
+  },
+  disabled: {
+    opacity: 0.6,
   },
 });
 

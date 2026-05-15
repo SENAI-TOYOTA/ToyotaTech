@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react-native";
 import { ScrollView, StyleSheet, View } from "react-native";
+import { useRouter } from "expo-router";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
+import { useAuth } from "@/contexts/AuthContext";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
 
 export default function ProfileScreen() {
+  const router = useRouter();
+  const { signOut } = useAuth();
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [email, setEmail] = useState("");
@@ -62,6 +66,15 @@ export default function ProfileScreen() {
 
       <View style={styles.saveButtonContainer}>
         <Button
+          title="Sair da conta"
+          variant="outline"
+          style={styles.logoutButton}
+          onPress={async () => {
+            await signOut();
+            router.replace("/");
+          }}
+        />
+        <Button
           title="Salvar"
           style={styles.saveButton}
           icon={
@@ -114,6 +127,11 @@ const styles = StyleSheet.create({
     right: spacing.lg + 3,
     bottom: spacing.xxl + spacing.md,
     zIndex: 1,
+    gap: spacing.sm,
+  },
+  logoutButton: {
+    width: "100%",
+    borderColor: colors.black,
   },
   saveButton: {
     width: "100%",

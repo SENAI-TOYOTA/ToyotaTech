@@ -1,20 +1,30 @@
 import { useRef, useState } from "react";
 import { View, Text, StyleSheet, TextInput, Platform } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 
 import Button from "@/components/ui/Button";
+import { resendVerification, verifyEmail } from "@/services/auth";
+import { ApiError } from "@/services/api";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
 import { AuthScreenLayout } from "./_layout";
 
-const CODE_LENGTH = 4;
+const CODE_LENGTH = 6;
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
+  const { email = "", devCode = "" } = useLocalSearchParams<{
+    email?: string;
+    devCode?: string;
+  }>();
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const [verificationCode, setVerificationCode] = useState<string[]>(
     Array.from({ length: CODE_LENGTH }, () => "")
   );
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   const handleCodeChange = (rawValue: string, index: number) => {
     const digits = rawValue.replace(/\D/g, "");
@@ -54,12 +64,58 @@ export default function VerifyEmailScreen() {
     }
   };
 
-  const handleVerifyPress = () => {
+  const handleVerifyPress = async () => {
+    const currentCode = verificationCode.join("");
+    if (currentCode.length !== CODE_LENGTH) {
+      setFormError("Informe o codigo completo de verificacao.");
+      return;
+    }
+    setFormError(null);
+    setFeedback(null);
+
     if (Platform.OS === "web" && typeof document !== "undefined") {
       (document.activeElement as HTMLElement | null)?.blur();
     }
 
-    router.push("/(auth)/login");
+    setIsSubmitting(true);
+    try {
+      await verifyEmail({ email: String(email).toLowerCase(), code: currentCode });
+      router.replace({
+        pathname: "/(auth)/login",
+        params: { email: String(email).toLowerCase() },
+      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setFormError(error.message);
+      } else {
+        setFormError("Nao foi possivel validar o codigo. Tente novamente.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendPress = async () => {
+    setFormError(null);
+    setFeedback(null);
+    setIsResending(true);
+    try {
+      const response = await resendVerification(String(email).toLowerCase());
+      const codeHint = response.verificationCode
+        ? ` Codigo de teste: ${response.verificationCode}`
+        : "";
+      setFeedback(`Codigo reenviado.${codeHint}`);
+      setVerificationCode(Array.from({ length: CODE_LENGTH }, () => ""));
+      inputRefs.current[0]?.focus();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setFormError(error.message);
+      } else {
+        setFormError("Nao foi possivel reenviar o codigo.");
+      }
+    } finally {
+      setIsResending(false);
+    }
   };
 
   return (
@@ -70,7 +126,7 @@ export default function VerifyEmailScreen() {
       <View style={styles.formContainer}>
         <View style={styles.emailRow}>
           <Text style={styles.emailLabel}>Email enviado para:</Text>
-          <Text style={styles.emailValue}>em***@mail.com</Text>
+          <Text style={styles.emailValue}>{email || "seu e-mail"}</Text>
         </View>
 
         <View style={styles.codeInputsRow}>
@@ -85,7 +141,7 @@ export default function VerifyEmailScreen() {
               onKeyPress={({ nativeEvent }) =>
                 handleCodeKeyPress(nativeEvent.key, index)
               }
-              maxLength={CODE_LENGTH}
+              maxLength={1}
               keyboardType="number-pad"
               textContentType="oneTimeCode"
               style={styles.codeInput}
@@ -96,7 +152,7 @@ export default function VerifyEmailScreen() {
         </View>
 
         <Button
-          title="Verificar"
+          title={isSubmitting ? "Verificando..." : "Verificar"}
           variant="primary"
           icon={
             <ArrowRight
@@ -109,7 +165,18 @@ export default function VerifyEmailScreen() {
           }
           style={styles.verifyButton}
           onPress={handleVerifyPress}
+          disabled={isSubmitting || isResending}
         />
+        <Button
+          title={isResending ? "Reenviando..." : "Reenviar codigo"}
+          variant="outline"
+          style={styles.resendButton}
+          onPress={handleResendPress}
+          disabled={isSubmitting || isResending}
+        />
+        {devCode ? <Text style={styles.devCodeText}>Codigo de teste: {devCode}</Text> : null}
+        {feedback ? <Text style={styles.feedbackText}>{feedback}</Text> : null}
+        {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
       </View>
     </AuthScreenLayout>
   );
@@ -168,5 +235,27 @@ const styles = StyleSheet.create({
   verifyButton: {
     width: "100%",
     marginTop: spacing.lg,
+  },
+  resendButton: {
+    width: "100%",
+    marginTop: spacing.sm,
+  },
+  devCodeText: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+  },
+  feedbackText: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+  },
+  formErrorText: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.primary,
   },
 });

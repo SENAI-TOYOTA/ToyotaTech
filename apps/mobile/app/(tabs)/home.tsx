@@ -2,19 +2,22 @@ import { ArrowRight } from "lucide-react-native";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { colors, fonts, spacing } from "@/constants/theme";
+import { useAuth } from "@/contexts/AuthContext";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 const sideCarImage = require("@/assets/images/corolla-side.png");
 const newsImage = require("@/assets/images/corolla-news.png");
 
 export default function HomeScreen() {
+  const { user } = useAuth();
+
   return (
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.welcomeText}>Bem vindo, Usuário!</Text>
+        <Text style={styles.welcomeText}>Bem vindo, {user?.name || "Usuário"}!</Text>
 
         <View style={styles.showcaseContainer}>
           <Image source={mainCarImage} style={styles.mainImage} resizeMode="cover" />
