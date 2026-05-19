@@ -1,21 +1,25 @@
-import { TouchableOpacity, StyleSheet, Image, ImageSourcePropType, ViewStyle, View } from "react-native";
-import { colors, borderRadius, spacing } from "@/constants/theme";
+import { TouchableOpacity, StyleSheet, Image, ImageSourcePropType, ViewStyle } from "react-native";
+import { colors } from "@/constants/theme";
 
 interface SocialButtonProps {
   icon: ImageSourcePropType;
   style?: ViewStyle;
   size?: number;
+  onPress?: () => void;
 }
 
 export default function SocialButton({
   icon,
   style,
   size = 32,
+  onPress,
 }: SocialButtonProps) {
   return (
     <TouchableOpacity
       style={[styles.container, style]}
       activeOpacity={0.7}
+      onPress={onPress}
+      disabled={!onPress}
     >
       <Image
         source={icon}

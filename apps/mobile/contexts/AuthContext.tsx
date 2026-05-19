@@ -10,33 +10,68 @@ import {
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
-import { fetchMe, login, register } from "@/services/auth";
+import { ApiError } from "@/services/api";
+import { fetchMe, login, refreshSession, register } from "@/services/auth";
 import { AuthUser, RegisterResponse } from "@/types/auth";
 
-const TOKEN_STORAGE_KEY = "toyotatech.auth.token";
+const SESSION_STORAGE_KEY = "toyotatech.auth.session";
 const isWeb = Platform.OS === "web";
 
-async function getStoredToken() {
-  if (isWeb) {
-    return globalThis.localStorage?.getItem(TOKEN_STORAGE_KEY) ?? null;
-  }
-  return SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
+interface StoredSession {
+  accessToken: string;
+  idToken: string;
+  refreshToken: string;
+  expiresAt: number;
 }
 
-async function setStoredToken(token: string) {
+async function getStoredSession(): Promise<StoredSession | null> {
+  const parseSession = (rawValue: string | null): StoredSession | null => {
+    if (!rawValue) {
+      return null;
+    }
+    try {
+      const parsed = JSON.parse(rawValue) as Partial<StoredSession>;
+      if (
+        typeof parsed.accessToken !== "string" ||
+        typeof parsed.idToken !== "string" ||
+        typeof parsed.refreshToken !== "string" ||
+        typeof parsed.expiresAt !== "number"
+      ) {
+        return null;
+      }
+      return {
+        accessToken: parsed.accessToken,
+        idToken: parsed.idToken,
+        refreshToken: parsed.refreshToken,
+        expiresAt: parsed.expiresAt,
+      };
+    } catch {
+      return null;
+    }
+  };
+
   if (isWeb) {
-    globalThis.localStorage?.setItem(TOKEN_STORAGE_KEY, token);
-    return;
+    return parseSession(globalThis.localStorage?.getItem(SESSION_STORAGE_KEY) ?? null);
   }
-  await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, token);
+  const raw = await SecureStore.getItemAsync(SESSION_STORAGE_KEY);
+  return parseSession(raw);
 }
 
-async function deleteStoredToken() {
+async function setStoredSession(session: StoredSession) {
+  const raw = JSON.stringify(session);
   if (isWeb) {
-    globalThis.localStorage?.removeItem(TOKEN_STORAGE_KEY);
+    globalThis.localStorage?.setItem(SESSION_STORAGE_KEY, raw);
     return;
   }
-  await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
+  await SecureStore.setItemAsync(SESSION_STORAGE_KEY, raw);
+}
+
+async function deleteStoredSession() {
+  if (isWeb) {
+    globalThis.localStorage?.removeItem(SESSION_STORAGE_KEY);
+    return;
+  }
+  await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
 }
 
 interface AuthContextValue {
@@ -46,38 +81,64 @@ interface AuthContextValue {
   isLoadingSession: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name?: string) => Promise<RegisterResponse>;
+  signInWithTokens: (session: StoredSession) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [token, setToken] = useState<string | null>(null);
+  const [session, setSession] = useState<StoredSession | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
 
   const clearSession = useCallback(async () => {
-    await deleteStoredToken();
-    setToken(null);
+    await deleteStoredSession();
+    setSession(null);
     setUser(null);
   }, []);
 
   const hydrateSession = useCallback(async () => {
     setIsLoadingSession(true);
     try {
-      const storedToken = await getStoredToken();
-      if (!storedToken) {
-        setToken(null);
+      const storedSession = await getStoredSession();
+      if (!storedSession) {
+        setSession(null);
         setUser(null);
         return;
       }
 
-      const meResult = await fetchMe(storedToken);
-      setToken(storedToken);
+      const meResult = await fetchMe(storedSession.accessToken);
+      setSession(storedSession);
       setUser(meResult.user);
     } catch (error) {
-      console.error("Falha ao restaurar sessao:", error);
-      await clearSession();
+      if (error instanceof ApiError && error.status === 401) {
+        try {
+          const storedSession = await getStoredSession();
+          if (!storedSession) {
+            await clearSession();
+            return;
+          }
+
+          const refreshed = await refreshSession({ refreshToken: storedSession.refreshToken });
+          const refreshedSession: StoredSession = {
+            accessToken: refreshed.accessToken,
+            idToken: refreshed.idToken,
+            refreshToken: storedSession.refreshToken,
+            expiresAt: refreshed.expiresAt,
+          };
+          const meResult = await fetchMe(refreshedSession.accessToken);
+          await setStoredSession(refreshedSession);
+          setSession(refreshedSession);
+          setUser(meResult.user);
+        } catch (refreshError) {
+          console.error("Falha ao renovar sessao:", refreshError);
+          await clearSession();
+        }
+      } else {
+        console.error("Falha ao restaurar sessao:", error);
+        await clearSession();
+      }
     } finally {
       setIsLoadingSession(false);
     }
@@ -87,16 +148,45 @@ export function AuthProvider({ children }: PropsWithChildren) {
     hydrateSession();
   }, [hydrateSession]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const result = await login({ email, password });
-    await setStoredToken(result.token);
-    setToken(result.token);
-    setUser(result.user);
-  }, []);
+  const applySession = useCallback(
+    async (nextSession: StoredSession) => {
+      await setStoredSession(nextSession);
+      setSession(nextSession);
+      try {
+        const meResult = await fetchMe(nextSession.accessToken);
+        setUser(meResult.user);
+      } catch (error) {
+        await clearSession();
+        throw error;
+      }
+    },
+    [clearSession]
+  );
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const result = await login({ email, password });
+      const nextSession: StoredSession = {
+        accessToken: result.accessToken,
+        idToken: result.idToken,
+        refreshToken: result.refreshToken,
+        expiresAt: result.expiresAt,
+      };
+      await applySession(nextSession);
+    },
+    [applySession]
+  );
 
   const signUp = useCallback(async (email: string, password: string, name?: string) => {
     return register({ email, password, name });
   }, []);
+
+  const signInWithTokens = useCallback(
+    async (nextSession: StoredSession) => {
+      await applySession(nextSession);
+    },
+    [applySession]
+  );
 
   const signOut = useCallback(async () => {
     await clearSession();
@@ -105,14 +195,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      token,
-      isAuthenticated: Boolean(token && user),
+      token: session?.accessToken ?? null,
+      isAuthenticated: Boolean(session && user),
       isLoadingSession,
       signIn,
       signUp,
+      signInWithTokens,
       signOut,
     }),
-    [isLoadingSession, signIn, signOut, signUp, token, user]
+    [isLoadingSession, session, signIn, signInWithTokens, signOut, signUp, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

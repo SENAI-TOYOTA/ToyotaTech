@@ -1,13 +1,20 @@
 param(
   [string]$Region = "",
-  [string]$Prefix = "toyotatech-lab",
-  [string]$TableName = "toyotatech-auth-dev",
-  [string]$EmailVerificationMode = "mock",
-  [string]$SesSourceEmail = ""
+  [string]$Prefix = "toyotatech",
+  [string]$UserPoolName = "",
+  [string]$UserPoolClientName = "mobile",
+  [string]$LegacyTableName = "toyotatech-auth-dev",
+  [string]$ProfileTableName = "",
+  [string]$HostedUiDomainPrefix = "",
+  [string]$GoogleClientId = "",
+  [string]$GoogleClientSecret = "",
+  [string]$CallbackUrls = "",
+  [string]$LogoutUrls = ""
 )
 
 $ErrorActionPreference = "Continue"
 $env:AWS_PAGER = ""
+$ProgressPreference = "SilentlyContinue"
 
 if ([string]::IsNullOrWhiteSpace($Region)) {
   $Region = aws configure get region
@@ -15,6 +22,47 @@ if ([string]::IsNullOrWhiteSpace($Region)) {
 
 if ([string]::IsNullOrWhiteSpace($Region)) {
   throw "Regiao AWS nao definida. Configure aws region ou passe -Region."
+}
+
+if ([string]::IsNullOrWhiteSpace($UserPoolName)) {
+  $UserPoolName = "$Prefix-auth"
+}
+
+if ([string]::IsNullOrWhiteSpace($ProfileTableName)) {
+  $ProfileTableName = "$Prefix-profile"
+}
+
+if ([string]::IsNullOrWhiteSpace($HostedUiDomainPrefix)) {
+  $HostedUiDomainPrefix = "$Prefix-auth"
+}
+
+function Get-UserPoolIdByName {
+  param(
+    [string]$PoolName,
+    [string]$AwsRegion
+  )
+  return aws cognito-idp list-user-pools `
+    --max-results 60 `
+    --region $AwsRegion `
+    --query "UserPools[?Name=='$PoolName'].Id | [0]" `
+    --output text
+}
+
+function Split-UrlList {
+  param([string]$RawValue)
+  if ([string]::IsNullOrWhiteSpace($RawValue)) {
+    return @()
+  }
+  return $RawValue -split "," | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+}
+
+$callbackUrlList = Split-UrlList -RawValue $CallbackUrls
+$logoutUrlList = Split-UrlList -RawValue $LogoutUrls
+$configureGoogle = -not [string]::IsNullOrWhiteSpace($GoogleClientId) -and `
+  -not [string]::IsNullOrWhiteSpace($GoogleClientSecret)
+
+if ($configureGoogle -and ($callbackUrlList.Count -eq 0 -or $logoutUrlList.Count -eq 0)) {
+  throw "Para configurar Google IdP, informe -CallbackUrls e -LogoutUrls."
 }
 
 $accountId = aws sts get-caller-identity --query Account --output text --region $Region
@@ -27,39 +75,163 @@ $awsRoot = Split-Path -Parent $scriptDir
 $mobileRoot = Split-Path -Parent $awsRoot
 $lambdaDir = Join-Path $awsRoot "lambda"
 $distDir = Join-Path $awsRoot "dist"
-$zipPath = Join-Path $distDir "auth-handler.zip"
-$zipFileArg = "fileb://aws/dist/auth-handler.zip"
+$zipPath = Join-Path $distDir "cognito-auth-handler.zip"
+$zipFileArg = "fileb://aws/dist/cognito-auth-handler.zip"
 
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 Push-Location $mobileRoot
 
-$tableExists = $false
-$null = aws dynamodb describe-table --table-name $TableName --region $Region 2>$null
-if ($LASTEXITCODE -eq 0) {
-  $tableExists = $true
+$userPoolId = Get-UserPoolIdByName -PoolName $UserPoolName -AwsRegion $Region
+if (-not $userPoolId -or $userPoolId -eq "None") {
+  $userPoolId = aws cognito-idp create-user-pool `
+    --pool-name $UserPoolName `
+    --auto-verified-attributes email `
+    --username-attributes email `
+    --verification-message-template DefaultEmailOption=CONFIRM_WITH_CODE `
+    --policies "PasswordPolicy={MinimumLength=8,RequireUppercase=true,RequireLowercase=true,RequireNumbers=true,RequireSymbols=false}" `
+    --query "UserPool.Id" `
+    --output text `
+    --region $Region
 }
 
-if (-not $tableExists) {
+if ($configureGoogle) {
+  $domainPoolId = aws cognito-idp describe-user-pool-domain `
+    --domain $HostedUiDomainPrefix `
+    --query "DomainDescription.UserPoolId" `
+    --output text `
+    --region $Region 2>$null
+  if ($LASTEXITCODE -eq 0 -and $domainPoolId -and $domainPoolId -ne "None") {
+    if ($domainPoolId -ne $userPoolId) {
+      throw "Hosted UI domain '$HostedUiDomainPrefix' ja pertence a outro User Pool."
+    }
+  } else {
+    aws cognito-idp create-user-pool-domain `
+      --domain $HostedUiDomainPrefix `
+      --user-pool-id $userPoolId `
+      --region $Region | Out-Null
+  }
+
+  $idpName = "Google"
+  $idpExists = aws cognito-idp list-identity-providers `
+    --user-pool-id $userPoolId `
+    --query "Providers[?ProviderName=='$idpName'].ProviderName | [0]" `
+    --output text `
+    --region $Region
+
+  if ($idpExists -and $idpExists -ne "None") {
+    aws cognito-idp update-identity-provider `
+      --user-pool-id $userPoolId `
+      --provider-name $idpName `
+      --provider-details client_id=$GoogleClientId client_secret=$GoogleClientSecret authorize_scopes="openid email profile" `
+      --attribute-mapping email=email name=name `
+      --region $Region | Out-Null
+  } else {
+    aws cognito-idp create-identity-provider `
+      --user-pool-id $userPoolId `
+      --provider-name $idpName `
+      --provider-type Google `
+      --provider-details client_id=$GoogleClientId client_secret=$GoogleClientSecret authorize_scopes="openid email profile" `
+      --attribute-mapping email=email name=name `
+      --region $Region | Out-Null
+  }
+} else {
+  Write-Host "Google IdP nao configurado. Informe -GoogleClientId e -GoogleClientSecret para habilitar."
+}
+
+$userPoolClientId = aws cognito-idp list-user-pool-clients `
+  --user-pool-id $userPoolId `
+  --max-results 60 `
+  --query "UserPoolClients[?ClientName=='$UserPoolClientName'].ClientId | [0]" `
+  --output text `
+  --region $Region
+
+$clientArgs = @(
+  "--user-pool-id", $userPoolId,
+  "--client-name", $UserPoolClientName,
+  "--no-generate-secret",
+  "--explicit-auth-flows", "ALLOW_USER_PASSWORD_AUTH", "ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH",
+  "--prevent-user-existence-errors", "ENABLED",
+  "--refresh-token-validity", "30",
+  "--access-token-validity", "60",
+  "--id-token-validity", "60",
+  "--token-validity-units", "AccessToken=minutes,IdToken=minutes,RefreshToken=days"
+)
+
+if ($configureGoogle) {
+  $clientArgs += @(
+    "--allowed-o-auth-flows-user-pool-client",
+    "--allowed-o-auth-flows", "code",
+    "--allowed-o-auth-scopes", "openid", "email", "profile",
+    "--supported-identity-providers", "COGNITO", "Google",
+    "--callback-urls"
+  ) + $callbackUrlList + @("--logout-urls") + $logoutUrlList
+}
+
+if (-not $userPoolClientId -or $userPoolClientId -eq "None") {
+  $createArgs = @("cognito-idp", "create-user-pool-client") + $clientArgs + @(
+    "--query", "UserPoolClient.ClientId",
+    "--output", "text",
+    "--region", $Region
+  )
+  $userPoolClientId = aws @createArgs
+} else {
+  $updateArgs = @(
+    "cognito-idp", "update-user-pool-client",
+    "--user-pool-id", $userPoolId,
+    "--client-id", $userPoolClientId
+  ) + $clientArgs + @(
+    "--region", $Region
+  )
+  aws @updateArgs | Out-Null
+}
+
+$null = aws dynamodb describe-table --table-name $ProfileTableName --region $Region 2>$null
+if ($LASTEXITCODE -ne 0) {
   aws dynamodb create-table `
-    --table-name $TableName `
-    --attribute-definitions AttributeName=PK,AttributeType=S AttributeName=SK,AttributeType=S `
-    --key-schema AttributeName=PK,KeyType=HASH AttributeName=SK,KeyType=RANGE `
+    --table-name $ProfileTableName `
+    --attribute-definitions AttributeName=userId,AttributeType=S `
+    --key-schema AttributeName=userId,KeyType=HASH `
     --billing-mode PAY_PER_REQUEST `
     --region $Region | Out-Null
-
-  aws dynamodb wait table-exists --table-name $TableName --region $Region
 }
 
-aws dynamodb update-time-to-live `
-  --table-name $TableName `
-  --time-to-live-specification Enabled=true,AttributeName=ttl `
-  --region $Region 2>$null | Out-Null
+$profileTableArn = aws dynamodb describe-table `
+  --table-name $ProfileTableName `
+  --query "Table.TableArn" `
+  --output text `
+  --region $Region
+$roleName = ($roleArn -split "/")[-1]
+$policyName = "$Prefix-profile-table-access"
+$policyDocument = @{
+  Version = "2012-10-17"
+  Statement = @(
+    @{
+      Effect = "Allow"
+      Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem")
+      Resource = $profileTableArn
+    }
+  )
+} | ConvertTo-Json -Depth 5
+aws iam put-role-policy `
+  --role-name $roleName `
+  --policy-name $policyName `
+  --policy-document $policyDocument | Out-Null
 
 if (Test-Path $zipPath) {
   Remove-Item -Force $zipPath
 }
 
-Compress-Archive -Path (Join-Path $lambdaDir "auth_handler.py") -DestinationPath $zipPath
+$packageDir = Join-Path $distDir "lambda-package"
+if (Test-Path $packageDir) {
+  Remove-Item -Recurse -Force $packageDir
+}
+New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
+Copy-Item -Force (Join-Path $lambdaDir "auth_handler.py") (Join-Path $packageDir "auth_handler.py")
+
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory($packageDir, $zipPath)
+Remove-Item -Recurse -Force $packageDir
 
 $lambdaExists = $false
 $null = aws lambda get-function --function-name $lambdaName --region $Region 2>$null
@@ -67,13 +239,9 @@ if ($LASTEXITCODE -eq 0) {
   $lambdaExists = $true
 }
 
-if (-not $lambdaExists) {
-  $envVars = "Variables={DYNAMODB_TABLE_NAME=$TableName,SESSION_DURATION_SECONDS=86400,VERIFICATION_CODE_TTL_SECONDS=900,EMAIL_VERIFICATION_MODE=$EmailVerificationMode"
-  if (-not [string]::IsNullOrWhiteSpace($SesSourceEmail)) {
-    $envVars = "$envVars,SES_SOURCE_EMAIL=$SesSourceEmail"
-  }
-  $envVars = "$envVars}"
+$envVars = "Variables={COGNITO_USER_POOL_ID=$userPoolId,COGNITO_CLIENT_ID=$userPoolClientId,COGNITO_REGION=$Region,PROFILE_TABLE_NAME=$ProfileTableName}"
 
+if (-not $lambdaExists) {
   aws lambda create-function `
     --function-name $lambdaName `
     --runtime python3.12 `
@@ -85,12 +253,6 @@ if (-not $lambdaExists) {
     --environment $envVars `
     --region $Region | Out-Null
 } else {
-  $envVars = "Variables={DYNAMODB_TABLE_NAME=$TableName,SESSION_DURATION_SECONDS=86400,VERIFICATION_CODE_TTL_SECONDS=900,EMAIL_VERIFICATION_MODE=$EmailVerificationMode"
-  if (-not [string]::IsNullOrWhiteSpace($SesSourceEmail)) {
-    $envVars = "$envVars,SES_SOURCE_EMAIL=$SesSourceEmail"
-  }
-  $envVars = "$envVars}"
-
   aws lambda update-function-code `
     --function-name $lambdaName `
     --zip-file $zipFileArg `
@@ -127,10 +289,14 @@ $integrationId = aws apigatewayv2 create-integration `
   --region $Region
 
 $routes = @(
+  "POST /auth/check-email",
   "POST /auth/register",
   "POST /auth/login",
   "POST /auth/verify-email",
   "POST /auth/resend-verification",
+  "POST /auth/refresh",
+  "GET /profile",
+  "PUT /profile",
   "GET /me",
   "OPTIONS /{proxy+}"
 )
@@ -140,6 +306,12 @@ foreach ($routeKey in $routes) {
     aws apigatewayv2 create-route `
       --api-id $apiId `
       --route-key $routeKey `
+      --target "integrations/$integrationId" `
+      --region $Region | Out-Null
+  } else {
+    aws apigatewayv2 update-route `
+      --api-id $apiId `
+      --route-id $routeId `
       --target "integrations/$integrationId" `
       --region $Region | Out-Null
   }
@@ -166,24 +338,50 @@ aws lambda add-permission `
 
 $apiEndpoint = aws apigatewayv2 get-api --api-id $apiId --query "ApiEndpoint" --output text --region $Region
 $url = "$apiEndpoint"
+$hostedUiDomain = ""
+if ($configureGoogle) {
+  $hostedUiDomain = "https://$HostedUiDomainPrefix.auth.$Region.amazoncognito.com"
+}
 
 $envExample = Join-Path (Split-Path -Parent $awsRoot) ".env.example"
 $envLocal = Join-Path (Split-Path -Parent $awsRoot) ".env.local"
 
 @"
 EXPO_PUBLIC_API_URL=$url
+EXPO_PUBLIC_AWS_REGION=$Region
+EXPO_PUBLIC_COGNITO_USER_POOL_ID=$userPoolId
+EXPO_PUBLIC_COGNITO_CLIENT_ID=$userPoolClientId
+EXPO_PUBLIC_COGNITO_DOMAIN=$hostedUiDomain
 "@ | Set-Content -Encoding utf8 $envExample
 
 @"
 EXPO_PUBLIC_API_URL=$url
+EXPO_PUBLIC_AWS_REGION=$Region
+EXPO_PUBLIC_COGNITO_USER_POOL_ID=$userPoolId
+EXPO_PUBLIC_COGNITO_CLIENT_ID=$userPoolClientId
+EXPO_PUBLIC_COGNITO_DOMAIN=$hostedUiDomain
 "@ | Set-Content -Encoding utf8 $envLocal
+
+if (-not [string]::IsNullOrWhiteSpace($LegacyTableName)) {
+  $null = aws dynamodb describe-table --table-name $LegacyTableName --region $Region 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    aws dynamodb delete-table --table-name $LegacyTableName --region $Region | Out-Null
+  }
+}
 
 Write-Host ""
 Write-Host "Deploy concluido:"
 Write-Host "  Region: $Region"
-Write-Host "  Table: $TableName"
+Write-Host "  UserPool: $UserPoolName ($userPoolId)"
+Write-Host "  UserPoolClient: $UserPoolClientName ($userPoolClientId)"
+Write-Host "  Profile Dynamo: $ProfileTableName"
+if ($configureGoogle) {
+  Write-Host "  Hosted UI Domain: $hostedUiDomain"
+}
 Write-Host "  Lambda: $lambdaName"
+Write-Host "  Legacy Dynamo removida: $LegacyTableName"
 Write-Host "  Role: $roleArn"
 Write-Host "  API URL: $url"
 
+$global:LASTEXITCODE = 0
 Pop-Location

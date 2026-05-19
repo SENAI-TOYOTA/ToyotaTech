@@ -12,12 +12,14 @@ import {
   Afacad_700Bold_Italic,
 } from "@expo-google-fonts/afacad";
 import * as SplashScreen from "expo-splash-screen";
+import * as WebBrowser from "expo-web-browser";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { colors } from "@/constants/theme";
 
 SplashScreen.preventAutoHideAsync();
+WebBrowser.maybeCompleteAuthSession();
 
 function AppNavigator() {
   const router = useRouter();

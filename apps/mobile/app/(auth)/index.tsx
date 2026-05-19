@@ -1,27 +1,49 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import Checkbox from "expo-checkbox";
+import * as AuthSession from "expo-auth-session";
 
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import SocialButton from "@/components/ui/SocialButton";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { useAuth } from "@/contexts/AuthContext";
+import { checkEmail } from "@/services/auth";
+import { ApiError } from "@/services/api";
 import { AuthScreenLayout } from "./_layout";
 
 const googleIcon = require("@/assets/images/google-icon.png");
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { signInWithTokens } = useAuth();
   const [email, setEmail] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
-  const canContinue = normalizedEmail.includes("@") && acceptedTerms;
+  const canContinue =
+    normalizedEmail.includes("@") && acceptedTerms && !isSubmitting && !isGoogleLoading;
+  const cognitoDomain = process.env.EXPO_PUBLIC_COGNITO_DOMAIN?.trim().replace(/\/$/, "");
+  const cognitoClientId = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID?.trim();
+  const redirectUri = AuthSession.makeRedirectUri({ scheme: "mobile" });
+  const discovery = AuthSession.useAutoDiscovery(cognitoDomain ?? "");
+  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    {
+      clientId: cognitoClientId ?? "",
+      redirectUri,
+      responseType: AuthSession.ResponseType.Code,
+      scopes: ["openid", "email", "profile"],
+      usePKCE: true,
+    },
+    discovery
+  );
 
-  const handleContinuePress = () => {
+  const handleContinuePress = async () => {
     if (!canContinue) {
       setFormError("Preencha e-mail valido e aceite os termos.");
       return;
@@ -32,10 +54,88 @@ export default function LoginScreen() {
       (document.activeElement as HTMLElement | null)?.blur();
     }
 
-    router.push({
-      pathname: "/(auth)/login",
-      params: { email: normalizedEmail },
-    });
+    setIsSubmitting(true);
+    try {
+      const checkResult = await checkEmail(normalizedEmail);
+      router.push({
+        pathname: checkResult.nextRoute === "/login" ? "/(auth)/login" : "/(auth)/register",
+        params: { email: normalizedEmail },
+      });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setFormError(error.message);
+      } else {
+        setFormError("Nao foi possivel validar o e-mail. Tente novamente.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    const finalizeGoogleSignIn = async () => {
+      if (response?.type !== "success") {
+        return;
+      }
+      if (!discovery || !cognitoClientId) {
+        setFormError("Login Google nao configurado.");
+        return;
+      }
+      if (!request?.codeVerifier) {
+        setFormError("Nao foi possivel completar o login Google.");
+        return;
+      }
+      setIsGoogleLoading(true);
+      try {
+        const tokenResponse = await AuthSession.exchangeCodeAsync(
+          {
+            clientId: cognitoClientId,
+            code: response.params.code,
+            redirectUri,
+            extraParams: {
+              code_verifier: request.codeVerifier,
+            },
+          },
+          discovery
+        );
+        if (!tokenResponse.accessToken || !tokenResponse.idToken || !tokenResponse.refreshToken) {
+          throw new Error("Tokens incompletos");
+        }
+        const expiresAt = Math.floor(Date.now() / 1000) + (tokenResponse.expiresIn ?? 3600);
+        await signInWithTokens({
+          accessToken: tokenResponse.accessToken,
+          idToken: tokenResponse.idToken,
+          refreshToken: tokenResponse.refreshToken,
+          expiresAt,
+        });
+      } catch (error) {
+        console.error("Falha no login Google:", error);
+        setFormError("Nao foi possivel completar o login Google.");
+      } finally {
+        setIsGoogleLoading(false);
+      }
+    };
+
+    void finalizeGoogleSignIn();
+  }, [cognitoClientId, discovery, redirectUri, request?.codeVerifier, response, signInWithTokens]);
+
+  const handleGooglePress = async () => {
+    if (!cognitoDomain || !cognitoClientId || !request) {
+      setFormError("Login Google nao configurado.");
+      return;
+    }
+    setFormError(null);
+    setIsGoogleLoading(true);
+    try {
+      const result = await promptAsync({ useProxy: false });
+      if (result.type !== "success") {
+        setIsGoogleLoading(false);
+      }
+    } catch (error) {
+      console.error("Falha ao abrir login Google:", error);
+      setFormError("Nao foi possivel abrir o login Google.");
+      setIsGoogleLoading(false);
+    }
   };
 
   return (
@@ -45,7 +145,7 @@ export default function LoginScreen() {
       bottomContent={
         <View style={styles.bottomContentContainer}>
           <Button
-            title="Prosseguir"
+            title={isSubmitting ? "Verificando..." : "Prosseguir"}
             variant="primary"
             icon={<ArrowRight size={36} strokeWidth={3} color={colors.white} strokeLinecap="butt" strokeLinejoin="round" />}
             style={styles.continueButton}
@@ -56,7 +156,7 @@ export default function LoginScreen() {
       }
     >
       <View style={styles.formSection}>
-        <SocialButton icon={googleIcon} />
+        <SocialButton icon={googleIcon} onPress={isGoogleLoading ? undefined : handleGooglePress} />
         <TextInput
           placeholder="ENDEREÇO DE EMAIL *"
           autoCapitalize="none"
@@ -80,6 +180,9 @@ export default function LoginScreen() {
           </Text>
         </View>
         {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+        {isGoogleLoading ? (
+          <Text style={styles.formInfoText}>Conectando ao Google...</Text>
+        ) : null}
       </View>
     </AuthScreenLayout>
   );
@@ -121,6 +224,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: fontSize.sm,
     color: colors.primary,
+  },
+  formInfoText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
   },
   bottomContentContainer: {
     width: "100%",

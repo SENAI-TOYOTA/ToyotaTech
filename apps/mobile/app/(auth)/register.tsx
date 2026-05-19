@@ -36,13 +36,10 @@ export default function RegisterScreen() {
 
     setIsSubmitting(true);
     try {
-      const registerResult = await signUp(normalizedEmail, password);
+      await signUp(normalizedEmail, password);
       router.push({
         pathname: "/(auth)/verify-email",
-        params: {
-          email: normalizedEmail,
-          devCode: registerResult.verificationCode,
-        },
+        params: { email: normalizedEmail },
       });
     } catch (error) {
       if (error instanceof ApiError) {

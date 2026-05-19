@@ -1,25 +1,19 @@
 import base64
-import hashlib
-import hmac
 import json
 import os
-import secrets
 import time
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import boto3
 from botocore.exceptions import ClientError
 
 
-dynamodb = boto3.resource("dynamodb")
-TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "toyotatech-auth-dev")
-SESSION_DURATION_SECONDS = int(os.environ.get("SESSION_DURATION_SECONDS", "86400"))
-VERIFICATION_CODE_TTL_SECONDS = int(os.environ.get("VERIFICATION_CODE_TTL_SECONDS", "900"))
-EMAIL_VERIFICATION_MODE = os.environ.get("EMAIL_VERIFICATION_MODE", "mock").strip().lower()
-SES_SOURCE_EMAIL = os.environ.get("SES_SOURCE_EMAIL", "").strip()
-SES_REGION = os.environ.get("SES_REGION", os.environ.get("AWS_REGION"))
-table = dynamodb.Table(TABLE_NAME)
-ses_client = boto3.client("ses", region_name=SES_REGION)
+COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "").strip()
+COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID", "").strip()
+PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()
+COGNITO_REGION = os.environ.get("COGNITO_REGION", os.environ.get("AWS_REGION", "us-east-1"))
+cognito_client = boto3.client("cognito-idp", region_name=COGNITO_REGION)
+dynamodb_resource = boto3.resource("dynamodb", region_name=COGNITO_REGION)
 
 
 def _response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
@@ -29,10 +23,20 @@ def _response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
-            "Access-Control-Allow-Methods": "OPTIONS,GET,POST",
+            "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT",
         },
         "body": json.dumps(body),
     }
+
+
+def _validate_config() -> Optional[Dict[str, Any]]:
+    if not COGNITO_USER_POOL_ID:
+        return _response(500, {"message": "COGNITO_USER_POOL_ID nao configurado."})
+    if not COGNITO_CLIENT_ID:
+        return _response(500, {"message": "COGNITO_CLIENT_ID nao configurado."})
+    if not PROFILE_TABLE_NAME:
+        return _response(500, {"message": "PROFILE_TABLE_NAME nao configurado."})
+    return None
 
 
 def _parse_body(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -49,15 +53,6 @@ def _normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
-def _hash_password(password: str, salt_hex: Optional[str] = None) -> Tuple[str, str]:
-    if salt_hex is None:
-        salt = os.urandom(16)
-    else:
-        salt = bytes.fromhex(salt_hex)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 200_000)
-    return digest.hex(), salt.hex()
-
-
 def _extract_token(event: Dict[str, Any]) -> Optional[str]:
     headers = event.get("headers") or {}
     auth_header = headers.get("authorization") or headers.get("Authorization")
@@ -69,56 +64,103 @@ def _extract_token(event: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def _safe_compare(a: str, b: str) -> bool:
-    return hmac.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
+def _map_client_error(error: ClientError) -> Dict[str, str]:
+    payload = error.response.get("Error", {})
+    return {
+        "code": payload.get("Code", "Unknown"),
+        "message": payload.get("Message", "Erro desconhecido."),
+    }
 
 
-def _generate_verification_code() -> str:
-    return f"{secrets.randbelow(900000) + 100000}"
+def _parse_user_attributes(user_attributes: Any) -> Dict[str, str]:
+    parsed: Dict[str, str] = {}
+    if not isinstance(user_attributes, list):
+        return parsed
+    for item in user_attributes:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("Name")
+        value = item.get("Value")
+        if isinstance(name, str) and isinstance(value, str):
+            parsed[name] = value
+    return parsed
 
 
-def _deliver_verification_code(email: str, verification_code: str) -> Tuple[bool, Optional[str]]:
-    if EMAIL_VERIFICATION_MODE != "ses":
-        return True, None
+def _build_auth_user(user_data: Dict[str, Any], fallback_email: str = "") -> Dict[str, Any]:
+    attrs = _parse_user_attributes(user_data.get("UserAttributes", []))
+    email = attrs.get("email") or fallback_email
+    if not email and isinstance(user_data.get("Username"), str):
+        email = user_data["Username"]
+    name = attrs.get("name") or (email.split("@", 1)[0] if "@" in email else "Usuario")
+    is_verified = attrs.get("email_verified", "false").strip().lower() == "true"
 
-    if not SES_SOURCE_EMAIL:
-        return False, "SES_SOURCE_EMAIL nao configurado."
+    user: Dict[str, Any] = {
+        "email": email,
+        "name": name,
+        "isVerified": is_verified,
+    }
+    if "sub" in attrs:
+        user["sub"] = attrs["sub"]
+    return user
+
+
+def _get_profile_table():
+    if not PROFILE_TABLE_NAME:
+        raise ValueError("PROFILE_TABLE_NAME nao configurado.")
+    return dynamodb_resource.Table(PROFILE_TABLE_NAME)
+
+
+def _normalize_profile(item: Dict[str, Any]) -> Dict[str, str]:
+    return {
+        "fullName": str(item.get("fullName", "") or ""),
+        "birthDate": str(item.get("birthDate", "") or ""),
+    }
+
+
+def _get_profile(user_id: str) -> Dict[str, str]:
+    table = _get_profile_table()
+    result = table.get_item(Key={"userId": user_id})
+    item = result.get("Item") or {}
+    return _normalize_profile(item)
+
+
+def _merge_profile_defaults(profile: Dict[str, str], user: Dict[str, Any]) -> Dict[str, str]:
+    merged = dict(profile)
+    if not merged.get("fullName") and user.get("name"):
+        merged["fullName"] = str(user["name"])
+    return merged
+
+
+def _update_profile_item(user_id: str, profile: Dict[str, str]) -> None:
+    table = _get_profile_table()
+    table.put_item(
+        Item={
+            "userId": user_id,
+            "fullName": profile.get("fullName", ""),
+            "birthDate": profile.get("birthDate", ""),
+            "updatedAt": int(time.time()),
+        }
+    )
+
+
+def _get_user_from_access_token(access_token: str) -> Dict[str, Any]:
+    cognito_user = cognito_client.get_user(AccessToken=access_token)
+    return _build_auth_user(cognito_user)
+
+
+def _check_email(body: Dict[str, Any]) -> Dict[str, Any]:
+    email = _normalize_email(body.get("email", ""))
+    if not email or "@" not in email:
+        return _response(400, {"message": "E-mail invalido."})
 
     try:
-        ses_client.send_email(
-            Source=SES_SOURCE_EMAIL,
-            Destination={"ToAddresses": [email]},
-            Message={
-                "Subject": {"Data": "ToyotaTech - Codigo de verificacao"},
-                "Body": {
-                    "Text": {
-                        "Data": (
-                            "Seu codigo de verificacao e: "
-                            f"{verification_code}\n\n"
-                            f"Validade: {VERIFICATION_CODE_TTL_SECONDS // 60} minutos."
-                        )
-                    }
-                },
-            },
-        )
-        return True, None
+        cognito_client.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=email)
+        return _response(200, {"exists": True, "nextRoute": "/login"})
     except ClientError as error:
-        detail = error.response.get("Error", {}).get("Message", str(error))
-        return False, detail
-
-
-def _build_register_response(
-    message: str, verification_code: str, delivery_error: Optional[str] = None
-) -> Dict[str, Any]:
-    response_body: Dict[str, Any] = {
-        "message": message,
-        "requiresEmailVerification": True,
-    }
-    if EMAIL_VERIFICATION_MODE != "ses":
-        response_body["verificationCode"] = verification_code
-    if delivery_error:
-        response_body["deliveryError"] = delivery_error
-    return response_body
+        detail = _map_client_error(error)
+        if detail["code"] == "UserNotFoundException":
+            return _response(200, {"exists": False, "nextRoute": "/register"})
+        raise
 
 
 def _register(body: Dict[str, Any]) -> Dict[str, Any]:
@@ -131,91 +173,31 @@ def _register(body: Dict[str, Any]) -> Dict[str, Any]:
     if len(password) < 8:
         return _response(400, {"message": "A senha deve ter ao menos 8 caracteres."})
 
-    password_hash, salt = _hash_password(password)
-    verification_code = _generate_verification_code()
-    verification_hash, verification_salt = _hash_password(verification_code)
-    now = int(time.time())
-    profile_name = name if name else email.split("@", 1)[0]
-    verification_expires_at = now + VERIFICATION_CODE_TTL_SECONDS
+    attributes = [{"Name": "email", "Value": email}]
+    if name:
+        attributes.append({"Name": "name", "Value": name})
 
     try:
-        table.put_item(
-            Item={
-                "PK": f"USER#{email}",
-                "SK": "PROFILE",
-                "email": email,
-                "name": profile_name,
-                "passwordHash": password_hash,
-                "salt": salt,
-                "isVerified": False,
-                "verificationCodeHash": verification_hash,
-                "verificationCodeSalt": verification_salt,
-                "verificationCodeExpiresAt": verification_expires_at,
-                "createdAt": now,
-                "updatedAt": now,
-            },
-            ConditionExpression="attribute_not_exists(PK)",
+        sign_up = cognito_client.sign_up(
+            ClientId=COGNITO_CLIENT_ID,
+            Username=email,
+            Password=password,
+            UserAttributes=attributes,
         )
     except ClientError as error:
-        if error.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+        detail = _map_client_error(error)
+        if detail["code"] == "UsernameExistsException":
             return _response(409, {"message": "Usuario ja cadastrado."})
+        if detail["code"] in ("InvalidPasswordException", "InvalidParameterException"):
+            return _response(400, {"message": detail["message"]})
         raise
-
-    sent, delivery_error = _deliver_verification_code(email, verification_code)
-    if not sent:
-        table.delete_item(Key={"PK": f"USER#{email}", "SK": "PROFILE"})
-        return _response(500, {"message": "Falha ao enviar e-mail de verificacao.", "detail": delivery_error})
 
     return _response(
         201,
-        _build_register_response(
-            "Usuario cadastrado. Verifique seu e-mail para concluir o acesso.",
-            verification_code,
-        ),
-    )
-
-
-def _resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
-    email = _normalize_email(body.get("email", ""))
-    if not email or "@" not in email:
-        return _response(400, {"message": "E-mail invalido."})
-
-    user_result = table.get_item(Key={"PK": f"USER#{email}", "SK": "PROFILE"})
-    user_item = user_result.get("Item")
-    if not user_item:
-        return _response(404, {"message": "Usuario nao encontrado."})
-
-    if user_item.get("isVerified") is True:
-        return _response(409, {"message": "E-mail ja verificado."})
-
-    now = int(time.time())
-    verification_code = _generate_verification_code()
-    verification_hash, verification_salt = _hash_password(verification_code)
-    verification_expires_at = now + VERIFICATION_CODE_TTL_SECONDS
-
-    table.update_item(
-        Key={"PK": f"USER#{email}", "SK": "PROFILE"},
-        UpdateExpression=(
-            "SET verificationCodeHash = :verificationCodeHash, "
-            "verificationCodeSalt = :verificationCodeSalt, "
-            "verificationCodeExpiresAt = :verificationCodeExpiresAt, "
-            "updatedAt = :updatedAt"
-        ),
-        ExpressionAttributeValues={
-            ":verificationCodeHash": verification_hash,
-            ":verificationCodeSalt": verification_salt,
-            ":verificationCodeExpiresAt": verification_expires_at,
-            ":updatedAt": now,
+        {
+            "message": "Usuario cadastrado. Verifique seu e-mail para concluir o acesso.",
+            "requiresEmailVerification": not bool(sign_up.get("UserConfirmed")),
         },
-    )
-
-    sent, delivery_error = _deliver_verification_code(email, verification_code)
-    if not sent:
-        return _response(500, {"message": "Falha ao reenviar e-mail de verificacao.", "detail": delivery_error})
-
-    return _response(
-        200,
-        _build_register_response("Codigo de verificacao reenviado.", verification_code),
     )
 
 
@@ -228,41 +210,41 @@ def _verify_email(body: Dict[str, Any]) -> Dict[str, Any]:
     if not verification_code:
         return _response(400, {"message": "Codigo de verificacao obrigatorio."})
 
-    user_result = table.get_item(Key={"PK": f"USER#{email}", "SK": "PROFILE"})
-    user_item = user_result.get("Item")
-    if not user_item:
-        return _response(404, {"message": "Usuario nao encontrado."})
+    try:
+        cognito_client.confirm_sign_up(
+            ClientId=COGNITO_CLIENT_ID,
+            Username=email,
+            ConfirmationCode=verification_code,
+        )
+        return _response(200, {"message": "E-mail verificado com sucesso."})
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] == "CodeMismatchException":
+            return _response(400, {"message": "Codigo invalido."})
+        if detail["code"] == "ExpiredCodeException":
+            return _response(400, {"message": "Codigo expirado. Solicite novo codigo."})
+        if detail["code"] == "UserNotFoundException":
+            return _response(404, {"message": "Usuario nao encontrado."})
+        if detail["code"] == "NotAuthorizedException":
+            return _response(200, {"message": "E-mail ja verificado."})
+        raise
 
-    if user_item.get("isVerified") is True:
-        return _response(200, {"message": "E-mail ja verificado."})
 
-    code_hash = user_item.get("verificationCodeHash")
-    code_salt = user_item.get("verificationCodeSalt")
-    code_expires_at = int(user_item.get("verificationCodeExpiresAt", 0))
-    if not code_hash or not code_salt or code_expires_at == 0:
-        return _response(400, {"message": "Codigo nao encontrado. Solicite novo codigo."})
+def _resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
+    email = _normalize_email(body.get("email", ""))
+    if not email or "@" not in email:
+        return _response(400, {"message": "E-mail invalido."})
 
-    now = int(time.time())
-    if code_expires_at <= now:
-        return _response(400, {"message": "Codigo expirado. Solicite novo codigo."})
-
-    calculated_hash, _ = _hash_password(verification_code, code_salt)
-    if not _safe_compare(calculated_hash, code_hash):
-        return _response(400, {"message": "Codigo invalido."})
-
-    table.update_item(
-        Key={"PK": f"USER#{email}", "SK": "PROFILE"},
-        UpdateExpression=(
-            "SET isVerified = :isVerified, updatedAt = :updatedAt "
-            "REMOVE verificationCodeHash, verificationCodeSalt, verificationCodeExpiresAt"
-        ),
-        ExpressionAttributeValues={
-            ":isVerified": True,
-            ":updatedAt": now,
-        },
-    )
-
-    return _response(200, {"message": "E-mail verificado com sucesso."})
+    try:
+        cognito_client.resend_confirmation_code(ClientId=COGNITO_CLIENT_ID, Username=email)
+        return _response(200, {"message": "Codigo reenviado."})
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] == "UserNotFoundException":
+            return _response(404, {"message": "Usuario nao encontrado."})
+        if detail["code"] == "InvalidParameterException":
+            return _response(409, {"message": "E-mail ja verificado."})
+        raise
 
 
 def _login(body: Dict[str, Any]) -> Dict[str, Any]:
@@ -272,89 +254,168 @@ def _login(body: Dict[str, Any]) -> Dict[str, Any]:
     if not email or not password:
         return _response(400, {"message": "Informe e-mail e senha."})
 
-    user_result = table.get_item(Key={"PK": f"USER#{email}", "SK": "PROFILE"})
-    user_item = user_result.get("Item")
-
-    if not user_item:
-        return _response(401, {"message": "Credenciais invalidas."})
-
-    calculated_hash, _ = _hash_password(password, user_item.get("salt", ""))
-    if not _safe_compare(calculated_hash, user_item.get("passwordHash", "")):
-        return _response(401, {"message": "Credenciais invalidas."})
-
-    if user_item.get("isVerified") is False:
-        return _response(
-            403,
-            {
-                "message": "E-mail ainda nao verificado.",
-                "code": "EMAIL_NOT_VERIFIED",
-            },
+    try:
+        auth_result = cognito_client.initiate_auth(
+            ClientId=COGNITO_CLIENT_ID,
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": email, "PASSWORD": password},
         )
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] == "UserNotConfirmedException":
+            return _response(
+                403,
+                {"message": "E-mail ainda nao verificado.", "code": "EMAIL_NOT_VERIFIED"},
+            )
+        if detail["code"] == "NotAuthorizedException":
+            return _response(401, {"message": "Credenciais invalidas."})
+        if detail["code"] == "UserNotFoundException":
+            return _response(401, {"message": "Credenciais invalidas."})
+        raise
 
-    now = int(time.time())
-    expires_at = now + SESSION_DURATION_SECONDS
-    token = secrets.token_urlsafe(48)
+    authentication = auth_result.get("AuthenticationResult", {})
+    access_token = authentication.get("AccessToken")
+    id_token = authentication.get("IdToken")
+    refresh_token = authentication.get("RefreshToken")
+    expires_in = int(authentication.get("ExpiresIn", 3600))
 
-    table.put_item(
-        Item={
-            "PK": f"SESSION#{token}",
-            "SK": "METADATA",
-            "email": email,
-            "createdAt": now,
-            "expiresAt": expires_at,
-            "ttl": expires_at,
-        }
+    if not access_token or not id_token or not refresh_token:
+        return _response(500, {"message": "Resposta invalida do provedor de autenticacao."})
+
+    user = _get_user_from_access_token(access_token)
+    if "sub" in user:
+        profile = _get_profile(user["sub"])
+        user["profile"] = _merge_profile_defaults(profile, user)
+    return _response(
+        200,
+        {
+            "accessToken": access_token,
+            "idToken": id_token,
+            "refreshToken": refresh_token,
+            "expiresAt": int(time.time()) + expires_in,
+            "user": user,
+        },
     )
+
+
+def _refresh(body: Dict[str, Any]) -> Dict[str, Any]:
+    refresh_token = str(body.get("refreshToken", "")).strip()
+    if not refresh_token:
+        return _response(400, {"message": "Refresh token obrigatorio."})
+
+    try:
+        auth_result = cognito_client.initiate_auth(
+            ClientId=COGNITO_CLIENT_ID,
+            AuthFlow="REFRESH_TOKEN_AUTH",
+            AuthParameters={"REFRESH_TOKEN": refresh_token},
+        )
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] == "NotAuthorizedException":
+            return _response(401, {"message": "Sessao invalida ou expirada."})
+        raise
+
+    authentication = auth_result.get("AuthenticationResult", {})
+    access_token = authentication.get("AccessToken")
+    id_token = authentication.get("IdToken")
+    expires_in = int(authentication.get("ExpiresIn", 3600))
+
+    if not access_token or not id_token:
+        return _response(500, {"message": "Resposta invalida do provedor de autenticacao."})
 
     return _response(
         200,
         {
-            "token": token,
-            "expiresAt": expires_at,
-            "user": {
-                "email": user_item.get("email"),
-                "name": user_item.get("name"),
-                "isVerified": user_item.get("isVerified", True),
-            },
+            "accessToken": access_token,
+            "idToken": id_token,
+            "expiresAt": int(time.time()) + expires_in,
         },
     )
+
+
+def _read_profile(event: Dict[str, Any]) -> Dict[str, Any]:
+    access_token = _extract_token(event)
+    if not access_token:
+        return _response(401, {"message": "Token nao informado."})
+
+    try:
+        user = _get_user_from_access_token(access_token)
+        user_id = user.get("sub")
+        if not user_id:
+            return _response(500, {"message": "Usuario sem identificador valido."})
+        profile = _get_profile(user_id)
+        profile = _merge_profile_defaults(profile, user)
+        return _response(200, {"profile": profile})
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] == "NotAuthorizedException":
+            return _response(401, {"message": "Sessao invalida ou expirada."})
+        raise
+
+
+def _save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
+    access_token = _extract_token(event)
+    if not access_token:
+        return _response(401, {"message": "Token nao informado."})
+
+    body = _parse_body(event)
+    updates: Dict[str, str] = {}
+    if "fullName" in body:
+        if not isinstance(body.get("fullName"), str):
+            return _response(400, {"message": "Nome completo invalido."})
+        updates["fullName"] = body.get("fullName", "").strip()
+    if "birthDate" in body:
+        if not isinstance(body.get("birthDate"), str):
+            return _response(400, {"message": "Data de nascimento invalida."})
+        updates["birthDate"] = body.get("birthDate", "").strip()
+
+    if not updates:
+        return _response(400, {"message": "Nenhum campo de perfil informado."})
+
+    try:
+        user = _get_user_from_access_token(access_token)
+        user_id = user.get("sub")
+        if not user_id:
+            return _response(500, {"message": "Usuario sem identificador valido."})
+        existing = _get_profile(user_id)
+        profile = {
+            "fullName": updates.get("fullName", existing.get("fullName", "")),
+            "birthDate": updates.get("birthDate", existing.get("birthDate", "")),
+        }
+        profile = _merge_profile_defaults(profile, user)
+        _update_profile_item(user_id, profile)
+        return _response(200, {"profile": profile})
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] == "NotAuthorizedException":
+            return _response(401, {"message": "Sessao invalida ou expirada."})
+        raise
 
 
 def _me(event: Dict[str, Any]) -> Dict[str, Any]:
-    token = _extract_token(event)
-    if not token:
+    access_token = _extract_token(event)
+    if not access_token:
         return _response(401, {"message": "Token nao informado."})
 
-    session_result = table.get_item(Key={"PK": f"SESSION#{token}", "SK": "METADATA"})
-    session_item = session_result.get("Item")
-    if not session_item:
-        return _response(401, {"message": "Sessao invalida."})
-
-    now = int(time.time())
-    if int(session_item.get("expiresAt", 0)) <= now:
-        table.delete_item(Key={"PK": f"SESSION#{token}", "SK": "METADATA"})
-        return _response(401, {"message": "Sessao expirada."})
-
-    email = session_item.get("email")
-    user_result = table.get_item(Key={"PK": f"USER#{email}", "SK": "PROFILE"})
-    user_item = user_result.get("Item")
-    if not user_item:
-        return _response(401, {"message": "Usuario nao encontrado."})
-
-    return _response(
-        200,
-        {
-            "user": {
-                "email": user_item.get("email"),
-                "name": user_item.get("name"),
-                "isVerified": user_item.get("isVerified", True),
-            }
-        },
-    )
+    try:
+        user = _get_user_from_access_token(access_token)
+        if "sub" in user:
+            profile = _get_profile(user["sub"])
+            user["profile"] = _merge_profile_defaults(profile, user)
+        return _response(200, {"user": user})
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] == "NotAuthorizedException":
+            return _response(401, {"message": "Sessao invalida ou expirada."})
+        raise
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     _ = context
+    config_error = _validate_config()
+    if config_error:
+        return config_error
+
     method = event.get("requestContext", {}).get("http", {}).get("method", "")
     path = event.get("rawPath", "")
 
@@ -362,6 +423,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return _response(204, {})
 
     try:
+        if method == "POST" and path == "/auth/check-email":
+            return _check_email(_parse_body(event))
         if method == "POST" and path == "/auth/register":
             return _register(_parse_body(event))
         if method == "POST" and path == "/auth/login":
@@ -370,8 +433,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return _verify_email(_parse_body(event))
         if method == "POST" and path == "/auth/resend-verification":
             return _resend_verification(_parse_body(event))
+        if method == "POST" and path == "/auth/refresh":
+            return _refresh(_parse_body(event))
+        if method == "GET" and path == "/profile":
+            return _read_profile(event)
+        if method == "PUT" and path == "/profile":
+            return _save_profile(event)
         if method == "GET" and path == "/me":
             return _me(event)
         return _response(404, {"message": "Rota nao encontrada."})
-    except (ClientError, ValueError, TypeError) as error:
+    except (ClientError, ValueError, TypeError, json.JSONDecodeError) as error:
         return _response(500, {"message": "Erro interno.", "detail": str(error)})

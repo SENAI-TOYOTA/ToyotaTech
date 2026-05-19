@@ -49,15 +49,26 @@ export default function Button({
     }).start();
   };
 
+  const getDisabledSurfaceStyle = (variant: ButtonVariant) => {
+    switch (variant) {
+      case "primary":
+        return styles.disabledSurfacePrimary;
+      case "outline":
+        return styles.disabledSurfaceOutline;
+      case "ghost":
+        return styles.disabledSurfaceGhost;
+    }
+  };
+
   if (variant === "primary") {
     return (
       <View style={[style, { marginLeft: 6, marginBottom: 6 }, styles.wrapperShadow]}>
-        <View style={styles.shadowLayer} />
+        <View style={[styles.shadowLayer, disabled && styles.shadowLayerDisabled]} />
         <AnimatedTouchableOpacity
           style={[
             styles.base,
             variantStyles[variant],
-            disabled && styles.disabled,
+            disabled && getDisabledSurfaceStyle(variant),
             {
               transform: [
                 {
@@ -101,6 +112,7 @@ export default function Button({
                 variantTextStyles[variant],
                 isCompactScreen && styles.textCompact,
                 textStyle,
+                disabled && styles.disabledText,
               ]}
             >
               {title}
@@ -114,7 +126,12 @@ export default function Button({
 
   return (
     <TouchableOpacity
-      style={[styles.base, variantStyles[variant], disabled && styles.disabled, style]}
+      style={[
+        styles.base,
+        variantStyles[variant],
+        disabled && getDisabledSurfaceStyle(variant),
+        style,
+      ]}
       activeOpacity={1}
       onPress={disabled ? undefined : onPress}
     >
@@ -131,6 +148,7 @@ export default function Button({
             variantTextStyles[variant],
             isCompactScreen && styles.textCompact,
             textStyle,
+            disabled && styles.disabledText,
           ]}
         >
           {title}
@@ -177,6 +195,9 @@ const styles = StyleSheet.create({
     borderColor: colors.black,
     borderRadius: 2,
   },
+  shadowLayerDisabled: {
+    borderColor: colors.grayLight,
+  },
   wrapperShadow: {
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
@@ -184,8 +205,19 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  disabled: {
-    opacity: 0.6,
+  disabledSurfacePrimary: {
+    backgroundColor: colors.grayLight,
+    borderColor: colors.grayLight,
+  },
+  disabledSurfaceOutline: {
+    backgroundColor: "transparent",
+    borderColor: colors.gray,
+  },
+  disabledSurfaceGhost: {
+    backgroundColor: "transparent",
+  },
+  disabledText: {
+    color: colors.gray,
   },
 });
 

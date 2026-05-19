@@ -1,7 +1,8 @@
-import { useRef, useState } from "react";
-import { View, Text, StyleSheet, TextInput, Platform } from "react-native";
+import { useState, useRef } from "react";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
+import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 
 import Button from "@/components/ui/Button";
 import { resendVerification, verifyEmail } from "@/services/auth";
@@ -13,61 +14,17 @@ const CODE_LENGTH = 6;
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const { email = "", devCode = "" } = useLocalSearchParams<{
-    email?: string;
-    devCode?: string;
-  }>();
-  const inputRefs = useRef<(TextInput | null)[]>([]);
-  const [verificationCode, setVerificationCode] = useState<string[]>(
-    Array.from({ length: CODE_LENGTH }, () => "")
-  );
+  const { email = "" } = useLocalSearchParams<{ email?: string }>();
+  const otpRef = useRef<OtpInputRef>(null);
+  const [verificationCode, setVerificationCode] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const handleCodeChange = (rawValue: string, index: number) => {
-    const digits = rawValue.replace(/\D/g, "");
-
-    if (digits.length > 1) {
-      setVerificationCode((currentCode) => {
-        const nextCode = [...currentCode];
-        digits
-          .slice(0, CODE_LENGTH - index)
-          .split("")
-          .forEach((digit, offset) => {
-            nextCode[index + offset] = digit;
-          });
-        return nextCode;
-      });
-
-      const focusIndex = Math.min(index + digits.length, CODE_LENGTH - 1);
-      inputRefs.current[focusIndex]?.focus();
-      return;
-    }
-
-    const nextDigit = digits.slice(-1);
-    setVerificationCode((currentCode) => {
-      const nextCode = [...currentCode];
-      nextCode[index] = nextDigit;
-      return nextCode;
-    });
-
-    if (nextDigit && index < CODE_LENGTH - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleCodeKeyPress = (key: string, index: number) => {
-    if (key === "Backspace" && !verificationCode[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
   const handleVerifyPress = async () => {
-    const currentCode = verificationCode.join("");
-    if (currentCode.length !== CODE_LENGTH) {
-      setFormError("Informe o codigo completo de verificacao.");
+    if (verificationCode.length !== CODE_LENGTH) {
+      setFormError("Informe o código completo de verificação.");
       return;
     }
     setFormError(null);
@@ -79,7 +36,7 @@ export default function VerifyEmailScreen() {
 
     setIsSubmitting(true);
     try {
-      await verifyEmail({ email: String(email).toLowerCase(), code: currentCode });
+      await verifyEmail({ email: String(email).toLowerCase(), code: verificationCode });
       router.replace({
         pathname: "/(auth)/login",
         params: { email: String(email).toLowerCase() },
@@ -88,7 +45,7 @@ export default function VerifyEmailScreen() {
       if (error instanceof ApiError) {
         setFormError(error.message);
       } else {
-        setFormError("Nao foi possivel validar o codigo. Tente novamente.");
+        setFormError("Não foi possível validar o código. Tente novamente.");
       }
     } finally {
       setIsSubmitting(false);
@@ -100,18 +57,15 @@ export default function VerifyEmailScreen() {
     setFeedback(null);
     setIsResending(true);
     try {
-      const response = await resendVerification(String(email).toLowerCase());
-      const codeHint = response.verificationCode
-        ? ` Codigo de teste: ${response.verificationCode}`
-        : "";
-      setFeedback(`Codigo reenviado.${codeHint}`);
-      setVerificationCode(Array.from({ length: CODE_LENGTH }, () => ""));
-      inputRefs.current[0]?.focus();
+      await resendVerification(String(email).toLowerCase());
+      setFeedback("Código reenviado.");
+      setVerificationCode("");
+      otpRef.current?.clear();
     } catch (error) {
       if (error instanceof ApiError) {
         setFormError(error.message);
       } else {
-        setFormError("Nao foi possivel reenviar o codigo.");
+        setFormError("Não foi possível reenviar o código.");
       }
     } finally {
       setIsResending(false);
@@ -130,25 +84,19 @@ export default function VerifyEmailScreen() {
         </View>
 
         <View style={styles.codeInputsRow}>
-          {verificationCode.map((digit, index) => (
-            <TextInput
-              key={index}
-              ref={(ref) => {
-                inputRefs.current[index] = ref;
-              }}
-              value={digit}
-              onChangeText={(value) => handleCodeChange(value, index)}
-              onKeyPress={({ nativeEvent }) =>
-                handleCodeKeyPress(nativeEvent.key, index)
-              }
-              maxLength={1}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              style={styles.codeInput}
-              textAlign="center"
-              selectionColor={colors.black}
-            />
-          ))}
+          <OtpInput
+            ref={otpRef}
+            numberOfDigits={CODE_LENGTH}
+            focusColor={colors.primary}
+            focusStickBlinkingDuration={500}
+            onTextChange={(text) => setVerificationCode(text)}
+            theme={{
+              containerStyle: styles.otpContainer,
+              pinCodeContainerStyle: styles.pinCodeContainer,
+              pinCodeTextStyle: styles.pinCodeText,
+              focusedPinCodeContainerStyle: styles.activePinCodeContainer,
+            }}
+          />
         </View>
 
         <Button
@@ -168,13 +116,12 @@ export default function VerifyEmailScreen() {
           disabled={isSubmitting || isResending}
         />
         <Button
-          title={isResending ? "Reenviando..." : "Reenviar codigo"}
+          title={isResending ? "Reenviando..." : "Reenviar código"}
           variant="outline"
           style={styles.resendButton}
           onPress={handleResendPress}
           disabled={isSubmitting || isResending}
         />
-        {devCode ? <Text style={styles.devCodeText}>Codigo de teste: {devCode}</Text> : null}
         {feedback ? <Text style={styles.feedbackText}>{feedback}</Text> : null}
         {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
       </View>
@@ -218,33 +165,37 @@ const styles = StyleSheet.create({
   },
   codeInputsRow: {
     marginTop: spacing.md,
+    width: "100%",
+  },
+  otpContainer: {
+    width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  codeInput: {
-    width: 50,
-    height: 50,
+  pinCodeContainer: {
+    width: 46,
+    height: 54,
     borderWidth: 1,
-    borderColor: colors.black,
-    borderRadius: 2,
+    borderColor: colors.border,
+    borderRadius: 6,
     backgroundColor: colors.white,
+  },
+  activePinCodeContainer: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
+  pinCodeText: {
     fontFamily: fonts.semiBold,
-    fontSize: fontSize.lg,
+    fontSize: fontSize.xl,
     color: colors.black,
   },
   verifyButton: {
     width: "100%",
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
   resendButton: {
     width: "100%",
     marginTop: spacing.sm,
-  },
-  devCodeText: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.medium,
-    fontSize: fontSize.sm,
-    color: colors.textPrimary,
   },
   feedbackText: {
     marginTop: spacing.sm,

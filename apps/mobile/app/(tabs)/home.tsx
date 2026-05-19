@@ -17,7 +17,9 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.welcomeText}>Bem vindo, {user?.name || "Usuário"}!</Text>
+        <Text style={styles.welcomeText}>
+          Bem vindo, {user?.profile?.fullName || user?.name || "Usuário"}!
+        </Text>
 
         <View style={styles.showcaseContainer}>
           <Image source={mainCarImage} style={styles.mainImage} resizeMode="cover" />

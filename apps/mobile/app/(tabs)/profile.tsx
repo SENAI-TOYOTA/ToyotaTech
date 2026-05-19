@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react-native";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
@@ -8,14 +8,61 @@ import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { ApiError } from "@/services/api";
+import { fetchProfile, updateProfile } from "@/services/profile";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { signOut } = useAuth();
+  const { signOut, token, user } = useAuth();
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setEmail(user?.email ?? "");
+  }, [user?.email]);
+
+  useEffect(() => {
+    let isActive = true;
+    const loadProfile = async () => {
+      if (!token) {
+        setIsLoadingProfile(false);
+        return;
+      }
+      setIsLoadingProfile(true);
+      try {
+        const profileResult = await fetchProfile(token);
+        if (!isActive) {
+          return;
+        }
+        setFullName(profileResult.profile.fullName ?? "");
+        setBirthDate(profileResult.profile.birthDate ?? "");
+        setFormError(null);
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+        if (error instanceof ApiError) {
+          setFormError(error.message);
+        } else {
+          setFormError("Nao foi possivel carregar o perfil.");
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingProfile(false);
+        }
+      }
+    };
+
+    void loadProfile();
+    return () => {
+      isActive = false;
+    };
+  }, [token]);
 
   return (
     <View style={styles.container}>
@@ -50,6 +97,7 @@ export default function ProfileScreen() {
             autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
+            editable={false}
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
@@ -61,6 +109,7 @@ export default function ProfileScreen() {
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
+          {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
         </View>
       </ScrollView>
 
@@ -75,7 +124,7 @@ export default function ProfileScreen() {
           }}
         />
         <Button
-          title="Salvar"
+          title={isSaving ? "Salvando..." : "Salvar"}
           style={styles.saveButton}
           icon={
             <ArrowRight
@@ -86,6 +135,30 @@ export default function ProfileScreen() {
               strokeLinejoin="round"
             />
           }
+          disabled={isSaving || isLoadingProfile || !token}
+          onPress={async () => {
+            if (!token) {
+              setFormError("Sessao invalida. Faça login novamente.");
+              return;
+            }
+            setIsSaving(true);
+            setFormError(null);
+            try {
+              await updateProfile(token, {
+                fullName,
+                birthDate,
+              });
+              setPassword("");
+            } catch (error) {
+              if (error instanceof ApiError) {
+                setFormError(error.message);
+              } else {
+                setFormError("Nao foi possivel salvar o perfil.");
+              }
+            } finally {
+              setIsSaving(false);
+            }
+          }}
         />
       </View>
     </View>
@@ -120,6 +193,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: fontSize.md,
     color: colors.textPrimary,
+  },
+  formErrorText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.primary,
   },
   saveButtonContainer: {
     position: "absolute",

@@ -22,7 +22,7 @@ function getApiUrl() {
 export async function apiRequest<T>(
   path: string,
   options?: {
-    method?: "GET" | "POST";
+    method?: "GET" | "POST" | "PUT";
     body?: unknown;
     token?: string;
   }

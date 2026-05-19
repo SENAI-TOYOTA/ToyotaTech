@@ -1,7 +1,11 @@
+import type { UserProfile } from "@/types/profile";
+
 export interface AuthUser {
   email: string;
   name: string;
-  isVerified?: boolean;
+  isVerified: boolean;
+  sub?: string;
+  profile?: UserProfile;
 }
 
 export interface RegisterPayload {
@@ -15,8 +19,15 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface CheckEmailResponse {
+  exists: boolean;
+  nextRoute: "/login" | "/register";
+}
+
 export interface LoginResponse {
-  token: string;
+  accessToken: string;
+  idToken: string;
+  refreshToken: string;
   expiresAt: number;
   user: AuthUser;
 }
@@ -24,10 +35,19 @@ export interface LoginResponse {
 export interface RegisterResponse {
   message: string;
   requiresEmailVerification: boolean;
-  verificationCode?: string;
 }
 
 export interface VerifyEmailPayload {
   email: string;
   code: string;
+}
+
+export interface RefreshSessionPayload {
+  refreshToken: string;
+}
+
+export interface RefreshSessionResponse {
+  accessToken: string;
+  idToken: string;
+  expiresAt: number;
 }
