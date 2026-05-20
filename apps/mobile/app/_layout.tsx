@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { Stack } from "expo-router";
-import { useFonts } from "@expo-google-fonts/afacad";
+import { Stack, useRouter, useSegments } from "expo-router";
 import {
+  useFonts,
   Afacad_400Regular,
   Afacad_500Medium,
   Afacad_600SemiBold,
@@ -12,8 +12,53 @@ import {
   Afacad_700Bold_Italic,
 } from "@expo-google-fonts/afacad";
 import * as SplashScreen from "expo-splash-screen";
+import * as WebBrowser from "expo-web-browser";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { colors } from "@/constants/theme";
 
 SplashScreen.preventAutoHideAsync();
+WebBrowser.maybeCompleteAuthSession();
+
+function AppNavigator() {
+  const router = useRouter();
+  const segments = useSegments();
+  const { isAuthenticated, isLoadingSession } = useAuth();
+
+  const isInAuthGroup = segments[0] === "(auth)";
+
+  useEffect(() => {
+    if (isLoadingSession) {
+      return;
+    }
+
+    if (!isAuthenticated && !isInAuthGroup) {
+      router.replace("/");
+      return;
+    }
+
+    if (isAuthenticated && isInAuthGroup) {
+      router.replace("/home");
+    }
+  }, [isAuthenticated, isInAuthGroup, isLoadingSession, router]);
+
+  if (isLoadingSession) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+      }}
+    />
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -38,10 +83,17 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    />
+    <AuthProvider>
+      <AppNavigator />
+    </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
+  },
+});
