@@ -1,16 +1,14 @@
 import { Tabs, useRouter } from "expo-router";
-import { Bell, CarFront, CircleDollarSign, User } from "lucide-react-native";
+import { Bell, CarFront, CircleDollarSign, Home, User } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
-import Svg, { Path } from "react-native-svg";
 
 import Logo from "@/components/Logo";
 import { colors, fontSize, spacing } from "@/constants/theme";
 
 const iconSize = 22;
 const iconStrokeWidth = 1.8;
-const logoTabIconWidth = (iconSize * 32) / 53;
 
 function TabsHeader() {
   const router = useRouter();
@@ -54,24 +52,20 @@ function NotificationTabBarButton({
   );
 }
 
-function HomeTabIcon({ focused, color }: { focused: boolean; color: string }) {
+function TabIcon({
+  focused,
+  color,
+  Icon,
+}: {
+  focused: boolean;
+  color: string;
+  Icon: typeof Home;
+}) {
   return (
-    <Svg
-      width={logoTabIconWidth}
-      height={iconSize}
-      viewBox="0 0 32 53"
-      fill="none"
-      style={!focused ? styles.homeIconInactive : undefined}
-    >
-      <Path
-        d="M3.925 17.175L4.85 13.5H20.275L19.375 17.175H13.75L9.025 36H4.85L9.55 17.175H3.925Z"
-        fill="#FF0404"
-      />
-      <Path
-        d="M14.925 22.175L15.85 18.5H31.275L30.375 22.175H24.75L20.025 41H15.85L20.55 22.175H14.925Z"
-        fill={focused ? colors.black : color}
-      />
-    </Svg>
+    <View style={styles.tabIconWrapper}>
+      <Icon size={iconSize} strokeWidth={iconStrokeWidth} color={color} />
+      {focused ? <View style={styles.tabIndicator} /> : null}
+    </View>
   );
 }
 
@@ -87,14 +81,24 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.black,
         tabBarStyle: styles.tabBar,
+        tabBarItemStyle: styles.tabBarItem,
       }}
     >
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: "Home",
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon Icon={Home} color={color} focused={focused} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="financing"
         options={{
           title: "Financiamento",
-          tabBarIcon: ({ color }) => (
-            <CircleDollarSign size={iconSize} strokeWidth={iconStrokeWidth} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon Icon={CircleDollarSign} color={color} focused={focused} />
           ),
         }}
       />
@@ -102,24 +106,17 @@ export default function TabsLayout() {
         name="vehicle-management"
         options={{
           title: "Gestão do veículo",
-          tabBarIcon: ({ color }) => (
-            <CarFront size={iconSize} strokeWidth={iconStrokeWidth} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon Icon={CarFront} color={color} focused={focused} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, focused }) => <HomeTabIcon color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="notifications-tab"
         options={{
           title: "Notificações",
-          tabBarIcon: ({ color }) => (
-            <Bell size={iconSize} strokeWidth={iconStrokeWidth} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon Icon={Bell} color={color} focused={focused} />
           ),
           tabBarButton: (props) => <NotificationTabBarButton {...props} />,
         }}
@@ -128,8 +125,8 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Perfil",
-          tabBarIcon: ({ color }) => (
-            <User size={iconSize} strokeWidth={iconStrokeWidth} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon Icon={User} color={color} focused={focused} />
           ),
         }}
       />
@@ -164,8 +161,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 10,
     elevation: 8,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
   },
-  homeIconInactive: {
-    opacity: 0.7,
+  tabBarItem: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabIconWrapper: {
+    width: 38,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabIndicator: {
+    marginTop: 6,
+    width: 18,
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: colors.primary,
   },
 });

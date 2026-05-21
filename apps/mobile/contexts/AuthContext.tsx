@@ -82,6 +82,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name?: string) => Promise<RegisterResponse>;
   signInWithTokens: (session: StoredSession) => Promise<void>;
+  refreshUser: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -188,6 +189,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [applySession]
   );
 
+  const refreshUser = useCallback(async () => {
+    if (!session?.accessToken) {
+      setUser(null);
+      return;
+    }
+    try {
+      const meResult = await fetchMe(session.accessToken);
+      setUser(meResult.user);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        await clearSession();
+      }
+      throw error;
+    }
+  }, [clearSession, session?.accessToken]);
+
   const signOut = useCallback(async () => {
     await clearSession();
   }, [clearSession]);
@@ -201,9 +218,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       signIn,
       signUp,
       signInWithTokens,
+      refreshUser,
       signOut,
     }),
-    [isLoadingSession, session, signIn, signInWithTokens, signOut, signUp, user]
+    [isLoadingSession, refreshUser, session, signIn, signInWithTokens, signOut, signUp, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Lock, Pencil } from "lucide-react-native";
+import { ArrowRight } from "lucide-react-native";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -26,20 +26,21 @@ const formatBirthDate = (value: string) => {
   return result;
 };
 
-export default function ProfileScreen() {
+export default function ProfileSetupScreen() {
   const router = useRouter();
-  const { signOut, token, user, refreshUser } = useAuth();
+  const { token, user, refreshUser } = useAuth();
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
-  const [email, setEmail] = useState("");
-  const [password] = useState("********");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    setEmail(user?.email ?? "");
-  }, [user?.email]);
+    if (user?.profile) {
+      setFullName(user.profile.fullName ?? "");
+      setBirthDate(formatBirthDate(user.profile.birthDate ?? ""));
+    }
+  }, [user?.profile]);
 
   useEffect(() => {
     let isActive = true;
@@ -81,6 +82,35 @@ export default function ProfileScreen() {
     };
   }, [token]);
 
+  const handleSave = async () => {
+    if (!token) {
+      setFormError("Sessao invalida. Faça login novamente.");
+      return;
+    }
+    if (!fullName.trim() || !birthDate.trim()) {
+      setFormError("Preencha nome completo e data de nascimento.");
+      return;
+    }
+    setIsSaving(true);
+    setFormError(null);
+    try {
+      await updateProfile(token, {
+        fullName: fullName.trim(),
+        birthDate: birthDate.trim(),
+      });
+      await refreshUser();
+      router.replace("/home");
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setFormError(error.message);
+      } else {
+        setFormError("Nao foi possivel salvar o perfil.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -88,8 +118,8 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.contentContainer}
       >
         <ScreenSectionHeader
-          title="Perfil"
-          subtitle="Suas informações pessoais"
+          title="Complete seu perfil"
+          subtitle="Informe os dados para continuar"
           style={styles.sectionHeader}
         />
 
@@ -110,76 +140,27 @@ export default function ProfileScreen() {
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
-          <TextInput
-            placeholder="e-mail"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            editable={false}
-            icon={<Lock size={18} strokeWidth={1.8} color={colors.black} />}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          <TextInput
-            placeholder="Senha"
-            secureTextEntry
-            value={password}
-            editable={false}
-            icon={<Pencil size={18} strokeWidth={1.8} color={colors.black} />}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
           {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
         </View>
-        <View style={styles.actionContainer}>
-          <Button
-            title="Sair da conta"
-            variant="outline"
-            style={styles.logoutButton}
-            onPress={async () => {
-              await signOut();
-              router.replace("/");
-            }}
-          />
-          <Button
-            title={isSaving ? "Salvando..." : "Salvar"}
-            style={styles.saveButton}
-            icon={
-              <ArrowRight
-                size={36}
-                strokeWidth={3}
-                color={colors.white}
-                strokeLinecap="butt"
-                strokeLinejoin="round"
-              />
-            }
-            disabled={isSaving || isLoadingProfile || !token}
-            onPress={async () => {
-              if (!token) {
-                setFormError("Sessao invalida. Faça login novamente.");
-                return;
-              }
-              setIsSaving(true);
-              setFormError(null);
-              try {
-                await updateProfile(token, {
-                  fullName,
-                  birthDate,
-                });
-                await refreshUser();
-              } catch (error) {
-                if (error instanceof ApiError) {
-                  setFormError(error.message);
-                } else {
-                  setFormError("Nao foi possivel salvar o perfil.");
-                }
-              } finally {
-                setIsSaving(false);
-              }
-            }}
-          />
-        </View>
       </ScrollView>
+
+      <View style={styles.saveButtonContainer}>
+        <Button
+          title={isSaving ? "Salvando..." : "Salvar e continuar"}
+          style={styles.saveButton}
+          icon={
+            <ArrowRight
+              size={36}
+              strokeWidth={3}
+              color={colors.white}
+              strokeLinecap="butt"
+              strokeLinejoin="round"
+            />
+          }
+          disabled={isSaving || isLoadingProfile || !token}
+          onPress={handleSave}
+        />
+      </View>
     </View>
   );
 }
@@ -219,13 +200,12 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.primary,
   },
-  actionContainer: {
-    marginTop: spacing.xl,
-    gap: spacing.sm,
-  },
-  logoutButton: {
-    width: "100%",
-    borderColor: colors.black,
+  saveButtonContainer: {
+    position: "absolute",
+    left: spacing.lg + 3,
+    right: spacing.lg + 3,
+    bottom: spacing.xxl + spacing.md,
+    zIndex: 1,
   },
   saveButton: {
     width: "100%",

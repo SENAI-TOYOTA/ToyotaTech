@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import Checkbox from "expo-checkbox";
 import * as AuthSession from "expo-auth-session";
+import type { DiscoveryDocument } from "expo-auth-session";
 
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
@@ -15,6 +16,54 @@ import { ApiError } from "@/services/api";
 import { AuthScreenLayout } from "./_layout";
 
 const googleIcon = require("@/assets/images/google-icon.png");
+
+function useCognitoDiscovery(issuer?: string) {
+  const [discovery, setDiscovery] = useState<DiscoveryDocument | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    if (!issuer) {
+      setDiscovery(null);
+      return () => {
+        isActive = false;
+      };
+    }
+
+    const buildDiscovery = () => ({
+      authorizationEndpoint: `${issuer}/oauth2/authorize`,
+      tokenEndpoint: `${issuer}/oauth2/token`,
+      revocationEndpoint: `${issuer}/oauth2/revoke`,
+      userInfoEndpoint: `${issuer}/oauth2/userInfo`,
+      endSessionEndpoint: `${issuer}/logout`,
+    });
+
+    if (Platform.OS === "web") {
+      setDiscovery(buildDiscovery());
+      return () => {
+        isActive = false;
+      };
+    }
+
+    AuthSession.fetchDiscoveryAsync(issuer)
+      .then((document) => {
+        if (isActive) {
+          setDiscovery(document);
+        }
+      })
+      .catch((error) => {
+        console.error("Falha ao carregar discovery do Cognito:", error);
+        if (isActive) {
+          setDiscovery(buildDiscovery());
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [issuer]);
+
+  return discovery;
+}
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -31,7 +80,7 @@ export default function LoginScreen() {
   const cognitoDomain = process.env.EXPO_PUBLIC_COGNITO_DOMAIN?.trim().replace(/\/$/, "");
   const cognitoClientId = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID?.trim();
   const redirectUri = AuthSession.makeRedirectUri({ scheme: "mobile" });
-  const discovery = AuthSession.useAutoDiscovery(cognitoDomain ?? "");
+  const discovery = useCognitoDiscovery(cognitoDomain || undefined);
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
       clientId: cognitoClientId ?? "",
@@ -120,8 +169,12 @@ export default function LoginScreen() {
   }, [cognitoClientId, discovery, redirectUri, request?.codeVerifier, response, signInWithTokens]);
 
   const handleGooglePress = async () => {
-    if (!cognitoDomain || !cognitoClientId || !request) {
+    if (!cognitoDomain || !cognitoClientId) {
       setFormError("Login Google nao configurado.");
+      return;
+    }
+    if (!discovery || !request) {
+      setFormError("Login Google ainda nao esta pronto.");
       return;
     }
     setFormError(null);

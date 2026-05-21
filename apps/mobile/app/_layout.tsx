@@ -24,9 +24,13 @@ WebBrowser.maybeCompleteAuthSession();
 function AppNavigator() {
   const router = useRouter();
   const segments = useSegments();
-  const { isAuthenticated, isLoadingSession } = useAuth();
+  const { isAuthenticated, isLoadingSession, user } = useAuth();
 
   const isInAuthGroup = segments[0] === "(auth)";
+  const isInProfileSetup = segments[0] === "profile-setup";
+  const needsProfile =
+    Boolean(isAuthenticated) &&
+    (!user?.profile?.fullName || !user?.profile?.birthDate);
 
   useEffect(() => {
     if (isLoadingSession) {
@@ -38,10 +42,20 @@ function AppNavigator() {
       return;
     }
 
-    if (isAuthenticated && isInAuthGroup) {
-      router.replace("/home");
+    if (isAuthenticated) {
+      if (needsProfile && !isInProfileSetup) {
+        router.replace("/profile-setup");
+        return;
+      }
+      if (!needsProfile && isInProfileSetup) {
+        router.replace("/home");
+        return;
+      }
+      if (isInAuthGroup && !needsProfile) {
+        router.replace("/home");
+      }
     }
-  }, [isAuthenticated, isInAuthGroup, isLoadingSession, router]);
+  }, [isAuthenticated, isInAuthGroup, isInProfileSetup, isLoadingSession, needsProfile, router]);
 
   if (isLoadingSession) {
     return (

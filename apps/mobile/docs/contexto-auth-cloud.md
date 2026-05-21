@@ -24,6 +24,7 @@
   - `app/(auth)/register.tsx`
   - `app/(auth)/verify-email.tsx`
   - `app/(auth)/login.tsx`
+  - `app/profile-setup.tsx`
   - `app/(tabs)/profile.tsx`
 
 ### Login social
@@ -44,6 +45,7 @@
 - Dados de perfil persistidos no Dynamo:
   - `fullName`
   - `birthDate`
+- Usuarios autenticados sem perfil completo sao redirecionados para `app/profile-setup.tsx`.
 
 ## 2) Snapshot do ambiente cloud (estado atual)
 
