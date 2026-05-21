@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environment
+.env
+
+# VSCode
+.vscode/
+
+# Docker
+*.log
+
+# Node-RED data (caso adicione volume depois)
+node-red-data/
+
+# InfluxDB data (caso adicione volume depois)
+influxdb-data/
+
+# Grafana data (caso adicione volume depois)
+grafana-data/

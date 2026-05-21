@@ -1,0 +1,12 @@
+# Windows
+desktop.ini
+
+# Environment
+.env
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs
+*.log
