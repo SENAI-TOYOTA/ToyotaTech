@@ -180,7 +180,7 @@ export default function LoginScreen() {
     setFormError(null);
     setIsGoogleLoading(true);
     try {
-      const result = await promptAsync({ useProxy: false });
+      const result = await promptAsync();
       if (result.type !== "success") {
         setIsGoogleLoading(false);
       }

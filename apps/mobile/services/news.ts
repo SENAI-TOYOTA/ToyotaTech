@@ -1,9 +1,13 @@
 import { XMLParser } from "fast-xml-parser";
+import { Platform } from "react-native";
 
 import { NewsItem } from "@/types/news";
 
-const NEWS_RSS_URL =
-  "https://news.google.com/rss/search?q=toyota%20carros%20brasil&hl=pt-BR&gl=BR&ceid=BR:pt-419";
+const NEWS_RSS_URL = "https://pt.motor1.com/rss/category/toyota/";
+
+const FETCH_URL = Platform.OS === "web" 
+  ? `https://corsproxy.io/?${encodeURIComponent(NEWS_RSS_URL)}` 
+  : NEWS_RSS_URL;
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -32,7 +36,7 @@ function normalizeNewsItems(items: unknown): NewsItem[] {
         `${entry.title ?? "news"}-${index}`;
       const source =
         (typeof entry.source === "string" ? entry.source : entry.source?.["#text"]) ||
-        "Google News";
+        "Motor1";
 
       if (!entry.title || !entry.link) {
         return null;
@@ -49,7 +53,7 @@ function normalizeNewsItems(items: unknown): NewsItem[] {
 }
 
 export async function fetchNews(limit = 6): Promise<NewsItem[]> {
-  const response = await fetch(NEWS_RSS_URL);
+  const response = await fetch(FETCH_URL);
   if (!response.ok) {
     throw new Error("Falha ao carregar noticias.");
   }

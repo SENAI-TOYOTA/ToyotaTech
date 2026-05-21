@@ -1,12 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react-native";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import * as Linking from "expo-linking";
 
 import { colors, fonts, spacing } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchNews } from "@/services/news";
-import { NewsItem } from "@/types/news";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 const sideCarImage = require("@/assets/images/corolla-side.png");
@@ -19,49 +15,31 @@ const highlightCards = [
   { id: "lifestyle", title: "Lifestyle", image: mainCarImage },
 ];
 
-const formatNewsDate = (value: string) => {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return "";
-  }
-  return parsed.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-};
+const toyotaTips = [
+  {
+    id: "tip-1",
+    title: "Economia Híbrida",
+    description: "Dicas para maximizar o uso do modo elétrico no seu Corolla.",
+    category: "MANUTENÇÃO",
+  },
+  {
+    id: "tip-2",
+    title: "Toyota Safety Sense",
+    description: "Entenda como funcionam os radares de pré-colisão.",
+    category: "TECNOLOGIA",
+  },
+  {
+    id: "tip-3",
+    title: "Acessórios Genuínos",
+    description: "Personalize seu Toyota com garantia e qualidade de fábrica.",
+    category: "ESTILO",
+  },
+];
 
 export default function HomeScreen() {
   const { user } = useAuth();
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [isLoadingNews, setIsLoadingNews] = useState(true);
-  const [newsError, setNewsError] = useState<string | null>(null);
   const displayName = user?.profile?.fullName || user?.name || "Usuário";
   const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
-  const newsItems = useMemo(() => news.slice(0, 4), [news]);
-
-  useEffect(() => {
-    let isActive = true;
-    const loadNews = async () => {
-      setIsLoadingNews(true);
-      try {
-        const items = await fetchNews(6);
-        if (isActive) {
-          setNews(items);
-          setNewsError(null);
-        }
-      } catch (error) {
-        if (isActive) {
-          setNewsError("Nao foi possivel carregar novidades.");
-        }
-      } finally {
-        if (isActive) {
-          setIsLoadingNews(false);
-        }
-      }
-    };
-
-    void loadNews();
-    return () => {
-      isActive = false;
-    };
-  }, []);
 
   return (
     <View style={styles.container}>
@@ -83,7 +61,7 @@ export default function HomeScreen() {
         <View style={styles.statusButtonWrapper}>
           <View style={styles.statusButtonShadow} />
           <Pressable style={styles.statusButton} android_ripple={{ color: "#c70818" }}>
-            <Text style={styles.statusButtonText}>Vericar Status</Text>
+            <Text style={styles.statusButtonText}>Verificar Status</Text>
             <ArrowRight size={24} strokeWidth={2.6} color={colors.white} />
           </Pressable>
         </View>
@@ -106,40 +84,28 @@ export default function HomeScreen() {
         </ScrollView>
 
         <View style={styles.newsHeaderRow}>
-          <Text style={styles.sectionTitle}>Novidades</Text>
+          <Text style={styles.sectionTitle}>Guia e Novidades</Text>
           <Pressable style={styles.newsHeaderButton} android_ripple={{ color: "#f2f2f2" }}>
-            <Text style={styles.newsHeaderText}>Ver mais</Text>
+            <Text style={styles.newsHeaderText}>Ver tudo</Text>
             <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
           </Pressable>
         </View>
 
-        {isLoadingNews ? (
-          <Text style={styles.newsStatusText}>Carregando novidades...</Text>
-        ) : newsError ? (
-          <Text style={styles.newsStatusText}>{newsError}</Text>
-        ) : (
-          <View style={styles.newsList}>
-            {newsItems.map((item) => (
-              <Pressable
-                key={item.id}
-                style={styles.newsCard}
-                onPress={() => Linking.openURL(item.link)}
-              >
-                <Text style={styles.newsTitle} numberOfLines={2}>
-                  {item.title}
-                </Text>
-                <Text style={styles.newsMeta}>
-                  {item.source}
-                  {item.publishedAt ? ` · ${formatNewsDate(item.publishedAt)}` : ""}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
+        <View style={styles.newsList}>
+          {toyotaTips.map((tip) => (
+            <Pressable key={tip.id} style={styles.newsCard}>
+              <Text style={styles.newsMeta}>{tip.category}</Text>
+              <Text style={styles.newsTitle}>{tip.title}</Text>
+              <Text style={styles.newsDescription} numberOfLines={2}>
+                {tip.description}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
 
         <View style={styles.footer}>
           <View style={styles.footerDivider} />
-          <Text style={styles.footerText}>Fim das novidades por aqui</Text>
+          <Text style={styles.footerText}>Sempre o melhor para o seu Toyota</Text>
         </View>
       </ScrollView>
     </View>
@@ -154,7 +120,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.lg + 3,
-    paddingBottom: spacing.xxl + spacing.xxl,
+    paddingBottom: spacing.xl,
   },
   welcomeText: {
     marginTop: spacing.xl + spacing.sm,
@@ -287,12 +253,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.black,
   },
-  newsStatusText: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
   newsList: {
     marginTop: spacing.sm,
     gap: spacing.sm,
@@ -304,22 +264,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.sm,
   },
+  newsMeta: {
+    fontFamily: fonts.bold,
+    fontSize: 10,
+    color: colors.primary,
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
   newsTitle: {
     fontFamily: fonts.semiBold,
-    fontSize: 16,
+    fontSize: 18,
     color: colors.black,
   },
-  newsMeta: {
-    marginTop: spacing.xs,
+  newsDescription: {
+    marginTop: 4,
     fontFamily: fonts.regular,
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textSecondary,
+    lineHeight: 18,
   },
   footer: {
-    marginTop: spacing.xl + spacing.sm,
+    marginTop: spacing.xl,
     alignItems: "center",
     gap: spacing.sm,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.md,
   },
   footerDivider: {
     width: 60,

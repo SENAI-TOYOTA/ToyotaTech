@@ -199,10 +199,7 @@ const styles = StyleSheet.create({
     borderColor: colors.grayLight,
   },
   wrapperShadow: {
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.1)",
     elevation: 4,
   },
   disabledSurfacePrimary: {
