@@ -22,6 +22,11 @@ export interface LoginPayload {
 export interface CheckEmailResponse {
   exists: boolean;
   nextRoute: "/login" | "/register";
+  isFederated?: boolean;
+}
+
+export interface SetPasswordPayload {
+  password: string;
 }
 
 export interface LoginResponse {

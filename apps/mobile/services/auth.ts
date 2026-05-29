@@ -8,6 +8,7 @@ import {
   RefreshSessionResponse,
   RegisterPayload,
   RegisterResponse,
+  SetPasswordPayload,
   VerifyEmailPayload,
 } from "@/types/auth";
 
@@ -56,6 +57,14 @@ export async function resendVerification(email: string) {
 export async function refreshSession(payload: RefreshSessionPayload) {
   return apiRequest<RefreshSessionResponse>("/auth/refresh", {
     method: "POST",
+    body: payload,
+  });
+}
+
+export async function setPassword(token: string, payload: SetPasswordPayload) {
+  return apiRequest<{ message: string }>("/auth/set-password", {
+    method: "POST",
+    token,
     body: payload,
   });
 }

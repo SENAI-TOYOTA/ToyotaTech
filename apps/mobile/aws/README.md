@@ -20,10 +20,20 @@ Endpoints publicados:
 - `POST /auth/verify-email`
 - `POST /auth/resend-verification`
 - `POST /auth/refresh`
+- `POST /auth/set-password`
+- `GET /profile`
+- `PUT /profile`
 - `GET /me`
 
 Modo de verificação de e-mail:
 - Via Cognito (`CONFIRM_WITH_CODE`), com envio de código para e-mail.
+
+Para habilitar Google IdP, informe `-GoogleClientId`, `-GoogleClientSecret`,
+`-CallbackUrls` e `-LogoutUrls`. Em desenvolvimento (Expo Go + web), use:
+
+```
+http://localhost:8081,http://localhost:19006,exp://localhost:8081,exp://localhost:8081/--/,mobile://
+```
 
 Também atualiza:
 - `.env.example`

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "app/**/*.{ts,tsx}",
+    "eslint.config.js"
+  ],
+  "project": [
+    "**/*.{ts,tsx,js,jsx}"
+  ],
+  "ignore": [
+    "aws/**",
+    ".expo/**",
+    "docs/**",
+    "assets/**"
+  ]
+}

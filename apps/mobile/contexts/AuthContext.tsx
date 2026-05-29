@@ -11,7 +11,7 @@ import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 import { ApiError } from "@/services/api";
-import { fetchMe, login, refreshSession, register } from "@/services/auth";
+import { fetchMe, login, refreshSession, register, setPassword as setPasswordService } from "@/services/auth";
 import { AuthUser, RegisterResponse } from "@/types/auth";
 
 const SESSION_STORAGE_KEY = "toyotatech.auth.session";
@@ -74,14 +74,47 @@ async function deleteStoredSession() {
   await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
 }
 
+/**
+ * Verifica se o idToken indica que o usuário foi autenticado via provedor
+ * externo (Google). O Cognito inclui no campo `cognito:username` do token
+ * o prefixo "Google_" para usuários federados, e o campo `identities` com
+ * o provedor. Decodificamos o payload do JWT (sem verificar assinatura, pois
+ * isso é responsabilidade do servidor) apenas para leitura local de UX.
+ */
+function isTokenFederated(idToken: string): boolean {
+  try {
+    const parts = idToken.split(".");
+    if (parts.length !== 3) return false;
+    // Adiciona padding necessário para base64
+    const payload = parts[1];
+    const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
+    const decoded = JSON.parse(atob(padded)) as Record<string, unknown>;
+
+    // Cognito marca usuários SSO com o provedor no campo `identities`
+    if (Array.isArray(decoded.identities) && decoded.identities.length > 0) {
+      return true;
+    }
+    // Fallback: username começa com "Google_"
+    const username = decoded["cognito:username"];
+    if (typeof username === "string" && username.toLowerCase().startsWith("google_")) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoadingSession: boolean;
+  isFederatedUser: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name?: string) => Promise<RegisterResponse>;
   signInWithTokens: (session: StoredSession) => Promise<void>;
+  setPassword: (password: string) => Promise<void>;
   refreshUser: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -189,6 +222,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [applySession]
   );
 
+  const setPassword = useCallback(
+    async (password: string) => {
+      if (!session?.accessToken) {
+        throw new Error("Sessao invalida. Faca login novamente.");
+      }
+      await setPasswordService(session.accessToken, { password });
+    },
+    [session?.accessToken]
+  );
+
   const refreshUser = useCallback(async () => {
     if (!session?.accessToken) {
       setUser(null);
@@ -209,19 +252,26 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await clearSession();
   }, [clearSession]);
 
+  const isFederatedUser = useMemo(() => {
+    if (!session?.idToken) return false;
+    return isTokenFederated(session.idToken);
+  }, [session?.idToken]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       token: session?.accessToken ?? null,
       isAuthenticated: Boolean(session && user),
       isLoadingSession,
+      isFederatedUser,
       signIn,
       signUp,
       signInWithTokens,
+      setPassword,
       refreshUser,
       signOut,
     }),
-    [isLoadingSession, refreshUser, session, signIn, signInWithTokens, signOut, signUp, user]
+    [isFederatedUser, isLoadingSession, refreshUser, session, setPassword, signIn, signInWithTokens, signOut, signUp, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

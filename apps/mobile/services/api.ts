@@ -45,6 +45,9 @@ export async function apiRequest<T>(
     if (error instanceof Error && error.name === "AbortError") {
       throw new ApiError("Tempo limite da requisicao excedido.", 408);
     }
+    if (__DEV__) {
+      console.error("[API] Falha na requisicao", { path, error });
+    }
     throw error;
   } finally {
     clearTimeout(timeoutId);
@@ -56,12 +59,23 @@ export async function apiRequest<T>(
     try {
       parsed = JSON.parse(raw) as { message?: string } & T;
     } catch {
+      if (__DEV__) {
+        console.error("[API] Resposta invalida", { path, status: response.status, body: raw });
+      }
       parsed = { message: "Resposta invalida da API." } as { message?: string } & T;
     }
   }
 
   if (!response.ok) {
     const message = (parsed as { message?: string }).message ?? "Erro na API.";
+    if (__DEV__) {
+      console.error("[API] Erro na resposta", {
+        path,
+        status: response.status,
+        message,
+        body: raw,
+      });
+    }
     throw new ApiError(message, response.status);
   }
 

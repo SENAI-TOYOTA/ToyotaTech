@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Lock, Pencil } from "lucide-react-native";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Button from "@/components/ui/Button";
@@ -87,13 +88,18 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <ScreenSectionHeader
-          title="Perfil"
-          subtitle="Suas informações pessoais"
-          style={styles.sectionHeader}
-        />
+        <Animated.View entering={FadeInDown.duration(600).springify()}>
+          <ScreenSectionHeader
+            title="Perfil"
+            subtitle="Suas informações pessoais"
+            style={styles.sectionHeader}
+          />
+        </Animated.View>
 
-        <View style={styles.formContainer}>
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+          style={styles.formContainer}
+        >
           <TextInput
             placeholder="Nome completo"
             value={fullName}
@@ -130,8 +136,11 @@ export default function ProfileScreen() {
             style={styles.inputText}
           />
           {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
-        </View>
-        <View style={styles.actionContainer}>
+        </Animated.View>
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(600).springify()}
+          style={styles.actionContainer}
+        >
           <Button
             title="Sair da conta"
             variant="outline"
@@ -178,7 +187,7 @@ export default function ProfileScreen() {
               }
             }}
           />
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );

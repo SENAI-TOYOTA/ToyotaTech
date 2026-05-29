@@ -65,6 +65,22 @@ if ($configureGoogle -and ($callbackUrlList.Count -eq 0 -or $logoutUrlList.Count
   throw "Para configurar Google IdP, informe -CallbackUrls e -LogoutUrls."
 }
 
+if ($configureGoogle) {
+  $defaultDevRedirects = @(
+    "exp://localhost:8081/--/",
+    "exp://localhost:8081",
+    "mobile://"
+  )
+  foreach ($redirect in $defaultDevRedirects) {
+    if ($callbackUrlList -notcontains $redirect) {
+      $callbackUrlList += $redirect
+    }
+    if ($logoutUrlList -notcontains $redirect) {
+      $logoutUrlList += $redirect
+    }
+  }
+}
+
 $accountId = aws sts get-caller-identity --query Account --output text --region $Region
 $lambdaName = "$Prefix-auth-handler"
 $apiName = "$Prefix-auth-api"
@@ -123,7 +139,7 @@ if ($configureGoogle) {
       --user-pool-id $userPoolId `
       --provider-name $idpName `
       --provider-details client_id=$GoogleClientId client_secret=$GoogleClientSecret authorize_scopes="openid email profile" `
-      --attribute-mapping email=email name=name `
+      --attribute-mapping email=email name=name email_verified=email_verified `
       --region $Region | Out-Null
   } else {
     aws cognito-idp create-identity-provider `
@@ -131,7 +147,7 @@ if ($configureGoogle) {
       --provider-name $idpName `
       --provider-type Google `
       --provider-details client_id=$GoogleClientId client_secret=$GoogleClientSecret authorize_scopes="openid email profile" `
-      --attribute-mapping email=email name=name `
+      --attribute-mapping email=email name=name email_verified=email_verified `
       --region $Region | Out-Null
   }
 } else {
@@ -161,7 +177,7 @@ if ($configureGoogle) {
   $clientArgs += @(
     "--allowed-o-auth-flows-user-pool-client",
     "--allowed-o-auth-flows", "code",
-    "--allowed-o-auth-scopes", "openid", "email", "profile",
+    "--allowed-o-auth-scopes", "openid", "email", "profile", "aws.cognito.signin.user.admin",
     "--supported-identity-providers", "COGNITO", "Google",
     "--callback-urls"
   ) + $callbackUrlList + @("--logout-urls") + $logoutUrlList
@@ -271,6 +287,26 @@ Start-Sleep -Seconds 5
 
 $lambdaArn = aws lambda get-function --function-name $lambdaName --query "Configuration.FunctionArn" --output text --region $Region
 
+$userPoolArn = "arn:aws:cognito-idp:${Region}:${accountId}:userpool/$userPoolId"
+$cognitoStatementId = "$Prefix-cognito-presignup"
+try {
+  aws lambda remove-permission --function-name $lambdaName --statement-id $cognitoStatementId --region $Region | Out-Null
+} catch {
+}
+
+aws lambda add-permission `
+  --function-name $lambdaName `
+  --statement-id $cognitoStatementId `
+  --action lambda:InvokeFunction `
+  --principal cognito-idp.amazonaws.com `
+  --source-arn $userPoolArn `
+  --region $Region | Out-Null
+
+aws cognito-idp update-user-pool `
+  --user-pool-id $userPoolId `
+  --lambda-config PreSignUp=$lambdaArn `
+  --region $Region | Out-Null
+
 $apiId = $null
 $existingApi = aws apigatewayv2 get-apis --region $Region --query "Items[?Name=='$apiName'].ApiId | [0]" --output text
 if ($existingApi -and $existingApi -ne "None") {
@@ -295,6 +331,7 @@ $routes = @(
   "POST /auth/verify-email",
   "POST /auth/resend-verification",
   "POST /auth/refresh",
+  "POST /auth/set-password",
   "GET /profile",
   "PUT /profile",
   "GET /me",

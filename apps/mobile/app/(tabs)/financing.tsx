@@ -1,8 +1,50 @@
 import { ArrowRight } from "lucide-react-native";
+import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function InteractivePressable({
+  children,
+  style,
+  onPress,
+  ...props
+}: React.ComponentProps<typeof Pressable>) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
+  };
+
+  return (
+    <AnimatedPressable
+      {...props}
+      style={[style, animatedStyle]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
 
 export default function FinancingScreen() {
   return (
@@ -11,13 +53,18 @@ export default function FinancingScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <ScreenSectionHeader
-          title="Financiamento"
-          subtitle="Acompanhe o seu financiamento"
-          style={styles.sectionHeader}
-        />
+        <Animated.View entering={FadeInDown.duration(600).springify()}>
+          <ScreenSectionHeader
+            title="Financiamento"
+            subtitle="Acompanhe o seu financiamento"
+            style={styles.sectionHeader}
+          />
+        </Animated.View>
 
-        <View style={styles.financeCard}>
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+          style={styles.financeCard}
+        >
           <Text style={styles.carTitle}>Corolla Altis 2026</Text>
 
           <View style={styles.installmentRow}>
@@ -34,9 +81,12 @@ export default function FinancingScreen() {
             Instituição financeira:{" "}
             <Text style={styles.bankName}>Banco Toyota do Brasil S.A</Text>
           </Text>
-        </View>
+        </Animated.View>
 
-        <View style={styles.invoiceCard}>
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(600).springify()}
+          style={styles.invoiceCard}
+        >
           <Text style={styles.invoiceTitle}>2° Via do boleto</Text>
           <Text style={styles.invoiceDescription}>
             Baixe seus boletos e carnês com facilidade
@@ -44,12 +94,12 @@ export default function FinancingScreen() {
 
           <View style={styles.invoiceButtonWrapper}>
             <View style={styles.invoiceButtonShadow} />
-            <Pressable style={styles.invoiceButton} android_ripple={{ color: "#c70818" }}>
+            <InteractivePressable style={styles.invoiceButton}>
               <Text style={styles.invoiceButtonText}>Acessar boleto</Text>
               <ArrowRight size={28} strokeWidth={2.4} color={colors.white} />
-            </Pressable>
+            </InteractivePressable>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -176,8 +226,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.12)",
-    elevation: 8,
   },
   invoiceButtonText: {
     fontFamily: fonts.semiBold,

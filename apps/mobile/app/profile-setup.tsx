@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ArrowRight, Eye } from "lucide-react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
@@ -26,14 +26,35 @@ const formatBirthDate = (value: string) => {
   return result;
 };
 
+const PASSWORD_MIN_LENGTH = 8;
+
+function validatePassword(password: string): string | null {
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    return `A senha deve ter ao menos ${PASSWORD_MIN_LENGTH} caracteres.`;
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "A senha deve conter ao menos uma letra maiúscula.";
+  }
+  if (!/[a-z]/.test(password)) {
+    return "A senha deve conter ao menos uma letra minúscula.";
+  }
+  if (!/[0-9]/.test(password)) {
+    return "A senha deve conter ao menos um número.";
+  }
+  return null;
+}
+
 export default function ProfileSetupScreen() {
   const router = useRouter();
-  const { token, user, refreshUser } = useAuth();
+  const { token, user, refreshUser, isFederatedUser, setPassword } = useAuth();
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [password, setPasswordValue] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
     if (user?.profile) {
@@ -91,9 +112,37 @@ export default function ProfileSetupScreen() {
       setFormError("Preencha nome completo e data de nascimento.");
       return;
     }
+
+    // Se o usuário federado preencheu a senha, valida antes de salvar
+    if (isFederatedUser && password.length > 0) {
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        setFormError(passwordError);
+        return;
+      }
+    }
+
     setIsSaving(true);
     setFormError(null);
+    setPasswordSuccess(false);
+
     try {
+      // Define a senha, se preenchida por usuário Google
+      if (isFederatedUser && password.length > 0) {
+        try {
+          await setPassword(password);
+          setPasswordSuccess(true);
+        } catch (passwordError) {
+          if (passwordError instanceof ApiError) {
+            setFormError(passwordError.message);
+          } else {
+            setFormError("Nao foi possivel definir a senha. Tente novamente.");
+          }
+          setIsSaving(false);
+          return;
+        }
+      }
+
       await updateProfile(token, {
         fullName: fullName.trim(),
         birthDate: birthDate.trim(),
@@ -140,6 +189,43 @@ export default function ProfileSetupScreen() {
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
+
+          {/* Seção de criar senha — aparece apenas para usuários Google */}
+          {isFederatedUser ? (
+            <View style={styles.passwordSection}>
+              <Text style={styles.passwordSectionTitle}>CRIAR SENHA (OPCIONAL)</Text>
+              <Text style={styles.passwordSectionSubtitle}>
+                Defina uma senha para poder entrar também com e-mail e senha, sem precisar usar o
+                botão do Google.
+              </Text>
+
+              <TextInput
+                placeholder="NOVA SENHA"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPasswordValue}
+                containerStyle={styles.passwordInputContainer}
+                style={styles.inputText}
+              />
+              <Pressable
+                style={styles.visibilityRow}
+                onPress={() => setShowPassword((current) => !current)}
+              >
+                <Eye size={18} strokeWidth={1.8} color={colors.black} />
+                <Text style={styles.visibilityText}>{showPassword ? "OCULTAR" : "EXIBIR"}</Text>
+              </Pressable>
+
+              <Text style={styles.passwordHintText}>
+                Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma minúscula e um
+                número.
+              </Text>
+
+              {passwordSuccess ? (
+                <Text style={styles.passwordSuccessText}>Senha definida com sucesso!</Text>
+              ) : null}
+            </View>
+          ) : null}
+
           {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
         </View>
       </ScrollView>
@@ -192,6 +278,52 @@ const styles = StyleSheet.create({
   inputText: {
     fontFamily: fonts.regular,
     fontSize: fontSize.md,
+    color: colors.textPrimary,
+  },
+  // Seção de senha para usuários Google
+  passwordSection: {
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  passwordSectionTitle: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.sm,
+    color: colors.black,
+    letterSpacing: 0.5,
+  },
+  passwordSectionSubtitle: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  passwordInputContainer: {
+    height: 50,
+    paddingVertical: 0,
+    paddingHorizontal: spacing.md - 2,
+    borderRadius: 0,
+    backgroundColor: colors.white,
+  },
+  visibilityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    gap: 6,
+  },
+  visibilityText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.black,
+  },
+  passwordHintText: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    lineHeight: 20,
+    color: colors.textSecondary,
+  },
+  passwordSuccessText: {
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
     color: colors.textPrimary,
   },
   formErrorText: {

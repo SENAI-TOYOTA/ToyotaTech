@@ -1,11 +1,53 @@
 import { ArrowRight } from "lucide-react-native";
+import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import TextInput from "@/components/ui/TextInput";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
 
 const documentOptions = ["Nota fiscal", "CRLV-e", "Documentos", "Manual do veículo"];
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function InteractivePressable({
+  children,
+  style,
+  onPress,
+  ...props
+}: React.ComponentProps<typeof Pressable>) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
+  };
+
+  return (
+    <AnimatedPressable
+      {...props}
+      style={[style, animatedStyle]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
 
 export default function VehicleManagementScreen() {
   return (
@@ -14,25 +56,36 @@ export default function VehicleManagementScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <ScreenSectionHeader
-          title="Gestão do veículo"
-          subtitle="Documentos digitais, lembretes e mais!"
-          style={styles.sectionHeader}
-        />
+        <Animated.View entering={FadeInDown.duration(600).springify()}>
+          <ScreenSectionHeader
+            title="Gestão do veículo"
+            subtitle="Documentos digitais, lembretes e mais!"
+            style={styles.sectionHeader}
+          />
+        </Animated.View>
 
         <View style={styles.documentList}>
-          {documentOptions.map((option) => (
-            <View key={option} style={styles.documentButtonWrapper}>
+          {documentOptions.map((option, index) => (
+            <Animated.View
+              key={option}
+              entering={FadeInDown.delay(200 + index * 100)
+                .duration(600)
+                .springify()}
+              style={styles.documentButtonWrapper}
+            >
               <View style={styles.documentButtonShadow} />
-              <Pressable style={styles.documentButton}>
+              <InteractivePressable style={styles.documentButton}>
                 <Text style={styles.documentButtonText}>{option}</Text>
                 <ArrowRight size={30} strokeWidth={2.4} color={colors.black} />
-              </Pressable>
-            </View>
+              </InteractivePressable>
+            </Animated.View>
           ))}
         </View>
 
-        <View style={styles.recallCard}>
+        <Animated.View
+          entering={FadeInDown.delay(700).duration(600).springify()}
+          style={styles.recallCard}
+        >
           <Text style={styles.recallTitle}>Programas de recall</Text>
           <Text style={styles.recallDescription}>
             Notificações e agendamentos de reparos obrigatórios.
@@ -47,12 +100,12 @@ export default function VehicleManagementScreen() {
 
             <View style={styles.addButtonWrapper}>
               <View style={styles.addButtonShadow} />
-              <Pressable style={styles.addButton}>
+              <InteractivePressable style={styles.addButton}>
                 <Text style={styles.addButtonText}>Adicionar</Text>
-              </Pressable>
+              </InteractivePressable>
             </View>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );

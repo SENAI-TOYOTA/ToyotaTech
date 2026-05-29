@@ -1,5 +1,14 @@
+import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
+import React from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  FadeInDown,
+  FadeInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
 import { colors, fonts, spacing } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,7 +45,43 @@ const toyotaTips = [
   },
 ];
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function InteractivePressable({
+  children,
+  style,
+  onPress,
+  ...props
+}: React.ComponentProps<typeof Pressable>) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
+  };
+
+  return (
+    <AnimatedPressable
+      {...props}
+      style={[style, animatedStyle]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
+
 export default function HomeScreen() {
+  const router = useRouter();
   const { user } = useAuth();
   const displayName = user?.profile?.fullName || user?.name || "Usuário";
   const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
@@ -47,66 +92,100 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.welcomeText}>Bem vindo, {firstName}!</Text>
+        <Animated.Text
+          entering={FadeInDown.duration(600).springify()}
+          style={styles.welcomeText}
+        >
+          Bem vindo, {firstName}!
+        </Animated.Text>
 
-        <View style={styles.showcaseContainer}>
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+          style={styles.showcaseContainer}
+        >
           <Image source={mainCarImage} style={styles.mainImage} resizeMode="cover" />
-          <Image source={sideCarImage} style={styles.sideImage} resizeMode="cover" />
 
           <View style={styles.carLabel}>
             <Text style={styles.carLabelText}>Seu Corolla Altis</Text>
           </View>
-        </View>
+        </Animated.View>
 
-        <View style={styles.statusButtonWrapper}>
+        <Animated.View
+          entering={FadeInDown.delay(300).duration(600).springify()}
+          style={styles.statusButtonWrapper}
+        >
           <View style={styles.statusButtonShadow} />
-          <Pressable style={styles.statusButton} android_ripple={{ color: "#c70818" }}>
+          <InteractivePressable
+            style={styles.statusButton}
+            onPress={() => router.push("/tracking")}
+          >
             <Text style={styles.statusButtonText}>Verificar Status</Text>
             <ArrowRight size={24} strokeWidth={2.6} color={colors.white} />
-          </Pressable>
-        </View>
+          </InteractivePressable>
+        </Animated.View>
 
-        <Text style={styles.sectionTitle}>Destaques para você</Text>
-        <ScrollView
+        <Animated.Text
+          entering={FadeInDown.delay(400).duration(600)}
+          style={styles.sectionTitle}
+        >
+          Destaques para você
+        </Animated.Text>
+        <Animated.ScrollView
+          entering={FadeInRight.delay(500).duration(600)}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.highlightContent}
           style={styles.highlightScroll}
         >
           {highlightCards.map((card) => (
-            <Pressable key={card.id} style={styles.highlightCard}>
+            <InteractivePressable key={card.id} style={styles.highlightCard}>
               <Image source={card.image} style={styles.highlightImage} resizeMode="cover" />
               <View style={styles.highlightLabel}>
                 <Text style={styles.highlightLabelText}>{card.title}</Text>
               </View>
-            </Pressable>
+            </InteractivePressable>
           ))}
-        </ScrollView>
+        </Animated.ScrollView>
 
         <View style={styles.newsHeaderRow}>
-          <Text style={styles.sectionTitle}>Guia e Novidades</Text>
-          <Pressable style={styles.newsHeaderButton} android_ripple={{ color: "#f2f2f2" }}>
-            <Text style={styles.newsHeaderText}>Ver tudo</Text>
-            <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
-          </Pressable>
+          <Animated.Text
+            entering={FadeInDown.delay(600).duration(600)}
+            style={styles.sectionTitle}
+          >
+            Guia e Novidades
+          </Animated.Text>
+          <Animated.View entering={FadeInDown.delay(600).duration(600)}>
+            <InteractivePressable style={styles.newsHeaderButton}>
+              <Text style={styles.newsHeaderText}>Ver tudo</Text>
+              <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
+            </InteractivePressable>
+          </Animated.View>
         </View>
 
         <View style={styles.newsList}>
-          {toyotaTips.map((tip) => (
-            <Pressable key={tip.id} style={styles.newsCard}>
-              <Text style={styles.newsMeta}>{tip.category}</Text>
-              <Text style={styles.newsTitle}>{tip.title}</Text>
-              <Text style={styles.newsDescription} numberOfLines={2}>
-                {tip.description}
-              </Text>
-            </Pressable>
+          {toyotaTips.map((tip, index) => (
+            <Animated.View
+              key={tip.id}
+              entering={FadeInDown.delay(700 + index * 100).duration(600)}
+            >
+              <InteractivePressable style={styles.newsCard}>
+                <Text style={styles.newsMeta}>{tip.category}</Text>
+                <Text style={styles.newsTitle}>{tip.title}</Text>
+                <Text style={styles.newsDescription} numberOfLines={2}>
+                  {tip.description}
+                </Text>
+              </InteractivePressable>
+            </Animated.View>
           ))}
         </View>
 
-        <View style={styles.footer}>
+        <Animated.View
+          entering={FadeInDown.delay(1000).duration(600)}
+          style={styles.footer}
+        >
           <View style={styles.footerDivider} />
           <Text style={styles.footerText}>Sempre o melhor para o seu Toyota</Text>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -134,18 +213,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   mainImage: {
-    position: "absolute",
-    width: 300,
-    height: 300,
-    left: 0,
-    top: 0,
-  },
-  sideImage: {
-    position: "absolute",
-    width: 300,
-    height: 300,
-    left: 331,
-    top: 0,
+    width: "100%",
+    height: "100%",
   },
   carLabel: {
     position: "absolute",
