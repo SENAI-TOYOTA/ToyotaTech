@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Toyota Pós-Venda IA</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f4f4f4;
+}
+
+.container{
+    width:90%;
+    max-width:900px;
+    margin:20px auto;
+    background:white;
+    border-radius:15px;
+    box-shadow:0 0 20px rgba(0,0,0,0.1);
+    overflow:hidden;
+}
+
+.header{
+    background:#EB0A1E;
+    color:white;
+    padding:20px;
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.avatar{
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    object-fit:cover;
+    border:3px solid white;
+}
+
+.chat{
+    height:500px;
+    overflow-y:auto;
+    padding:20px;
+    background:#fafafa;
+}
+
+.msg-user{
+    text-align:right;
+    margin:15px 0;
+}
+
+.msg-user .bubble{
+    display:inline-block;
+    background:#0078ff;
+    color:white;
+    padding:12px;
+    border-radius:15px;
+    max-width:70%;
+}
+
+.msg-bot{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin:15px 0;
+}
+
+.bot-avatar{
+    width:45px;
+    height:45px;
+    border-radius:50%;
+}
+
+.msg-bot .bubble{
+    background:white;
+    padding:12px;
+    border-radius:15px;
+    box-shadow:0 0 5px rgba(0,0,0,0.1);
+    max-width:70%;
+}
+
+.footer{
+    display:flex;
+    padding:15px;
+    gap:10px;
+    border-top:1px solid #ddd;
+}
+
+input{
+    flex:1;
+    padding:12px;
+    border:1px solid #ccc;
+    border-radius:10px;
+    font-size:16px;
+}
+
+button{
+    background:#EB0A1E;
+    color:white;
+    border:none;
+    padding:12px 20px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+button:hover{
+    background:#c70017;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+
+<img
+class="avatar"
+src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400"
+>
+
+<div>
+<h2>Lucas - Consultor Toyota IA</h2>
+<p>Especialista em Pós-Venda</p>
+</div>
+
+</div>
+
+<div id="chat" class="chat">
+
+<div class="msg-bot">
+
+<img
+class="bot-avatar"
+src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400"
+>
+
+<div class="bubble">
+Olá! Sou Lucas, consultor virtual Toyota.
+
+Posso ajudar com:
+
+✅ Revisões
+
+✅ Garantia
+
+✅ Recall
+
+✅ Assistência 24h
+
+✅ Agendamento
+</div>
+
+</div>
+
+</div>
+
+<div class="footer">
+
+<input
+id="msg"
+type="text"
+placeholder="Digite sua dúvida..."
+onkeypress="if(event.key==='Enter') enviar()"
+>
+
+<button onclick="enviar()">
+Enviar
+</button>
+
+</div>
+
+</div>
+
+<script>
+
+async function enviar(){
+
+    let mensagem =
+    document.getElementById("msg").value;
+
+    if(mensagem.trim()==="")
+        return;
+
+    let chat =
+    document.getElementById("chat");
+
+    chat.innerHTML += `
+    <div class="msg-user">
+        <div class="bubble">
+            ${mensagem}
+        </div>
+    </div>
+    `;
+
+    document.getElementById("msg").value="";
+
+    try{
+
+        let resposta = await fetch("/chat",{
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+                mensagem:mensagem
+            })
+
+        });
+
+        let dados =
+        await resposta.json();
+
+        chat.innerHTML += `
+        <div class="msg-bot">
+
+            <img
+            class="bot-avatar"
+            src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400">
+
+            <div class="bubble">
+                ${dados.resposta}
+            </div>
+
+        </div>
+        `;
+
+        chat.scrollTop =
+        chat.scrollHeight;
+
+    }
+    catch(error){
+
+        chat.innerHTML += `
+        <div class="msg-bot">
+            <div class="bubble">
+                Erro ao conectar com o agente IA.
+            </div>
+        </div>
+        `;
+    }
+}
+
+</script>
+
+</body>
+</html>
