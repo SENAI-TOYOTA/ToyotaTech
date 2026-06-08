@@ -9,24 +9,30 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { ArrowLeft, Check, Circle } from "lucide-react-native";
+import { ArrowLeft, Check } from "lucide-react-native";
 
 import { colors, fonts, spacing } from "@/constants/theme";
-import { fetchTrackingStatus } from "@/services/tracking";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchGarageStatus } from "@/services/garage";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 
 export default function TrackingScreen() {
   const router = useRouter();
+  const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [trackingData, setTrackingData] = useState<TrackingInfo | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
       try {
-        const data = await fetchTrackingStatus("user-vehicle-123");
-        setTrackingData(data);
+        const data = await fetchGarageStatus(token);
+        setTrackingData(data.tracking);
       } catch (error) {
         console.error("Failed to fetch tracking data", error);
       } finally {
@@ -35,7 +41,7 @@ export default function TrackingScreen() {
     };
 
     loadData();
-  }, []);
+  }, [token]);
 
   if (loading) {
     return (

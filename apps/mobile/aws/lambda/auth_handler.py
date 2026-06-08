@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import time
+from decimal import Decimal
 from typing import Any, Dict, Optional
 
 import boto3
@@ -11,12 +12,18 @@ from botocore.exceptions import ClientError
 COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "").strip()
 COGNITO_CLIENT_ID = os.environ.get("COGNITO_CLIENT_ID", "").strip()
 PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()
+GARAGE_TABLE_NAME = os.environ.get("GARAGE_TABLE_NAME", "").strip()
 COGNITO_REGION = os.environ.get("COGNITO_REGION", os.environ.get("AWS_REGION", "us-east-1"))
 cognito_client = boto3.client("cognito-idp", region_name=COGNITO_REGION)
 dynamodb_resource = boto3.resource("dynamodb", region_name=COGNITO_REGION)
 
 
 def _response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
+    def json_default(value: Any) -> Any:
+        if isinstance(value, Decimal):
+            return int(value) if value % 1 == 0 else str(value)
+        raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
     return {
         "statusCode": status_code,
         "headers": {
@@ -25,7 +32,7 @@ def _response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
             "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT",
         },
-        "body": json.dumps(body),
+        "body": json.dumps(body, default=json_default),
     }
 
 
@@ -36,6 +43,8 @@ def _validate_config() -> Optional[Dict[str, Any]]:
         return _response(500, {"message": "COGNITO_CLIENT_ID nao configurado."})
     if not PROFILE_TABLE_NAME:
         return _response(500, {"message": "PROFILE_TABLE_NAME nao configurado."})
+    if not GARAGE_TABLE_NAME:
+        return _response(500, {"message": "GARAGE_TABLE_NAME nao configurado."})
     return None
 
 
@@ -399,6 +408,100 @@ def _update_profile_item(user_id: str, profile: Dict[str, str]) -> None:
             "updatedAt": int(time.time()),
         }
     )
+
+
+def _get_garage_table():
+    if not GARAGE_TABLE_NAME:
+        raise ValueError("GARAGE_TABLE_NAME nao configurado.")
+    return dynamodb_resource.Table(GARAGE_TABLE_NAME)
+
+
+def _build_demo_garage(user: Dict[str, Any]) -> Dict[str, Any]:
+    user_id = str(user.get("sub", ""))
+    safe_suffix = "".join(ch for ch in user_id.upper() if ch.isalnum())[-8:] or "00000000"
+    chassi = f"9BR{safe_suffix.rjust(14, '0')}"[:17]
+    now = int(time.time())
+    order_id = f"TT-{str(now)[-6:]}"
+
+    vehicle = {
+        "vehicleId": chassi,
+        "model": "Toyota Corolla Altis",
+        "version": "Hybrid 2025",
+        "color": "Branco Perola",
+        "year": "2025",
+        "engine": "1.8 Hybrid",
+        "chassi": chassi,
+    }
+    tracking_steps = [
+        {"id": "1", "label": "Inicio da producao", "status": "completed", "date": "10/05/2026"},
+        {"id": "2", "label": "Pintura", "status": "completed", "date": "12/05/2026"},
+        {"id": "3", "label": "Processo de montagem", "status": "completed", "date": "15/05/2026"},
+        {"id": "4", "label": "Aguardando o embarque", "status": "current"},
+        {"id": "5", "label": "Em transito", "status": "pending"},
+        {"id": "6", "label": "Saiu para entrega", "status": "pending"},
+    ]
+
+    return {
+        "userId": user_id,
+        "order": {
+            "orderId": order_id,
+            "status": "linked",
+            "purchaseDate": "03/10/2025",
+            "dealership": "Concessionaria Toyota",
+        },
+        "vehicle": vehicle,
+        "financing": {
+            "bank": "Banco Toyota do Brasil S.A",
+            "paidInstallments": 30,
+            "totalInstallments": 60,
+            "installmentAmount": "R$ 2.480,00",
+            "nextDueDate": "10/06/2026",
+            "boletoAvailable": True,
+        },
+        "documents": [
+            {"id": "invoice", "title": "Nota fiscal", "date": "03/10/2025", "status": "available"},
+            {"id": "crlv", "title": "CRLV-e", "date": "03/10/2025", "status": "available"},
+            {"id": "documents", "title": "Documentos", "date": "03/10/2025", "status": "available"},
+            {"id": "manual", "title": "Manual do veiculo", "date": "03/10/2025", "status": "available"},
+        ],
+        "recalls": [],
+        "tracking": {
+            **vehicle,
+            "currentStepIndex": 3,
+            "steps": tracking_steps,
+        },
+        "createdAt": now,
+        "updatedAt": now,
+    }
+
+
+def _get_or_create_garage(user: Dict[str, Any]) -> Dict[str, Any]:
+    user_id = user.get("sub")
+    if not isinstance(user_id, str) or not user_id:
+        raise ValueError("Usuario sem identificador valido.")
+
+    table = _get_garage_table()
+    result = table.get_item(Key={"userId": user_id})
+    item = result.get("Item")
+    if item:
+        return item
+
+    garage = _build_demo_garage(user)
+    try:
+        table.put_item(
+            Item=garage,
+            ConditionExpression="attribute_not_exists(userId)",
+        )
+        return garage
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] != "ConditionalCheckFailedException":
+            raise
+        result = table.get_item(Key={"userId": user_id})
+        item = result.get("Item")
+        if item:
+            return item
+        raise
 
 
 def _get_user_from_access_token(access_token: str, *, link_if_needed: bool = False) -> Dict[str, Any]:
@@ -772,6 +875,38 @@ def _me(event: Dict[str, Any]) -> Dict[str, Any]:
         raise
 
 
+def _garage_current(event: Dict[str, Any]) -> Dict[str, Any]:
+    access_token = _extract_token(event)
+    if not access_token:
+        return _response(401, {"message": "Token nao informado."})
+
+    try:
+        user = _get_user_from_access_token(access_token, link_if_needed=True)
+        garage = _get_or_create_garage(user)
+        return _response(200, {"garage": garage})
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] == "NotAuthorizedException":
+            return _response(401, {"message": "Sessao invalida ou expirada."})
+        raise
+
+
+def _garage_status(event: Dict[str, Any]) -> Dict[str, Any]:
+    access_token = _extract_token(event)
+    if not access_token:
+        return _response(401, {"message": "Token nao informado."})
+
+    try:
+        user = _get_user_from_access_token(access_token, link_if_needed=True)
+        garage = _get_or_create_garage(user)
+        return _response(200, {"tracking": garage.get("tracking", {})})
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] == "NotAuthorizedException":
+            return _response(401, {"message": "Sessao invalida ou expirada."})
+        raise
+
+
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     _ = context
     trigger_source = event.get("triggerSource", "")
@@ -811,6 +946,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return _save_profile(event)
         if method == "GET" and path == "/me":
             return _me(event)
+        if method == "GET" and path == "/garage/current":
+            return _garage_current(event)
+        if method == "GET" and path == "/garage/status":
+            return _garage_status(event)
         return _response(404, {"message": "Rota nao encontrada."})
     except (ClientError, ValueError, TypeError, json.JSONDecodeError) as error:
         _log_error("Erro interno.", event=event, error=error)

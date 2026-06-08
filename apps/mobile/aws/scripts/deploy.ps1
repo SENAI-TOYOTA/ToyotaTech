@@ -5,6 +5,7 @@ param(
   [string]$UserPoolClientName = "mobile",
   [string]$LegacyTableName = "toyotatech-auth-dev",
   [string]$ProfileTableName = "",
+  [string]$GarageTableName = "",
   [string]$HostedUiDomainPrefix = "",
   [string]$GoogleClientId = "",
   [string]$GoogleClientSecret = "",
@@ -30,6 +31,10 @@ if ([string]::IsNullOrWhiteSpace($UserPoolName)) {
 
 if ([string]::IsNullOrWhiteSpace($ProfileTableName)) {
   $ProfileTableName = "$Prefix-profile"
+}
+
+if ([string]::IsNullOrWhiteSpace($GarageTableName)) {
+  $GarageTableName = "$Prefix-garage"
 }
 
 if ([string]::IsNullOrWhiteSpace($HostedUiDomainPrefix)) {
@@ -211,8 +216,23 @@ if ($LASTEXITCODE -ne 0) {
     --region $Region | Out-Null
 }
 
+$null = aws dynamodb describe-table --table-name $GarageTableName --region $Region 2>$null
+if ($LASTEXITCODE -ne 0) {
+  aws dynamodb create-table `
+    --table-name $GarageTableName `
+    --attribute-definitions AttributeName=userId,AttributeType=S `
+    --key-schema AttributeName=userId,KeyType=HASH `
+    --billing-mode PAY_PER_REQUEST `
+    --region $Region | Out-Null
+}
+
 $profileTableArn = aws dynamodb describe-table `
   --table-name $ProfileTableName `
+  --query "Table.TableArn" `
+  --output text `
+  --region $Region
+$garageTableArn = aws dynamodb describe-table `
+  --table-name $GarageTableName `
   --query "Table.TableArn" `
   --output text `
   --region $Region
@@ -224,7 +244,7 @@ $policyDocument = @{
     @{
       Effect = "Allow"
       Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem")
-      Resource = $profileTableArn
+      Resource = @($profileTableArn, $garageTableArn)
     }
   )
 } | ConvertTo-Json -Depth 5
@@ -255,7 +275,7 @@ if ($LASTEXITCODE -eq 0) {
   $lambdaExists = $true
 }
 
-$envVars = "Variables={COGNITO_USER_POOL_ID=$userPoolId,COGNITO_CLIENT_ID=$userPoolClientId,COGNITO_REGION=$Region,PROFILE_TABLE_NAME=$ProfileTableName}"
+$envVars = "Variables={COGNITO_USER_POOL_ID=$userPoolId,COGNITO_CLIENT_ID=$userPoolClientId,COGNITO_REGION=$Region,PROFILE_TABLE_NAME=$ProfileTableName,GARAGE_TABLE_NAME=$GarageTableName}"
 
 if (-not $lambdaExists) {
   aws lambda create-function `
@@ -335,6 +355,8 @@ $routes = @(
   "GET /profile",
   "PUT /profile",
   "GET /me",
+  "GET /garage/current",
+  "GET /garage/status",
   "OPTIONS /{proxy+}"
 )
 foreach ($routeKey in $routes) {
@@ -412,6 +434,7 @@ Write-Host "  Region: $Region"
 Write-Host "  UserPool: $UserPoolName ($userPoolId)"
 Write-Host "  UserPoolClient: $UserPoolClientName ($userPoolClientId)"
 Write-Host "  Profile Dynamo: $ProfileTableName"
+Write-Host "  Garage Dynamo: $GarageTableName"
 if ($configureGoogle) {
   Write-Host "  Hosted UI Domain: $hostedUiDomain"
 }
