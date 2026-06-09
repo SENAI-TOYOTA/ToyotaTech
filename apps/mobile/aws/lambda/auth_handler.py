@@ -119,7 +119,7 @@ def _build_auth_user(user_data: Dict[str, Any], fallback_email: str = "") -> Dic
     email = attrs.get("email") or fallback_email
     if not email and isinstance(user_data.get("Username"), str):
         email = user_data["Username"]
-    name = attrs.get("name") or (email.split("@", 1)[0] if "@" in email else "Usuario")
+    name = attrs.get("name") or ""
     is_verified = attrs.get("email_verified", "false").strip().lower() == "true"
 
     user: Dict[str, Any] = {
@@ -392,10 +392,7 @@ def _get_profile(user_id: str) -> Dict[str, str]:
 
 
 def _merge_profile_defaults(profile: Dict[str, str], user: Dict[str, Any]) -> Dict[str, str]:
-    merged = dict(profile)
-    if not merged.get("fullName") and user.get("name"):
-        merged["fullName"] = str(user["name"])
-    return merged
+    return dict(profile)
 
 
 def _update_profile_item(user_id: str, profile: Dict[str, str]) -> None:
