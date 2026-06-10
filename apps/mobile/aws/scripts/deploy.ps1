@@ -6,6 +6,7 @@ param(
   [string]$LegacyTableName = "toyotatech-auth-dev",
   [string]$ProfileTableName = "",
   [string]$GarageTableName = "",
+  [string]$PurchaseTableName = "",
   [string]$HostedUiDomainPrefix = "",
   [string]$GoogleClientId = "",
   [string]$GoogleClientSecret = "",
@@ -35,6 +36,10 @@ if ([string]::IsNullOrWhiteSpace($ProfileTableName)) {
 
 if ([string]::IsNullOrWhiteSpace($GarageTableName)) {
   $GarageTableName = "$Prefix-garage"
+}
+
+if ([string]::IsNullOrWhiteSpace($PurchaseTableName)) {
+  $PurchaseTableName = "$Prefix-purchases"
 }
 
 if ([string]::IsNullOrWhiteSpace($HostedUiDomainPrefix)) {
@@ -169,7 +174,6 @@ $userPoolClientId = aws cognito-idp list-user-pool-clients `
 $clientArgs = @(
   "--user-pool-id", $userPoolId,
   "--client-name", $UserPoolClientName,
-  "--no-generate-secret",
   "--explicit-auth-flows", "ALLOW_USER_PASSWORD_AUTH", "ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH",
   "--prevent-user-existence-errors", "ENABLED",
   "--refresh-token-validity", "30",
@@ -226,6 +230,16 @@ if ($LASTEXITCODE -ne 0) {
     --region $Region | Out-Null
 }
 
+$null = aws dynamodb describe-table --table-name $PurchaseTableName --region $Region 2>$null
+if ($LASTEXITCODE -ne 0) {
+  aws dynamodb create-table `
+    --table-name $PurchaseTableName `
+    --attribute-definitions AttributeName=purchaseId,AttributeType=S `
+    --key-schema AttributeName=purchaseId,KeyType=HASH `
+    --billing-mode PAY_PER_REQUEST `
+    --region $Region | Out-Null
+}
+
 $profileTableArn = aws dynamodb describe-table `
   --table-name $ProfileTableName `
   --query "Table.TableArn" `
@@ -236,6 +250,11 @@ $garageTableArn = aws dynamodb describe-table `
   --query "Table.TableArn" `
   --output text `
   --region $Region
+$purchaseTableArn = aws dynamodb describe-table `
+  --table-name $PurchaseTableName `
+  --query "Table.TableArn" `
+  --output text `
+  --region $Region
 $roleName = ($roleArn -split "/")[-1]
 $policyName = "$Prefix-profile-table-access"
 $policyDocument = @{
@@ -243,15 +262,18 @@ $policyDocument = @{
   Statement = @(
     @{
       Effect = "Allow"
-      Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem")
-      Resource = @($profileTableArn, $garageTableArn)
+      Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query")
+      Resource = @($profileTableArn, $garageTableArn, $purchaseTableArn)
     }
   )
 } | ConvertTo-Json -Depth 5
 aws iam put-role-policy `
   --role-name $roleName `
   --policy-name $policyName `
-  --policy-document $policyDocument | Out-Null
+  --policy-document $policyDocument 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) {
+  Write-Warning "Nao foi possivel atualizar a policy do role. Seguindo com o deploy."
+}
 
 if (Test-Path $zipPath) {
   Remove-Item -Force $zipPath
@@ -275,7 +297,7 @@ if ($LASTEXITCODE -eq 0) {
   $lambdaExists = $true
 }
 
-$envVars = "Variables={COGNITO_USER_POOL_ID=$userPoolId,COGNITO_CLIENT_ID=$userPoolClientId,COGNITO_REGION=$Region,PROFILE_TABLE_NAME=$ProfileTableName,GARAGE_TABLE_NAME=$GarageTableName}"
+$envVars = "Variables={COGNITO_USER_POOL_ID=$userPoolId,COGNITO_CLIENT_ID=$userPoolClientId,COGNITO_REGION=$Region,PROFILE_TABLE_NAME=$ProfileTableName,GARAGE_TABLE_NAME=$GarageTableName,PURCHASE_TABLE_NAME=$PurchaseTableName}"
 
 if (-not $lambdaExists) {
   aws lambda create-function `
@@ -356,6 +378,9 @@ $routes = @(
   "PUT /profile",
   "GET /me",
   "GET /garage/current",
+  "PUT /garage/current",
+  "POST /garage/ingest",
+  "POST /garage/link",
   "GET /garage/status",
   "OPTIONS /{proxy+}"
 )
@@ -435,6 +460,7 @@ Write-Host "  UserPool: $UserPoolName ($userPoolId)"
 Write-Host "  UserPoolClient: $UserPoolClientName ($userPoolClientId)"
 Write-Host "  Profile Dynamo: $ProfileTableName"
 Write-Host "  Garage Dynamo: $GarageTableName"
+Write-Host "  Purchase Dynamo: $PurchaseTableName"
 if ($configureGoogle) {
   Write-Host "  Hosted UI Domain: $hostedUiDomain"
 }

@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeInDown,
@@ -12,6 +12,8 @@ import Animated, {
 
 import { colors, fonts, spacing } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchGarageCurrent } from "@/services/garage";
+import { GarageData } from "@/types/garage";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 const sideCarImage = require("@/assets/images/corolla-side.png");
@@ -82,9 +84,33 @@ function InteractivePressable({
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { token, user } = useAuth();
+  const [garage, setGarage] = useState<GarageData | null>(null);
   const displayName = user?.profile?.fullName || user?.name || "Usuário";
   const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
+  const vehicleLabel = garage?.vehicle.model ?? "Seu Corolla Altis";
+
+  useEffect(() => {
+    let active = true;
+    const loadGarage = async () => {
+      if (!token) {
+        return;
+      }
+      try {
+        const result = await fetchGarageCurrent(token);
+        if (active) {
+          setGarage(result.garage);
+        }
+      } catch (error) {
+        console.error("Failed to fetch garage", error);
+      }
+    };
+
+    void loadGarage();
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   return (
     <View style={styles.container}>
@@ -106,7 +132,7 @@ export default function HomeScreen() {
           <Image source={mainCarImage} style={styles.mainImage} resizeMode="cover" />
 
           <View style={styles.carLabel}>
-            <Text style={styles.carLabelText}>Seu Corolla Altis</Text>
+            <Text style={styles.carLabelText}>{vehicleLabel}</Text>
           </View>
         </Animated.View>
 

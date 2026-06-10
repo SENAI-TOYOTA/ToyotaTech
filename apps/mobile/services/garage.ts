@@ -16,3 +16,13 @@ export async function fetchGarageStatus(token: string) {
   });
 }
 
+export async function linkGaragePurchase(
+  token: string,
+  payload: { purchaseId?: string; orderId?: string; email?: string }
+) {
+  return apiRequest<GarageResponse>("/garage/link", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}

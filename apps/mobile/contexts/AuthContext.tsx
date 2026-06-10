@@ -12,6 +12,7 @@ import * as SecureStore from "expo-secure-store";
 
 import { ApiError } from "@/services/api";
 import { fetchMe, login, refreshSession, register, setPassword as setPasswordService } from "@/services/auth";
+import { fetchGarageCurrent } from "@/services/garage";
 import { AuthUser, RegisterResponse } from "@/types/auth";
 
 const SESSION_STORAGE_KEY = "toyotatech.auth.session";
@@ -126,6 +127,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
 
+  const bootstrapGarage = useCallback(async (accessToken: string) => {
+    try {
+      await fetchGarageCurrent(accessToken);
+    } catch (error) {
+      if (__DEV__) {
+        console.warn("[GARAGE] Falha ao inicializar garagem", error);
+      }
+    }
+  }, []);
+
   const clearSession = useCallback(async () => {
     await deleteStoredSession();
     setSession(null);
@@ -145,6 +156,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const meResult = await fetchMe(storedSession.accessToken);
       setSession(storedSession);
       setUser(meResult.user);
+      await bootstrapGarage(storedSession.accessToken);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         try {
@@ -165,6 +177,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           await setStoredSession(refreshedSession);
           setSession(refreshedSession);
           setUser(meResult.user);
+          await bootstrapGarage(refreshedSession.accessToken);
         } catch (refreshError) {
           console.error("Falha ao renovar sessao:", refreshError);
           await clearSession();
@@ -176,7 +189,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } finally {
       setIsLoadingSession(false);
     }
-  }, [clearSession]);
+  }, [bootstrapGarage, clearSession]);
 
   useEffect(() => {
     hydrateSession();
@@ -189,12 +202,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       try {
         const meResult = await fetchMe(nextSession.accessToken);
         setUser(meResult.user);
+        await bootstrapGarage(nextSession.accessToken);
       } catch (error) {
         await clearSession();
         throw error;
       }
     },
-    [clearSession]
+    [bootstrapGarage, clearSession]
   );
 
   const signIn = useCallback(

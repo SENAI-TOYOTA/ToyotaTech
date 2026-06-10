@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeInDown,
@@ -9,7 +9,10 @@ import Animated, {
 } from "react-native-reanimated";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchGarageCurrent } from "@/services/garage";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { GarageData } from "@/types/garage";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -47,6 +50,39 @@ function InteractivePressable({
 }
 
 export default function FinancingScreen() {
+  const { token } = useAuth();
+  const [garage, setGarage] = useState<GarageData | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const loadGarage = async () => {
+      if (!token) {
+        return;
+      }
+      try {
+        const result = await fetchGarageCurrent(token);
+        if (active) {
+          setGarage(result.garage);
+        }
+      } catch (error) {
+        console.error("Failed to fetch financing data", error);
+      }
+    };
+
+    void loadGarage();
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  const financing = garage?.financing;
+  const vehicleTitle = garage ? `${garage.vehicle.model} ${garage.vehicle.year}` : "Corolla Altis 2026";
+  const paidInstallments = financing ? `${financing.paidInstallments} / ${financing.totalInstallments}` : "30 / 60";
+  const bankName = financing?.bank ?? "Banco Toyota do Brasil S.A";
+  const installmentAmount = financing?.installmentAmount ?? "R$ 2.480,00";
+  const nextDueDate = financing?.nextDueDate ?? "10/06/2026";
+  const boletoAvailable = financing?.boletoAvailable ?? true;
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -65,21 +101,23 @@ export default function FinancingScreen() {
           entering={FadeInDown.delay(200).duration(600).springify()}
           style={styles.financeCard}
         >
-          <Text style={styles.carTitle}>Corolla Altis 2026</Text>
+          <Text style={styles.carTitle}>{vehicleTitle}</Text>
 
           <View style={styles.installmentRow}>
             <Text style={styles.installmentLabel}>Parcelas pagas:</Text>
             <View style={styles.installmentBadgeWrapper}>
               <View style={styles.installmentBadgeShadow} />
               <View style={styles.installmentBadge}>
-                <Text style={styles.installmentText}>30 / 60</Text>
+                <Text style={styles.installmentText}>{paidInstallments}</Text>
               </View>
             </View>
           </View>
 
           <Text style={styles.bankInfo}>
-            Instituição financeira:{" "}
-            <Text style={styles.bankName}>Banco Toyota do Brasil S.A</Text>
+            Instituição financeira: <Text style={styles.bankName}>{bankName}</Text>
+          </Text>
+          <Text style={styles.invoiceDescription}>
+            Parcela {installmentAmount} | Vencimento {nextDueDate}
           </Text>
         </Animated.View>
 
@@ -94,7 +132,7 @@ export default function FinancingScreen() {
 
           <View style={styles.invoiceButtonWrapper}>
             <View style={styles.invoiceButtonShadow} />
-            <InteractivePressable style={styles.invoiceButton}>
+            <InteractivePressable style={styles.invoiceButton} disabled={!boletoAvailable}>
               <Text style={styles.invoiceButtonText}>Acessar boleto</Text>
               <ArrowRight size={28} strokeWidth={2.4} color={colors.white} />
             </InteractivePressable>
