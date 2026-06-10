@@ -346,6 +346,10 @@ aws lambda add-permission `
 
 aws cognito-idp update-user-pool `
   --user-pool-id $userPoolId `
+  --auto-verified-attributes email `
+  --verification-message-template DefaultEmailOption=CONFIRM_WITH_CODE `
+  --email-configuration EmailSendingAccount=COGNITO_DEFAULT `
+  --policies "PasswordPolicy={MinimumLength=8,RequireUppercase=true,RequireLowercase=true,RequireNumbers=true,RequireSymbols=false}" `
   --lambda-config PreSignUp=$lambdaArn `
   --region $Region | Out-Null
 
