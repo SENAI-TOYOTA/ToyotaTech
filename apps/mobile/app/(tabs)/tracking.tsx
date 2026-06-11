@@ -15,6 +15,7 @@ import { colors, fonts, spacing } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageStatus } from "@/services/garage";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
+import { canUseCorollaAltisImage } from "@/utils/vehiclePresentation";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 
@@ -86,7 +87,20 @@ export default function TrackingScreen() {
         {/* Car Card */}
         <View style={styles.carCard}>
           <View style={styles.carImageContainer}>
-            <Image source={mainCarImage} style={styles.carImage} resizeMode="contain" />
+            {canUseCorollaAltisImage(trackingData.model) ? (
+              <Image source={mainCarImage} style={styles.carImage} resizeMode="contain" />
+            ) : (
+              <View style={styles.vehicleFallbackCard}>
+                <Text style={styles.vehicleFallbackEyebrow}>VEICULO VINCULADO</Text>
+                <Text style={styles.vehicleFallbackModel}>{trackingData.model}</Text>
+                <Text style={styles.vehicleFallbackSpecs}>
+                  {trackingData.version} • {trackingData.color}
+                </Text>
+                <Text style={styles.vehicleFallbackNote}>
+                  Imagem ilustrativa indisponivel
+                </Text>
+              </View>
+            )}
           </View>
           <View style={styles.carDetails}>
             <Text style={styles.carModel}>{trackingData.model}</Text>
@@ -212,6 +226,40 @@ const styles = StyleSheet.create({
   carImage: {
     width: "100%",
     height: "100%",
+  },
+  vehicleFallbackCard: {
+    width: "100%",
+    height: "100%",
+    borderWidth: 1,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    padding: spacing.md,
+    justifyContent: "center",
+  },
+  vehicleFallbackEyebrow: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.primary,
+    letterSpacing: 1,
+  },
+  vehicleFallbackModel: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.bold,
+    fontSize: 28,
+    lineHeight: 30,
+    color: colors.black,
+  },
+  vehicleFallbackSpecs: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  vehicleFallbackNote: {
+    marginTop: spacing.md,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   carDetails: {
     marginTop: spacing.sm,

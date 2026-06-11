@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import Checkbox from "expo-checkbox";
+import { Checkbox } from "expo-checkbox";
 import * as AuthSession from "expo-auth-session";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 

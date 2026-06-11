@@ -30,7 +30,7 @@ function AppNavigator() {
   const isInProfileSetup = segments[0] === "profile-setup";
   const needsProfile =
     Boolean(isAuthenticated) &&
-    (!user?.profile?.fullName || !user?.profile?.birthDate);
+    (!user?.profile?.fullName || !user?.profile?.birthDate || !user?.profile?.cpf);
 
   useEffect(() => {
     if (isLoadingSession) {

@@ -14,6 +14,7 @@ import { colors, fonts, spacing } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageCurrent } from "@/services/garage";
 import { GarageData } from "@/types/garage";
+import { canUseCorollaAltisImage } from "@/utils/vehiclePresentation";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 const sideCarImage = require("@/assets/images/corolla-side.png");
@@ -82,13 +83,34 @@ function InteractivePressable({
   );
 }
 
+function VehicleFallbackHero({ vehicle }: { vehicle?: GarageData["vehicle"] }) {
+  const model = vehicle?.model ?? "Seu Toyota";
+  const specs = vehicle
+    ? `${vehicle.version} • ${vehicle.color}`
+    : "Dados do veiculo em preparacao";
+
+  return (
+    <View style={styles.vehicleFallbackHero}>
+      <Text style={styles.vehicleFallbackEyebrow}>VEICULO VINCULADO</Text>
+      <Text style={styles.vehicleFallbackModel}>{model}</Text>
+      <Text style={styles.vehicleFallbackSpecs}>{specs}</Text>
+      {vehicle?.chassi ? (
+        <Text style={styles.vehicleFallbackChassi}>Chassi {vehicle.chassi}</Text>
+      ) : null}
+      <Text style={styles.vehicleFallbackNote}>Imagem ilustrativa indisponivel</Text>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { token, user } = useAuth();
   const [garage, setGarage] = useState<GarageData | null>(null);
   const displayName = user?.profile?.fullName || user?.name || "Usuário";
   const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
-  const vehicleLabel = garage?.vehicle.model ?? "Seu Corolla Altis";
+  const vehicle = garage?.vehicle;
+  const vehicleLabel = vehicle?.model ?? "Seu Toyota";
+  const shouldUseVehicleImage = canUseCorollaAltisImage(vehicle?.model);
 
   useEffect(() => {
     let active = true;
@@ -129,11 +151,16 @@ export default function HomeScreen() {
           entering={FadeInDown.delay(200).duration(600).springify()}
           style={styles.showcaseContainer}
         >
-          <Image source={mainCarImage} style={styles.mainImage} resizeMode="cover" />
-
-          <View style={styles.carLabel}>
-            <Text style={styles.carLabelText}>{vehicleLabel}</Text>
-          </View>
+          {shouldUseVehicleImage ? (
+            <>
+              <Image source={mainCarImage} style={styles.mainImage} resizeMode="cover" />
+              <View style={styles.carLabel}>
+                <Text style={styles.carLabelText}>{vehicleLabel}</Text>
+              </View>
+            </>
+          ) : (
+            <VehicleFallbackHero vehicle={vehicle} />
+          )}
         </Animated.View>
 
         <Animated.View
@@ -241,6 +268,51 @@ const styles = StyleSheet.create({
   mainImage: {
     width: "100%",
     height: "100%",
+  },
+  vehicleFallbackHero: {
+    width: "100%",
+    height: "100%",
+    borderWidth: 1,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    justifyContent: "flex-end",
+  },
+  vehicleFallbackEyebrow: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: colors.primary,
+    letterSpacing: 1.2,
+  },
+  vehicleFallbackModel: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.bold,
+    fontSize: 34,
+    lineHeight: 36,
+    color: colors.black,
+  },
+  vehicleFallbackSpecs: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.regular,
+    fontSize: 18,
+    color: colors.textSecondary,
+  },
+  vehicleFallbackChassi: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    color: colors.black,
+  },
+  vehicleFallbackNote: {
+    marginTop: spacing.lg,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: colors.black,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   carLabel: {
     position: "absolute",

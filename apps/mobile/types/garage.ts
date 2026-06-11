@@ -19,11 +19,13 @@ export interface GarageOrder {
 
 export interface GarageFinancing {
   bank: string;
+  contractNumber?: string;
   paidInstallments: number;
   totalInstallments: number;
   installmentAmount: string;
   nextDueDate: string;
   boletoAvailable: boolean;
+  status?: string;
 }
 
 export interface GarageDocument {
@@ -49,6 +51,10 @@ export interface GarageData {
   documents: GarageDocument[];
   recalls: GarageRecall[];
   tracking: TrackingInfo;
+  purchaseId?: string;
+  matchSource?: string;
+  matchConfidence?: string;
+  matchAlgorithmVersion?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -56,4 +62,3 @@ export interface GarageData {
 export interface GarageResponse {
   garage: GarageData;
 }
-

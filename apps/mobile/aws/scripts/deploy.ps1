@@ -384,6 +384,7 @@ $routes = @(
   "GET /garage/current",
   "PUT /garage/current",
   "POST /garage/ingest",
+  "POST /garage/resolve",
   "POST /garage/link",
   "GET /garage/status",
   "OPTIONS /{proxy+}"

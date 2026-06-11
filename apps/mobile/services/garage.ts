@@ -16,9 +16,16 @@ export async function fetchGarageStatus(token: string) {
   });
 }
 
+export async function resolveGarage(token: string) {
+  return apiRequest<GarageResponse>("/garage/resolve", {
+    method: "POST",
+    token,
+  });
+}
+
 export async function linkGaragePurchase(
   token: string,
-  payload: { purchaseId?: string; orderId?: string; email?: string }
+  payload: { purchaseId?: string; orderId?: string }
 ) {
   return apiRequest<GarageResponse>("/garage/link", {
     method: "POST",

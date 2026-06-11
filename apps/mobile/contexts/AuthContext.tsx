@@ -106,6 +106,10 @@ function isTokenFederated(idToken: string): boolean {
   }
 }
 
+function hasCompleteProfile(user: AuthUser | null) {
+  return Boolean(user?.profile?.fullName && user.profile.birthDate && user.profile.cpf);
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
@@ -127,7 +131,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
 
-  const bootstrapGarage = useCallback(async (accessToken: string) => {
+  const bootstrapGarage = useCallback(async (accessToken: string, nextUser: AuthUser | null) => {
+    if (!hasCompleteProfile(nextUser)) {
+      return;
+    }
     try {
       await fetchGarageCurrent(accessToken);
     } catch (error) {
@@ -153,10 +160,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      const meResult = await fetchMe(storedSession.accessToken);
+      const meResult = await fetchMe(storedSession.accessToken, { suppressErrorLog: true });
       setSession(storedSession);
       setUser(meResult.user);
-      await bootstrapGarage(storedSession.accessToken);
+      await bootstrapGarage(storedSession.accessToken, meResult.user);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         try {
@@ -166,20 +173,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
             return;
           }
 
-          const refreshed = await refreshSession({ refreshToken: storedSession.refreshToken });
+          const refreshed = await refreshSession(
+            { refreshToken: storedSession.refreshToken },
+            { suppressErrorLog: true }
+          );
           const refreshedSession: StoredSession = {
             accessToken: refreshed.accessToken,
             idToken: refreshed.idToken,
             refreshToken: storedSession.refreshToken,
             expiresAt: refreshed.expiresAt,
           };
-          const meResult = await fetchMe(refreshedSession.accessToken);
+          const meResult = await fetchMe(refreshedSession.accessToken, { suppressErrorLog: true });
           await setStoredSession(refreshedSession);
           setSession(refreshedSession);
           setUser(meResult.user);
-          await bootstrapGarage(refreshedSession.accessToken);
+          await bootstrapGarage(refreshedSession.accessToken, meResult.user);
         } catch (refreshError) {
-          console.error("Falha ao renovar sessao:", refreshError);
+          if (__DEV__) {
+            console.info("[Auth] Sessao armazenada expirada. Limpando login local.");
+          }
           await clearSession();
         }
       } else {
@@ -202,7 +214,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       try {
         const meResult = await fetchMe(nextSession.accessToken);
         setUser(meResult.user);
-        await bootstrapGarage(nextSession.accessToken);
+        await bootstrapGarage(nextSession.accessToken, meResult.user);
       } catch (error) {
         await clearSession();
         throw error;

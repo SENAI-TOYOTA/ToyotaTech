@@ -1,6 +1,7 @@
 export interface UserProfile {
   fullName: string;
   birthDate: string;
+  cpf: string;
 }
 
 export interface ProfileResponse {
@@ -10,4 +11,5 @@ export interface ProfileResponse {
 export interface UpdateProfilePayload {
   fullName?: string;
   birthDate?: string;
+  cpf?: string;
 }

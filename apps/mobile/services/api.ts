@@ -25,6 +25,7 @@ export async function apiRequest<T>(
     method?: "GET" | "POST" | "PUT";
     body?: unknown;
     token?: string;
+    suppressErrorLog?: boolean;
   }
 ) {
   const baseUrl = getApiUrl();
@@ -68,7 +69,7 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const message = (parsed as { message?: string }).message ?? "Erro na API.";
-    if (__DEV__) {
+    if (__DEV__ && !options?.suppressErrorLog) {
       console.error("[API] Erro na resposta", {
         path,
         status: response.status,

@@ -1,11 +1,12 @@
 import base64
+import calendar
 import hashlib
 import json
 import os
 import re
 import time
 import unicodedata
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any, Dict, Optional
 
@@ -22,6 +23,8 @@ PURCHASE_TABLE_NAME = os.environ.get("PURCHASE_TABLE_NAME", "").strip()
 COGNITO_REGION = os.environ.get("COGNITO_REGION", os.environ.get("AWS_REGION", "us-east-1"))
 cognito_client = boto3.client("cognito-idp", region_name=COGNITO_REGION)
 dynamodb_resource = boto3.resource("dynamodb", region_name=COGNITO_REGION)
+GARAGE_MATCH_ALGORITHM_VERSION = "cpf_v2"
+MINIMUM_PROFILE_AGE = 18
 
 
 def _response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
@@ -386,7 +389,8 @@ def _get_profile_table():
 def _normalize_profile(item: Dict[str, Any]) -> Dict[str, str]:
     return {
         "fullName": str(item.get("fullName", "") or ""),
-        "birthDate": str(item.get("birthDate", "") or ""),
+        "birthDate": _normalize_birth_date(item.get("birthDate", "")),
+        "cpf": _normalize_cpf(item.get("cpf", "")),
     }
 
 
@@ -408,6 +412,7 @@ def _update_profile_item(user_id: str, profile: Dict[str, str]) -> None:
             "userId": user_id,
             "fullName": profile.get("fullName", ""),
             "birthDate": profile.get("birthDate", ""),
+            "cpf": _normalize_cpf(profile.get("cpf", "")),
             "updatedAt": int(time.time()),
         }
     )
@@ -431,6 +436,71 @@ def _coerce_text(value: Any) -> str:
     if isinstance(value, str):
         return value.strip()
     return str(value).strip()
+
+
+def _normalize_name(value: Any) -> str:
+    text = _coerce_text(value).lower()
+    if not text:
+        return ""
+    normalized = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _normalize_cpf(value: Any) -> str:
+    return re.sub(r"\D+", "", _coerce_text(value))[:11]
+
+
+def _normalize_birth_date(value: Any) -> str:
+    text = _coerce_text(value)
+    digits = re.sub(r"\D+", "", text)
+    if len(digits) == 8:
+        return f"{digits[:2]}/{digits[2:4]}/{digits[4:]}"
+    return text
+
+
+def _parse_profile_birth_date(value: Any) -> Optional[date]:
+    text = _normalize_birth_date(value)
+    if not re.fullmatch(r"\d{2}/\d{2}/\d{4}", text):
+        return None
+    try:
+        parsed = datetime.strptime(text, "%d/%m/%Y").date()
+    except ValueError:
+        return None
+    if parsed.strftime("%d/%m/%Y") != text:
+        return None
+    return parsed
+
+
+def _calculate_age(birth_date: date, today: date) -> int:
+    age = today.year - birth_date.year
+    if (today.month, today.day) < (birth_date.month, birth_date.day):
+        age -= 1
+    return age
+
+
+def _validate_profile_birth_date(value: Any) -> tuple[Optional[str], Optional[str]]:
+    normalized = _normalize_birth_date(value)
+    parsed = _parse_profile_birth_date(normalized)
+    if not parsed or parsed.year < 1900:
+        return None, "Informe uma data de nascimento valida."
+
+    today = datetime.now(timezone.utc).date()
+    if parsed > today:
+        return None, "Informe uma data de nascimento valida."
+    if _calculate_age(parsed, today) < MINIMUM_PROFILE_AGE:
+        return None, "Voce precisa ter pelo menos 18 anos."
+
+    return normalized, None
+
+
+def _is_profile_complete(profile: Dict[str, str]) -> bool:
+    _, birth_date_error = _validate_profile_birth_date(profile.get("birthDate"))
+    return bool(
+        _coerce_text(profile.get("fullName"))
+        and _coerce_text(profile.get("birthDate"))
+        and len(_normalize_cpf(profile.get("cpf"))) == 11
+        and not birth_date_error
+    )
 
 
 def _query_single_item(table: Any, index_name: str, key_name: str, key_value: str) -> Optional[Dict[str, Any]]:
@@ -491,6 +561,67 @@ def _find_purchase_by_email(email: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _find_purchases_by_email(email: str) -> list[Dict[str, Any]]:
+    normalized_email = _normalize_email(email)
+    if not normalized_email:
+        return []
+
+    table = _get_purchase_table()
+    try:
+        result = table.query(
+            IndexName="email-index",
+            KeyConditionExpression=Key("email").eq(normalized_email),
+            Limit=25,
+        )
+        return result.get("Items", [])
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] not in {"ValidationException", "ResourceNotFoundException"}:
+            raise
+
+    try:
+        result = table.scan(FilterExpression=Attr("email").eq(normalized_email), Limit=25)
+        return result.get("Items", [])
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] not in {"ValidationException", "ResourceNotFoundException"}:
+            raise
+    return []
+
+
+def _find_purchase_by_cpf(cpf: str) -> Optional[Dict[str, Any]]:
+    purchases = _find_purchases_by_cpf(cpf)
+    return purchases[0] if purchases else None
+
+
+def _find_purchases_by_cpf(cpf: str) -> list[Dict[str, Any]]:
+    normalized_cpf = _normalize_cpf(cpf)
+    if not normalized_cpf:
+        return []
+
+    table = _get_purchase_table()
+    try:
+        result = table.query(
+            IndexName="cpf-index",
+            KeyConditionExpression=Key("cpf").eq(normalized_cpf),
+            Limit=25,
+        )
+        return result.get("Items", [])
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] not in {"ValidationException", "ResourceNotFoundException"}:
+            raise
+
+    try:
+        result = table.scan(FilterExpression=Attr("cpf").eq(normalized_cpf), Limit=25)
+        return result.get("Items", [])
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] not in {"ValidationException", "ResourceNotFoundException"}:
+            raise
+    return []
+
+
 def _find_linked_purchase_for_user(user_id: str) -> Optional[Dict[str, Any]]:
     table = _get_purchase_table()
     return _query_single_item(table, "userId-index", "userId", user_id)
@@ -525,6 +656,26 @@ def _attach_purchase_to_user(purchase: Dict[str, Any], user_id: str) -> Optional
     return linked_purchase
 
 
+def _purchase_customer_value(purchase: Dict[str, Any], key: str) -> str:
+    customer = purchase.get("customer")
+    if isinstance(customer, dict):
+        return _coerce_text(customer.get(key))
+    return ""
+
+
+def _purchase_matches_profile(purchase: Dict[str, Any], user: Dict[str, Any], profile: Dict[str, str]) -> bool:
+    profile_cpf = _normalize_cpf(profile.get("cpf"))
+    purchase_cpf = _normalize_cpf(purchase.get("cpf") or _purchase_customer_value(purchase, "cpf"))
+    return bool(profile_cpf and purchase_cpf and purchase_cpf == profile_cpf)
+
+
+def _is_generated_purchase(purchase: Optional[Dict[str, Any]]) -> bool:
+    if not isinstance(purchase, dict):
+        return False
+    purchase_id = _coerce_text(purchase.get("purchaseId"))
+    return purchase.get("matchSource") == "generated_demo" or purchase_id.startswith("demo-")
+
+
 def _merge_purchase_source(purchase: Dict[str, Any]) -> Dict[str, Any]:
     source = dict(purchase)
     garage = source.get("garage")
@@ -535,9 +686,42 @@ def _merge_purchase_source(purchase: Dict[str, Any]) -> Dict[str, Any]:
     return source
 
 
+def _merge_garage_documents(
+    default_documents: list[Dict[str, Any]],
+    source_documents: list[Any],
+) -> list[Dict[str, Any]]:
+    merged: list[Dict[str, Any]] = []
+    positions: Dict[str, int] = {}
+    for document in default_documents:
+        document_id = _coerce_text(document.get("id"))
+        if not document_id:
+            continue
+        positions[document_id] = len(merged)
+        merged.append(dict(document))
+
+    for document in source_documents:
+        if not isinstance(document, dict):
+            continue
+        document_id = _coerce_text(document.get("id"))
+        if not document_id:
+            continue
+        if document_id in positions:
+            merged[positions[document_id]].update(document)
+        else:
+            positions[document_id] = len(merged)
+            merged.append(dict(document))
+
+    return merged
+
+
 def _project_garage_from_purchase(user: Dict[str, Any], purchase: Dict[str, Any]) -> Dict[str, Any]:
     source = _merge_purchase_source(purchase)
-    garage = _build_demo_garage(user)
+    source_profile = {
+        "fullName": _coerce_text(source.get("fullName") or _purchase_customer_value(source, "fullName")),
+        "birthDate": _normalize_birth_date(source.get("birthDate") or _purchase_customer_value(source, "birthDate")),
+        "cpf": _normalize_cpf(source.get("cpf") or _purchase_customer_value(source, "cpf")),
+    }
+    garage = _build_demo_garage(user, source_profile)
     now = int(time.time())
 
     order = source.get("order")
@@ -551,7 +735,7 @@ def _project_garage_from_purchase(user: Dict[str, Any], purchase: Dict[str, Any]
         garage["financing"].update(financing)
     documents = source.get("documents")
     if isinstance(documents, list):
-        garage["documents"] = documents
+        garage["documents"] = _merge_garage_documents(garage["documents"], documents)
     recalls = source.get("recalls")
     if isinstance(recalls, list):
         garage["recalls"] = recalls
@@ -560,6 +744,17 @@ def _project_garage_from_purchase(user: Dict[str, Any], purchase: Dict[str, Any]
         garage["tracking"] = tracking
 
     purchase_id = _coerce_text(source.get("purchaseId"))
+    if purchase_id:
+        garage["purchaseId"] = purchase_id
+    match_source = _coerce_text(source.get("matchSource"))
+    if match_source:
+        garage["matchSource"] = match_source
+    match_confidence = _coerce_text(source.get("matchConfidence"))
+    if match_confidence:
+        garage["matchConfidence"] = match_confidence
+    match_algorithm_version = _coerce_text(source.get("matchAlgorithmVersion"))
+    garage["matchAlgorithmVersion"] = match_algorithm_version or GARAGE_MATCH_ALGORITHM_VERSION
+
     order_id = _coerce_text(
         source.get("orderId")
         or purchase_id
@@ -612,19 +807,114 @@ def _project_garage_from_purchase(user: Dict[str, Any], purchase: Dict[str, Any]
     return garage
 
 
-def _build_demo_garage(user: Dict[str, Any]) -> Dict[str, Any]:
-    user_id = str(user.get("sub", ""))
-    chassi = _build_demo_chassi(user_id)
-    now = int(time.time())
-    order_id = f"TT-{chassi[-5:]}"
-
-    vehicle = {
-        "vehicleId": chassi,
+DEMO_VEHICLE_CATALOG = [
+    {
         "model": "Toyota Corolla Altis",
         "version": "Hybrid 2025",
         "color": "Branco Perola",
         "year": "2025",
         "engine": "1.8 Hybrid",
+    },
+    {
+        "model": "Toyota Corolla Cross XRX",
+        "version": "Hybrid 2025",
+        "color": "Prata Lua Nova",
+        "year": "2025",
+        "engine": "1.8 Hybrid",
+    },
+    {
+        "model": "Toyota Hilux SRX",
+        "version": "Cabine Dupla 2025",
+        "color": "Cinza Granito",
+        "year": "2025",
+        "engine": "2.8 Diesel",
+    },
+]
+
+
+def _build_demo_seed(user: Dict[str, Any], profile: Optional[Dict[str, str]] = None) -> str:
+    if profile:
+        cpf = _normalize_cpf(profile.get("cpf"))
+        if cpf:
+            return cpf
+    return _coerce_text(user.get("email")) or _coerce_text(user.get("sub")) or "toyotatech"
+
+
+def _select_demo_vehicle(seed: str) -> Dict[str, str]:
+    digest = hashlib.sha1((_coerce_text(seed) or "toyotatech").encode("utf-8")).hexdigest()
+    index = int(digest[8:12], 16) % len(DEMO_VEHICLE_CATALOG)
+    return dict(DEMO_VEHICLE_CATALOG[index])
+
+
+def _format_brl_cents(value_cents: int) -> str:
+    value = max(value_cents, 0) / 100
+    formatted = f"{value:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+    return f"R$ {formatted}"
+
+
+def _format_next_due_date(seed: str) -> str:
+    digest = hashlib.sha1((_coerce_text(seed) or "toyotatech").encode("utf-8")).hexdigest()
+    due_day = int(digest[12:16], 16) % 23 + 5
+    today = datetime.now(timezone.utc).date()
+    year = today.year
+    month = today.month
+    if due_day <= today.day:
+        month += 1
+        if month > 12:
+            month = 1
+            year += 1
+    due_day = min(due_day, calendar.monthrange(year, month)[1])
+    return f"{due_day:02d}/{month:02d}/{year:04d}"
+
+
+def _build_demo_financing(seed: str) -> Dict[str, Any]:
+    digest = hashlib.sha1((_coerce_text(seed) or "toyotatech").encode("utf-8")).hexdigest()
+    installment_options = [36, 48, 60, 72]
+    total_installments = installment_options[int(digest[:2], 16) % len(installment_options)]
+    paid_installments = int(digest[2:4], 16) % max(total_installments // 2, 1)
+    amount_cents = (2200 + int(digest[4:8], 16) % 3100) * 100
+    return {
+        "bank": "Banco Toyota do Brasil S.A",
+        "contractNumber": f"FIN-{digest[:10].upper()}",
+        "paidInstallments": paid_installments,
+        "totalInstallments": total_installments,
+        "installmentAmount": _format_brl_cents(amount_cents),
+        "nextDueDate": _format_next_due_date(seed),
+        "boletoAvailable": True,
+        "status": "active",
+    }
+
+
+def _build_demo_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> list[Dict[str, str]]:
+    digest = hashlib.sha1((_coerce_text(seed) or "toyotatech").encode("utf-8")).hexdigest()
+    crlv_status = "available" if int(digest[16:18], 16) % 3 else "pending"
+    vehicle_model = _coerce_text(vehicle.get("model")) or "Toyota"
+    return [
+        {"id": "invoice", "title": "Nota fiscal", "date": purchase_date, "status": "available"},
+        {"id": "crlv", "title": "CRLV-e", "date": purchase_date, "status": crlv_status},
+        {"id": "warranty", "title": "Garantia Toyota", "date": purchase_date, "status": "available"},
+        {"id": "manual", "title": f"Manual do {vehicle_model}", "date": purchase_date, "status": "available"},
+        {
+            "id": "maintenance-plan",
+            "title": "Plano de revisoes",
+            "date": purchase_date,
+            "status": "available",
+        },
+    ]
+
+
+def _build_demo_garage(user: Dict[str, Any], profile: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    user_id = str(user.get("sub", ""))
+    seed = _build_demo_seed(user, profile)
+    chassi = _build_demo_chassi(seed)
+    now = int(time.time())
+    order_id = f"TT-{chassi[-5:]}"
+    vehicle_details = _select_demo_vehicle(seed)
+    purchase_date = "03/10/2025"
+
+    vehicle = {
+        "vehicleId": chassi,
+        **vehicle_details,
         "chassi": chassi,
     }
     tracking_steps = [
@@ -641,30 +931,19 @@ def _build_demo_garage(user: Dict[str, Any]) -> Dict[str, Any]:
         "order": {
             "orderId": order_id,
             "status": "linked",
-            "purchaseDate": "03/10/2025",
+            "purchaseDate": purchase_date,
             "dealership": "Concessionaria Toyota",
         },
         "vehicle": vehicle,
-        "financing": {
-            "bank": "Banco Toyota do Brasil S.A",
-            "paidInstallments": 30,
-            "totalInstallments": 60,
-            "installmentAmount": "R$ 2.480,00",
-            "nextDueDate": "10/06/2026",
-            "boletoAvailable": True,
-        },
-        "documents": [
-            {"id": "invoice", "title": "Nota fiscal", "date": "03/10/2025", "status": "available"},
-            {"id": "crlv", "title": "CRLV-e", "date": "03/10/2025", "status": "available"},
-            {"id": "documents", "title": "Documentos", "date": "03/10/2025", "status": "available"},
-            {"id": "manual", "title": "Manual do veiculo", "date": "03/10/2025", "status": "available"},
-        ],
+        "financing": _build_demo_financing(seed),
+        "documents": _build_demo_documents(seed, purchase_date, vehicle),
         "recalls": [],
         "tracking": {
             **vehicle,
             "currentStepIndex": 3,
             "steps": tracking_steps,
         },
+        "matchAlgorithmVersion": GARAGE_MATCH_ALGORITHM_VERSION,
         "createdAt": now,
         "updatedAt": now,
     }
@@ -673,7 +952,7 @@ def _build_demo_garage(user: Dict[str, Any]) -> Dict[str, Any]:
 def _build_demo_chassi(user_id: str) -> str:
     seed = _coerce_text(user_id) or "toyotatech"
     digest = hashlib.sha1(seed.encode("utf-8")).hexdigest()
-    slot = int(digest[:8], 16) % 10 + 1
+    slot = int(digest[:8], 16) % 90000 + 10000
     return f"CHASSI_{slot:05d}"
 
 
@@ -1067,15 +1346,22 @@ def _garage_ingest(event: Dict[str, Any]) -> Dict[str, Any]:
     return _ingest_factory_tracking(payload)
 
 
-def _build_demo_purchase(user: Dict[str, Any]) -> Dict[str, Any]:
-    garage = _build_demo_garage(user)
+def _build_demo_purchase_for_profile(user: Dict[str, Any], profile: Dict[str, str]) -> Dict[str, Any]:
+    garage = _build_demo_garage(user, profile)
     user_id = _coerce_text(user.get("sub"))
     chassi = garage["vehicle"]["chassi"]
     now = int(time.time())
+    full_name = _coerce_text(profile.get("fullName"))
+    birth_date = _normalize_birth_date(profile.get("birthDate"))
+    cpf = _normalize_cpf(profile.get("cpf"))
     return {
         "purchaseId": f"demo-{chassi[-5:]}",
         "orderId": garage["order"]["orderId"],
         "email": _normalize_email(_coerce_text(user.get("email"))),
+        "fullName": full_name,
+        "normalizedName": _normalize_name(full_name),
+        "birthDate": birth_date,
+        "cpf": cpf,
         "userId": user_id,
         "status": garage["order"]["status"],
         "purchaseDate": garage["order"]["purchaseDate"],
@@ -1089,15 +1375,28 @@ def _build_demo_purchase(user: Dict[str, Any]) -> Dict[str, Any]:
         "recalls": garage["recalls"],
         "tracking": garage["tracking"],
         "garage": garage,
+        "matchSource": "generated_demo",
+        "matchConfidence": "generated",
+        "matchAlgorithmVersion": GARAGE_MATCH_ALGORITHM_VERSION,
         "createdAt": now,
         "updatedAt": now,
         "linkedAt": now,
     }
 
 
+def _build_demo_purchase(user: Dict[str, Any]) -> Dict[str, Any]:
+    return _build_demo_purchase_for_profile(user, {})
+
+
 def _seed_purchase_for_user(user: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    user_id = _coerce_text(user.get("sub"))
+    profile = _get_profile(user_id) if user_id else {}
+    return _seed_purchase_for_user_profile(user, profile)
+
+
+def _seed_purchase_for_user_profile(user: Dict[str, Any], profile: Dict[str, str]) -> Optional[Dict[str, Any]]:
     table = _get_purchase_table()
-    purchase = _build_demo_purchase(user)
+    purchase = _build_demo_purchase_for_profile(user, profile)
     try:
         table.put_item(
             Item=purchase,
@@ -1108,13 +1407,74 @@ def _seed_purchase_for_user(user: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         detail = _map_client_error(error)
         if detail["code"] == "ConditionalCheckFailedException":
             existing = _find_purchase_by_purchase_id(_coerce_text(purchase.get("purchaseId")))
+            if _is_generated_purchase(existing):
+                table.put_item(Item=purchase)
+                return purchase
             return existing
         if detail["code"] in {"ResourceNotFoundException", "AccessDeniedException", "ValidationException"}:
             return None
         raise
 
 
-def _get_or_create_garage(user: Dict[str, Any]) -> Dict[str, Any]:
+class ProfileIncompleteError(Exception):
+    pass
+
+
+def _purchase_can_belong_to_user(purchase: Dict[str, Any], user_id: str) -> bool:
+    existing_user_id = _coerce_text(purchase.get("userId"))
+    return not existing_user_id or existing_user_id == user_id
+
+
+def _resolve_purchase_for_user(
+    user: Dict[str, Any],
+    profile: Dict[str, str],
+) -> tuple[Dict[str, Any], str]:
+    user_id = _coerce_text(user.get("sub"))
+    linked_purchase = _find_linked_purchase_for_user(user_id)
+    if (
+        linked_purchase
+        and not _is_generated_purchase(linked_purchase)
+        and _purchase_matches_profile(linked_purchase, user, profile)
+    ):
+        return linked_purchase, "linked_user"
+
+    for cpf_purchase in _find_purchases_by_cpf(profile.get("cpf", "")):
+        if _is_generated_purchase(cpf_purchase):
+            continue
+        if not _purchase_can_belong_to_user(cpf_purchase, user_id):
+            continue
+        if not _purchase_matches_profile(cpf_purchase, user, profile):
+            continue
+        linked = _attach_purchase_to_user(cpf_purchase, user_id)
+        if linked:
+            return linked, "cpf"
+
+    seeded_purchase = _seed_purchase_for_user_profile(user, profile)
+    if seeded_purchase:
+        linked = _attach_purchase_to_user(seeded_purchase, user_id) or seeded_purchase
+        return linked, "generated_demo"
+
+    return _build_demo_purchase_for_profile(user, profile), "generated_demo"
+
+
+def _garage_should_re_resolve(garage: Dict[str, Any]) -> bool:
+    match_source = _coerce_text(garage.get("matchSource"))
+    purchase_id = _coerce_text(garage.get("purchaseId"))
+    match_algorithm_version = _coerce_text(garage.get("matchAlgorithmVersion"))
+    return (
+        match_algorithm_version != GARAGE_MATCH_ALGORITHM_VERSION
+        or match_source == "email_profile"
+        or match_source in {"generated_demo", "legacy_demo_candidate"}
+        or not purchase_id
+        or purchase_id.startswith("demo-")
+    )
+
+
+def _resolve_garage_for_user(
+    user: Dict[str, Any],
+    *,
+    force: bool = False,
+) -> tuple[Dict[str, Any], Optional[Dict[str, Any]], str]:
     user_id = user.get("sub")
     if not isinstance(user_id, str) or not user_id:
         raise ValueError("Usuario sem identificador valido.")
@@ -1122,37 +1482,44 @@ def _get_or_create_garage(user: Dict[str, Any]) -> Dict[str, Any]:
     table = _get_garage_table()
     result = table.get_item(Key={"userId": user_id})
     item = result.get("Item")
-    if item:
-        return item
+    profile = _get_profile(user_id)
+    if item and not force and not _garage_should_re_resolve(item):
+        return item, None, _coerce_text(item.get("matchSource")) or "existing"
+
+    if not _is_profile_complete(profile):
+        if item:
+            return item, None, "existing_profile_incomplete"
+        raise ProfileIncompleteError("Perfil incompleto para vincular veiculo.")
 
     if PURCHASE_TABLE_NAME:
         try:
-            purchase = _find_linked_purchase_for_user(user_id)
-            if not purchase:
-                purchase = _find_purchase_by_email(_coerce_text(user.get("email")))
+            purchase, match_source = _resolve_purchase_for_user(user, profile)
         except (ClientError, ValueError):
             purchase = None
+            match_source = "generated_demo"
         if purchase:
-            linked_purchase = _attach_purchase_to_user(purchase, user_id)
-            if linked_purchase:
-                garage = _project_garage_from_purchase(user, linked_purchase)
-                table.put_item(Item=garage)
-                return garage
-
-        seeded_purchase = _seed_purchase_for_user(user)
-        if seeded_purchase:
-            linked_purchase = _attach_purchase_to_user(seeded_purchase, user_id) or seeded_purchase
-            garage = _project_garage_from_purchase(user, linked_purchase)
+            purchase["matchSource"] = match_source
+            if match_source == "generated_demo":
+                purchase["matchConfidence"] = "generated"
+            else:
+                purchase["matchConfidence"] = "high" if match_source in {"cpf", "linked_user"} else "medium"
+            garage = _project_garage_from_purchase(user, purchase)
+            garage["matchSource"] = match_source
+            garage["matchConfidence"] = purchase["matchConfidence"]
+            garage["matchAlgorithmVersion"] = GARAGE_MATCH_ALGORITHM_VERSION
             table.put_item(Item=garage)
-            return garage
+            return garage, purchase, match_source
 
-    garage = _build_demo_garage(user)
+    garage = _build_demo_garage(user, profile)
+    garage["matchSource"] = "generated_demo"
+    garage["matchConfidence"] = "generated"
+    garage["matchAlgorithmVersion"] = GARAGE_MATCH_ALGORITHM_VERSION
     try:
         table.put_item(
             Item=garage,
             ConditionExpression="attribute_not_exists(userId)",
         )
-        return garage
+        return garage, None, "generated_demo"
     except ClientError as error:
         detail = _map_client_error(error)
         if detail["code"] != "ConditionalCheckFailedException":
@@ -1160,8 +1527,13 @@ def _get_or_create_garage(user: Dict[str, Any]) -> Dict[str, Any]:
         result = table.get_item(Key={"userId": user_id})
         item = result.get("Item")
         if item:
-            return item
+            return item, None, _coerce_text(item.get("matchSource")) or "existing"
         raise
+
+
+def _get_or_create_garage(user: Dict[str, Any]) -> Dict[str, Any]:
+    garage, _, _ = _resolve_garage_for_user(user)
+    return garage
 
 
 def _get_user_from_access_token(access_token: str, *, link_if_needed: bool = False) -> Dict[str, Any]:
@@ -1494,7 +1866,17 @@ def _save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
     if "birthDate" in body:
         if not isinstance(body.get("birthDate"), str):
             return _response(400, {"message": "Data de nascimento invalida."})
-        updates["birthDate"] = body.get("birthDate", "").strip()
+        normalized_birth_date, birth_date_error = _validate_profile_birth_date(body.get("birthDate", ""))
+        if birth_date_error:
+            return _response(400, {"message": birth_date_error})
+        updates["birthDate"] = normalized_birth_date or ""
+    if "cpf" in body:
+        if not isinstance(body.get("cpf"), str):
+            return _response(400, {"message": "CPF invalido."})
+        normalized_cpf = _normalize_cpf(body.get("cpf", ""))
+        if len(normalized_cpf) != 11:
+            return _response(400, {"message": "CPF invalido."})
+        updates["cpf"] = normalized_cpf
 
     if not updates:
         return _response(400, {"message": "Nenhum campo de perfil informado."})
@@ -1505,9 +1887,14 @@ def _save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
         if not user_id:
             return _response(500, {"message": "Usuario sem identificador valido."})
         existing = _get_profile(user_id)
+        existing_cpf = _normalize_cpf(existing.get("cpf", ""))
+        incoming_cpf = _normalize_cpf(updates.get("cpf", ""))
+        if incoming_cpf and existing_cpf and incoming_cpf != existing_cpf:
+            return _response(409, {"message": "CPF nao pode ser alterado depois de vinculado ao perfil."})
         profile = {
             "fullName": updates.get("fullName", existing.get("fullName", "")),
             "birthDate": updates.get("birthDate", existing.get("birthDate", "")),
+            "cpf": existing_cpf or updates.get("cpf", ""),
         }
         profile = _merge_profile_defaults(profile, user)
         _update_profile_item(user_id, profile)
@@ -1537,6 +1924,27 @@ def _me(event: Dict[str, Any]) -> Dict[str, Any]:
         raise
 
 
+def _garage_resolve(event: Dict[str, Any]) -> Dict[str, Any]:
+    access_token = _extract_token(event)
+    if not access_token:
+        return _response(401, {"message": "Token nao informado."})
+
+    try:
+        user = _get_user_from_access_token(access_token, link_if_needed=True)
+        garage, purchase, match_source = _resolve_garage_for_user(user, force=True)
+        response: Dict[str, Any] = {"garage": garage, "matchSource": match_source}
+        if purchase:
+            response["purchase"] = purchase
+        return _response(200, response)
+    except ProfileIncompleteError as error:
+        return _response(409, {"message": str(error), "code": "PROFILE_INCOMPLETE"})
+    except ClientError as error:
+        detail = _map_client_error(error)
+        if detail["code"] == "NotAuthorizedException":
+            return _response(401, {"message": "Sessao invalida ou expirada."})
+        raise
+
+
 def _garage_current(event: Dict[str, Any]) -> Dict[str, Any]:
     access_token = _extract_token(event)
     if not access_token:
@@ -1546,6 +1954,8 @@ def _garage_current(event: Dict[str, Any]) -> Dict[str, Any]:
         user = _get_user_from_access_token(access_token, link_if_needed=True)
         garage = _get_or_create_garage(user)
         return _response(200, {"garage": garage})
+    except ProfileIncompleteError as error:
+        return _response(409, {"message": str(error), "code": "PROFILE_INCOMPLETE"})
     except ClientError as error:
         detail = _map_client_error(error)
         if detail["code"] == "NotAuthorizedException":
@@ -1562,6 +1972,8 @@ def _garage_status(event: Dict[str, Any]) -> Dict[str, Any]:
         user = _get_user_from_access_token(access_token, link_if_needed=True)
         garage = _get_or_create_garage(user)
         return _response(200, {"tracking": garage.get("tracking", {})})
+    except ProfileIncompleteError as error:
+        return _response(409, {"message": str(error), "code": "PROFILE_INCOMPLETE"})
     except ClientError as error:
         detail = _map_client_error(error)
         if detail["code"] == "NotAuthorizedException":
@@ -1612,9 +2024,6 @@ def _garage_link(event: Dict[str, Any]) -> Dict[str, Any]:
     body = _parse_body(event)
     purchase_id = _coerce_text(body.get("purchaseId"))
     order_id = _coerce_text(body.get("orderId"))
-    email = _coerce_text(body.get("email"))
-    if not purchase_id and not order_id and not email:
-        return _response(400, {"message": "Informe purchaseId, orderId ou email."})
 
     try:
         user = _get_user_from_access_token(access_token, link_if_needed=True)
@@ -1622,15 +2031,25 @@ def _garage_link(event: Dict[str, Any]) -> Dict[str, Any]:
         if not user_id:
             return _response(500, {"message": "Usuario sem identificador valido."})
 
+        profile = _get_profile(user_id)
+        profile_cpf = _normalize_cpf(profile.get("cpf"))
+        if not profile_cpf:
+            return _response(409, {"message": "Perfil sem CPF para vincular compra."})
+
         purchase: Optional[Dict[str, Any]] = None
         if purchase_id:
             purchase = _find_purchase_by_purchase_id(purchase_id)
         if not purchase and order_id:
             purchase = _find_purchase_by_order_id(order_id)
-        if not purchase and email:
-            purchase = _find_purchase_by_email(email)
+        if not purchase:
+            for cpf_purchase in _find_purchases_by_cpf(profile_cpf):
+                if not _is_generated_purchase(cpf_purchase):
+                    purchase = cpf_purchase
+                    break
         if not purchase:
             return _response(404, {"message": "Compra nao encontrada."})
+        if _is_generated_purchase(purchase) or not _purchase_matches_profile(purchase, user, profile):
+            return _response(403, {"message": "Compra nao pertence ao CPF do perfil."})
 
         linked_purchase = _attach_purchase_to_user(purchase, user_id)
         if not linked_purchase:
@@ -1640,6 +2059,9 @@ def _garage_link(event: Dict[str, Any]) -> Dict[str, Any]:
             return _response(500, {"message": "Nao foi possivel vincular a compra."})
 
         garage = _project_garage_from_purchase(user, linked_purchase)
+        garage["matchSource"] = "manual_link"
+        garage["matchConfidence"] = "high"
+        garage["matchAlgorithmVersion"] = GARAGE_MATCH_ALGORITHM_VERSION
         garage_table = _get_garage_table()
         garage_table.put_item(Item=garage)
         return _response(200, {"garage": garage, "purchase": linked_purchase})
@@ -1701,6 +2123,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return _garage_current(event)
         if method == "PUT" and path == "/garage/current":
             return _garage_upsert(event)
+        if method == "POST" and path == "/garage/resolve":
+            return _garage_resolve(event)
         if method == "POST" and path == "/garage/link":
             return _garage_link(event)
         if method == "GET" and path == "/garage/status":

@@ -10,7 +10,9 @@ import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
 import { ApiError } from "@/services/api";
+import { resolveGarage } from "@/services/garage";
 import { fetchProfile, updateProfile } from "@/services/profile";
+import { validateBirthDate } from "@/utils/profileValidation";
 
 const formatBirthDate = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -27,20 +29,50 @@ const formatBirthDate = (value: string) => {
   return result;
 };
 
+const normalizeCpf = (value: string) => value.replace(/\D/g, "").slice(0, 11);
+
+const formatCpf = (value: string) => {
+  const digits = normalizeCpf(value);
+  if (!digits) {
+    return "";
+  }
+  let result = digits.slice(0, 3);
+  if (digits.length > 3) {
+    result += `.${digits.slice(3, 6)}`;
+  }
+  if (digits.length > 6) {
+    result += `.${digits.slice(6, 9)}`;
+  }
+  if (digits.length > 9) {
+    result += `-${digits.slice(9, 11)}`;
+  }
+  return result;
+};
+
 export default function ProfileScreen() {
   const router = useRouter();
   const { signOut, token, user, refreshUser } = useAuth();
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
+  const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
   const [password] = useState("********");
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isCpfLocked, setIsCpfLocked] = useState(false);
 
   useEffect(() => {
     setEmail(user?.email ?? "");
   }, [user?.email]);
+
+  useEffect(() => {
+    const loadedCpf = user?.profile?.cpf ?? "";
+    if (normalizeCpf(loadedCpf).length === 11) {
+      setCpf(formatCpf(loadedCpf));
+      setIsCpfLocked(true);
+    }
+  }, [user?.profile?.cpf]);
 
   useEffect(() => {
     let isActive = true;
@@ -55,8 +87,11 @@ export default function ProfileScreen() {
         if (!isActive) {
           return;
         }
+        const loadedCpf = profileResult.profile.cpf ?? "";
         setFullName(profileResult.profile.fullName ?? "");
         setBirthDate(formatBirthDate(profileResult.profile.birthDate ?? ""));
+        setCpf(formatCpf(loadedCpf));
+        setIsCpfLocked(normalizeCpf(loadedCpf).length === 11);
         setFormError(null);
       } catch (error) {
         if (!isActive) {
@@ -117,6 +152,19 @@ export default function ProfileScreen() {
             style={styles.inputText}
           />
           <TextInput
+            placeholder="CPF"
+            value={cpf}
+            onChangeText={(text) => setCpf(formatCpf(text))}
+            keyboardType="numeric"
+            maxLength={14}
+            editable={!isCpfLocked}
+            icon={
+              isCpfLocked ? <Lock size={18} strokeWidth={1.8} color={colors.black} /> : undefined
+            }
+            containerStyle={styles.inputContainer}
+            style={styles.inputText}
+          />
+          <TextInput
             placeholder="e-mail"
             keyboardType="email-address"
             autoCapitalize="none"
@@ -168,13 +216,29 @@ export default function ProfileScreen() {
                 setFormError("Sessao invalida. Faça login novamente.");
                 return;
               }
+              const normalizedCpf = normalizeCpf(cpf);
+              if (!fullName.trim()) {
+                setFormError("Preencha o nome completo.");
+                return;
+              }
+              const birthDateError = validateBirthDate(birthDate.trim());
+              if (birthDateError) {
+                setFormError(birthDateError);
+                return;
+              }
+              if (!isCpfLocked && normalizedCpf.length !== 11) {
+                setFormError("Preencha um CPF valido.");
+                return;
+              }
               setIsSaving(true);
               setFormError(null);
               try {
                 await updateProfile(token, {
-                  fullName,
-                  birthDate,
+                  fullName: fullName.trim(),
+                  birthDate: birthDate.trim(),
+                  ...(isCpfLocked ? {} : { cpf: normalizedCpf }),
                 });
+                await resolveGarage(token);
                 await refreshUser();
               } catch (error) {
                 if (error instanceof ApiError) {
