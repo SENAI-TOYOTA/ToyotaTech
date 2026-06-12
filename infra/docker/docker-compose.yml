@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   mqtt:
     image: eclipse-mosquitto:2
@@ -17,7 +19,10 @@ services:
     image: nodered/node-red
     container_name: nodered_novo
     ports:
-      - "1881:1880"  # PC acessa via 1881 | Interno continua 1880
+      - "1881:1880"
+    volumes:
+      # Garante que os seus 5 fluxos e nós instalados fiquem salvos na pasta local
+      - ./nodered:/data
     depends_on:
       - mqtt
 
@@ -25,18 +30,25 @@ services:
     image: influxdb:2
     container_name: influxdb_iot
     ports:
-      - "8087:8086"  # PC acessa via 8087 | Interno continua 8086
+      - "8087:8086"
     environment:
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: admin123
-      DOCKER_INFLUXDB_INIT_ORG: senai
-      DOCKER_INFLUXDB_INIT_BUCKET: linha_producao
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=admin123
+      - DOCKER_INFLUXDB_INIT_ORG=senai
+      - DOCKER_INFLUXDB_INIT_BUCKET=linha_producao
+    volumes:
+      # Evita que os dados coletados da esteira sumam ao reiniciar o container
+      - ./influxdb/data:/var/lib/influxdb2
+      - ./influxdb/config:/etc/influxdb2
 
   grafana:
     image: grafana/grafana
     container_name: grafana_novo
     ports:
-      - "3001:3000"  # PC acessa via 3001 | Interno continua 3000
+      - "3001:3000"
+    volumes:
+      # Mantém os dashboards, tabelas e gráficos salvos localmente
+      - ./grafana/data:/var/lib/grafana
     depends_on:
       - influxdb

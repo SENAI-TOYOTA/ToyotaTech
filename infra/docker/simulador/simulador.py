@@ -26,7 +26,6 @@ client = mqtt.Client()
 client.connect(BROKER, PORT)
 client.loop_start()
 
-
 inicio_carro = {}
 
 def timestamp():
@@ -36,7 +35,7 @@ def gerar_chassi(n):
     return f"CHASSI_{str(n).zfill(5)}"
 
 def publicar(chassi, etapa, status, tempo_etapa=0, posicao_linha=0, falha=0, retrabalho=0, tempo_total=0):
-   payload = {
+    payload = {
         "measurement": "linha",
         "tags": {
             "chassi": chassi,
