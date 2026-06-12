@@ -1,6 +1,13 @@
 import { Tabs, useRouter } from "expo-router";
 import { Bell, CarFront, CircleDollarSign, Home, User } from "lucide-react-native";
+import React, { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 
@@ -52,7 +59,7 @@ function NotificationTabBarButton({
   );
 }
 
-function TabIcon({
+const TabIcon = React.memo(function TabIcon({
   focused,
   color,
   Icon,
@@ -61,13 +68,38 @@ function TabIcon({
   color: string;
   Icon: typeof Home;
 }) {
-  return (
-    <View style={styles.tabIconWrapper}>
-      <Icon size={iconSize} strokeWidth={iconStrokeWidth} color={color} />
-      {focused ? <View style={styles.tabIndicator} /> : null}
-    </View>
-  );
-}
+    const scale = useSharedValue(1);
+    const indicatorOpacity = useSharedValue(0);
+    const indicatorScale = useSharedValue(0.5);
+
+    useEffect(() => {
+      scale.value = withSpring(focused ? 1.15 : 1, {
+        damping: 15,
+        stiffness: 150,
+      });
+      indicatorOpacity.value = withTiming(focused ? 1 : 0, { duration: 250 });
+      indicatorScale.value = withSpring(focused ? 1 : 0.5);
+    }, [focused, scale, indicatorOpacity, indicatorScale]);
+
+    const animatedIconStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+    }));
+
+    const animatedIndicatorStyle = useAnimatedStyle(() => ({
+      opacity: indicatorOpacity.value,
+      transform: [{ scaleX: indicatorScale.value }],
+    }));
+
+    return (
+      <View style={styles.tabIconWrapper}>
+        <Animated.View style={animatedIconStyle}>
+          <Icon size={iconSize} strokeWidth={iconStrokeWidth} color={color} />
+        </Animated.View>
+        <Animated.View style={[styles.tabIndicator, animatedIndicatorStyle]} />
+      </View>
+    );
+  }
+);
 
 export default function TabsLayout() {
   return (
@@ -130,6 +162,12 @@ export default function TabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="tracking"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
@@ -152,7 +190,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   tabBar: {
-    height: spacing.xxl + 2,
+    height: spacing.xxl + spacing.md,
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.border,

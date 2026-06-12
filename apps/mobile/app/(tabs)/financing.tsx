@@ -1,55 +1,170 @@
 import { ArrowRight } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchGarageCurrent } from "@/services/garage";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { GarageData } from "@/types/garage";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function InteractivePressable({
+  children,
+  style,
+  onPress,
+  ...props
+}: React.ComponentProps<typeof Pressable>) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
+  };
+
+  return (
+    <AnimatedPressable
+      {...props}
+      style={[style, animatedStyle]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
 
 export default function FinancingScreen() {
+  const { token } = useAuth();
+  const [garage, setGarage] = useState<GarageData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const loadGarage = async () => {
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const result = await fetchGarageCurrent(token);
+        if (active) {
+          setGarage(result.garage);
+          setLoadError(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch financing data", error);
+        if (active) {
+          setLoadError("Nao foi possivel carregar o financiamento.");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadGarage();
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  const financing = garage?.financing;
+  const vehicleTitle = garage ? `${garage.vehicle.model} ${garage.vehicle.year}` : "";
+  const paidInstallments = financing
+    ? `${financing.paidInstallments} / ${financing.totalInstallments}`
+    : "";
+  const boletoAvailable = financing?.boletoAvailable ?? false;
+
   return (
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <ScreenSectionHeader
-          title="Financiamento"
-          subtitle="Acompanhe o seu financiamento"
-          style={styles.sectionHeader}
-        />
+        <Animated.View entering={FadeInDown.duration(600).springify()}>
+          <ScreenSectionHeader
+            title="Financiamento"
+            subtitle="Acompanhe o seu financiamento"
+            style={styles.sectionHeader}
+          />
+        </Animated.View>
 
-        <View style={styles.financeCard}>
-          <Text style={styles.carTitle}>Corolla Altis 2026</Text>
+        {garage && financing ? (
+          <Animated.View
+            entering={FadeInDown.delay(200).duration(600).springify()}
+            style={styles.financeCard}
+          >
+            <Text style={styles.carTitle}>{vehicleTitle}</Text>
 
-          <View style={styles.installmentRow}>
-            <Text style={styles.installmentLabel}>Parcelas pagas:</Text>
-            <View style={styles.installmentBadgeWrapper}>
-              <View style={styles.installmentBadgeShadow} />
-              <View style={styles.installmentBadge}>
-                <Text style={styles.installmentText}>30 / 60</Text>
+            <View style={styles.installmentRow}>
+              <Text style={styles.installmentLabel}>Parcelas pagas:</Text>
+              <View style={styles.installmentBadgeWrapper}>
+                <View style={styles.installmentBadgeShadow} />
+                <View style={styles.installmentBadge}>
+                  <Text style={styles.installmentText}>{paidInstallments}</Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          <Text style={styles.bankInfo}>
-            Instituição financeira:{" "}
-            <Text style={styles.bankName}>Banco Toyota do Brasil S.A</Text>
-          </Text>
-        </View>
+            <Text style={styles.bankInfo}>
+              Instituição financeira: <Text style={styles.bankName}>{financing.bank}</Text>
+            </Text>
+            {financing.contractNumber ? (
+              <Text style={styles.contractInfo}>Contrato: {financing.contractNumber}</Text>
+            ) : null}
+            <Text style={styles.invoiceDescription}>
+              Parcela {financing.installmentAmount} | Vencimento {financing.nextDueDate}
+            </Text>
+          </Animated.View>
+        ) : (
+          <Animated.View
+            entering={FadeInDown.delay(200).duration(600).springify()}
+            style={styles.emptyCard}
+          >
+            <Text style={styles.emptyText}>
+              {isLoading ? "Carregando financiamento..." : loadError ?? "Financiamento ainda nao vinculado."}
+            </Text>
+          </Animated.View>
+        )}
 
-        <View style={styles.invoiceCard}>
-          <Text style={styles.invoiceTitle}>2° Via do boleto</Text>
-          <Text style={styles.invoiceDescription}>
-            Baixe seus boletos e carnês com facilidade
-          </Text>
+        {garage && financing ? (
+          <Animated.View
+            entering={FadeInDown.delay(400).duration(600).springify()}
+            style={styles.invoiceCard}
+          >
+            <Text style={styles.invoiceTitle}>2° Via do boleto</Text>
+            <Text style={styles.invoiceDescription}>
+              Baixe seus boletos e carnês com facilidade
+            </Text>
 
-          <View style={styles.invoiceButtonWrapper}>
-            <View style={styles.invoiceButtonShadow} />
-            <Pressable style={styles.invoiceButton} android_ripple={{ color: "#c70818" }}>
-              <Text style={styles.invoiceButtonText}>Acessar boleto</Text>
-              <ArrowRight size={28} strokeWidth={2.4} color={colors.white} />
-            </Pressable>
-          </View>
-        </View>
+            <View style={styles.invoiceButtonWrapper}>
+              <View style={styles.invoiceButtonShadow} />
+              <InteractivePressable style={styles.invoiceButton} disabled={!boletoAvailable}>
+                <Text style={styles.invoiceButtonText}>Acessar boleto</Text>
+                <ArrowRight size={28} strokeWidth={2.4} color={colors.white} />
+              </InteractivePressable>
+            </View>
+          </Animated.View>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -131,6 +246,26 @@ const styles = StyleSheet.create({
   bankName: {
     color: colors.primary,
   },
+  contractInfo: {
+    marginTop: spacing.xs - 2,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  emptyCard: {
+    marginTop: spacing.xl + spacing.md - 1,
+    borderWidth: 1,
+    borderColor: colors.black,
+    minHeight: 96,
+    paddingHorizontal: spacing.sm + 5,
+    paddingVertical: spacing.md,
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
   invoiceCard: {
     marginTop: spacing.xl + spacing.xs + 1,
     borderWidth: 1,
@@ -176,8 +311,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    boxShadow: "0px 8px 20px rgba(0, 0, 0, 0.12)",
-    elevation: 8,
   },
   invoiceButtonText: {
     fontFamily: fonts.semiBold,

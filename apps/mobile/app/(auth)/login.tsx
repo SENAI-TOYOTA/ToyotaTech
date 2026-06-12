@@ -39,6 +39,7 @@ export default function LoginScreen() {
       await signIn(normalizedEmail, password);
       router.replace("/home");
     } catch (error) {
+      console.error("[Login] Erro ao fazer login:", error);
       if (error instanceof ApiError) {
         if (error.status === 403) {
           router.push({

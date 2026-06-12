@@ -40,10 +40,3 @@ export const fontSize = {
   logo: 50,
 };
 
-export const borderRadius = {
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
-  full: 999,
-};

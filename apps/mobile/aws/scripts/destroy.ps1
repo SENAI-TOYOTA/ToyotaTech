@@ -3,7 +3,9 @@ param(
   [string]$Prefix = "toyotatech",
   [string]$UserPoolName = "",
   [string]$LegacyTableName = "toyotatech-auth-dev",
-  [string]$ProfileTableName = ""
+  [string]$ProfileTableName = "",
+  [string]$GarageTableName = "",
+  [string]$PurchaseTableName = ""
 )
 
 $ErrorActionPreference = "Continue"
@@ -23,6 +25,14 @@ if ([string]::IsNullOrWhiteSpace($UserPoolName)) {
 
 if ([string]::IsNullOrWhiteSpace($ProfileTableName)) {
   $ProfileTableName = "$Prefix-profile"
+}
+
+if ([string]::IsNullOrWhiteSpace($GarageTableName)) {
+  $GarageTableName = "$Prefix-garage"
+}
+
+if ([string]::IsNullOrWhiteSpace($PurchaseTableName)) {
+  $PurchaseTableName = "$Prefix-purchases"
 }
 
 $accountId = aws sts get-caller-identity --query Account --output text --region $Region
@@ -64,6 +74,20 @@ if (-not [string]::IsNullOrWhiteSpace($ProfileTableName)) {
   }
 }
 
+if (-not [string]::IsNullOrWhiteSpace($GarageTableName)) {
+  $null = aws dynamodb describe-table --table-name $GarageTableName --region $Region 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    aws dynamodb delete-table --table-name $GarageTableName --region $Region | Out-Null
+  }
+}
+
+if (-not [string]::IsNullOrWhiteSpace($PurchaseTableName)) {
+  $null = aws dynamodb describe-table --table-name $PurchaseTableName --region $Region 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    aws dynamodb delete-table --table-name $PurchaseTableName --region $Region | Out-Null
+  }
+}
+
 $roleName = "LabRole"
 $policyName = "$Prefix-profile-table-access"
 try {
@@ -87,6 +111,8 @@ Write-Host "  Prefix: $Prefix"
 Write-Host "  Account: $accountId"
 Write-Host "  UserPool: $UserPoolName"
 Write-Host "  Profile Dynamo: $ProfileTableName"
+Write-Host "  Garage Dynamo: $GarageTableName"
+Write-Host "  Purchase Dynamo: $PurchaseTableName"
 Write-Host "  Lambda: $lambdaName"
 
 $global:LASTEXITCODE = 0

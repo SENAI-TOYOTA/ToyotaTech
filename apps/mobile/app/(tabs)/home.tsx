@@ -1,8 +1,20 @@
+import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  FadeInDown,
+  FadeInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
 import { colors, fonts, spacing } from "@/constants/theme";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchGarageCurrent } from "@/services/garage";
+import { GarageData } from "@/types/garage";
+import { canUseCorollaAltisImage } from "@/utils/vehiclePresentation";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 const sideCarImage = require("@/assets/images/corolla-side.png");
@@ -36,10 +48,91 @@ const toyotaTips = [
   },
 ];
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function InteractivePressable({
+  children,
+  style,
+  onPress,
+  ...props
+}: React.ComponentProps<typeof Pressable>) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
+  };
+
+  return (
+    <AnimatedPressable
+      {...props}
+      style={[style, animatedStyle]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
+
+function VehicleFallbackHero({ vehicle }: { vehicle?: GarageData["vehicle"] }) {
+  const model = vehicle?.model ?? "Seu Toyota";
+  const specs = vehicle
+    ? `${vehicle.version} • ${vehicle.color}`
+    : "Dados do veiculo em preparacao";
+
+  return (
+    <View style={styles.vehicleFallbackHero}>
+      <Text style={styles.vehicleFallbackEyebrow}>VEICULO VINCULADO</Text>
+      <Text style={styles.vehicleFallbackModel}>{model}</Text>
+      <Text style={styles.vehicleFallbackSpecs}>{specs}</Text>
+      {vehicle?.chassi ? (
+        <Text style={styles.vehicleFallbackChassi}>Chassi {vehicle.chassi}</Text>
+      ) : null}
+      <Text style={styles.vehicleFallbackNote}>Imagem ilustrativa indisponivel</Text>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { token, user } = useAuth();
+  const [garage, setGarage] = useState<GarageData | null>(null);
   const displayName = user?.profile?.fullName || user?.name || "Usuário";
   const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
+  const vehicle = garage?.vehicle;
+  const vehicleLabel = vehicle?.model ?? "Seu Toyota";
+  const shouldUseVehicleImage = canUseCorollaAltisImage(vehicle?.model);
+
+  useEffect(() => {
+    let active = true;
+    const loadGarage = async () => {
+      if (!token) {
+        return;
+      }
+      try {
+        const result = await fetchGarageCurrent(token);
+        if (active) {
+          setGarage(result.garage);
+        }
+      } catch (error) {
+        console.error("Failed to fetch garage", error);
+      }
+    };
+
+    void loadGarage();
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   return (
     <View style={styles.container}>
@@ -47,66 +140,105 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <Text style={styles.welcomeText}>Bem vindo, {firstName}!</Text>
+        <Animated.Text
+          entering={FadeInDown.duration(600).springify()}
+          style={styles.welcomeText}
+        >
+          Bem vindo, {firstName}!
+        </Animated.Text>
 
-        <View style={styles.showcaseContainer}>
-          <Image source={mainCarImage} style={styles.mainImage} resizeMode="cover" />
-          <Image source={sideCarImage} style={styles.sideImage} resizeMode="cover" />
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+          style={styles.showcaseContainer}
+        >
+          {shouldUseVehicleImage ? (
+            <>
+              <Image source={mainCarImage} style={styles.mainImage} resizeMode="cover" />
+              <View style={styles.carLabel}>
+                <Text style={styles.carLabelText}>{vehicleLabel}</Text>
+              </View>
+            </>
+          ) : (
+            <VehicleFallbackHero vehicle={vehicle} />
+          )}
+        </Animated.View>
 
-          <View style={styles.carLabel}>
-            <Text style={styles.carLabelText}>Seu Corolla Altis</Text>
-          </View>
-        </View>
-
-        <View style={styles.statusButtonWrapper}>
+        <Animated.View
+          entering={FadeInDown.delay(300).duration(600).springify()}
+          style={styles.statusButtonWrapper}
+        >
           <View style={styles.statusButtonShadow} />
-          <Pressable style={styles.statusButton} android_ripple={{ color: "#c70818" }}>
+          <InteractivePressable
+            style={styles.statusButton}
+            onPress={() => router.push("/tracking")}
+          >
             <Text style={styles.statusButtonText}>Verificar Status</Text>
             <ArrowRight size={24} strokeWidth={2.6} color={colors.white} />
-          </Pressable>
-        </View>
+          </InteractivePressable>
+        </Animated.View>
 
-        <Text style={styles.sectionTitle}>Destaques para você</Text>
-        <ScrollView
+        <Animated.Text
+          entering={FadeInDown.delay(400).duration(600)}
+          style={styles.sectionTitle}
+        >
+          Destaques para você
+        </Animated.Text>
+        <Animated.ScrollView
+          entering={FadeInRight.delay(500).duration(600)}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.highlightContent}
           style={styles.highlightScroll}
         >
           {highlightCards.map((card) => (
-            <Pressable key={card.id} style={styles.highlightCard}>
+            <InteractivePressable key={card.id} style={styles.highlightCard}>
               <Image source={card.image} style={styles.highlightImage} resizeMode="cover" />
               <View style={styles.highlightLabel}>
                 <Text style={styles.highlightLabelText}>{card.title}</Text>
               </View>
-            </Pressable>
+            </InteractivePressable>
           ))}
-        </ScrollView>
+        </Animated.ScrollView>
 
         <View style={styles.newsHeaderRow}>
-          <Text style={styles.sectionTitle}>Guia e Novidades</Text>
-          <Pressable style={styles.newsHeaderButton} android_ripple={{ color: "#f2f2f2" }}>
-            <Text style={styles.newsHeaderText}>Ver tudo</Text>
-            <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
-          </Pressable>
+          <Animated.Text
+            entering={FadeInDown.delay(600).duration(600)}
+            style={styles.sectionTitle}
+          >
+            Guia e Novidades
+          </Animated.Text>
+          <Animated.View entering={FadeInDown.delay(600).duration(600)}>
+            <InteractivePressable style={styles.newsHeaderButton}>
+              <Text style={styles.newsHeaderText}>Ver tudo</Text>
+              <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
+            </InteractivePressable>
+          </Animated.View>
         </View>
 
         <View style={styles.newsList}>
-          {toyotaTips.map((tip) => (
-            <Pressable key={tip.id} style={styles.newsCard}>
-              <Text style={styles.newsMeta}>{tip.category}</Text>
-              <Text style={styles.newsTitle}>{tip.title}</Text>
-              <Text style={styles.newsDescription} numberOfLines={2}>
-                {tip.description}
-              </Text>
-            </Pressable>
+          {toyotaTips.map((tip, index) => (
+            <Animated.View
+              key={tip.id}
+              entering={FadeInDown.delay(700 + index * 100).duration(600)}
+            >
+              <InteractivePressable style={styles.newsCard}>
+                <Text style={styles.newsMeta}>{tip.category}</Text>
+                <Text style={styles.newsTitle}>{tip.title}</Text>
+                <Text style={styles.newsDescription} numberOfLines={2}>
+                  {tip.description}
+                </Text>
+              </InteractivePressable>
+            </Animated.View>
           ))}
         </View>
 
-        <View style={styles.footer}>
+        <Animated.View
+          entering={FadeInDown.delay(1000).duration(600)}
+          style={styles.footer}
+        >
           <View style={styles.footerDivider} />
           <Text style={styles.footerText}>Sempre o melhor para o seu Toyota</Text>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -134,18 +266,53 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   mainImage: {
-    position: "absolute",
-    width: 300,
-    height: 300,
-    left: 0,
-    top: 0,
+    width: "100%",
+    height: "100%",
   },
-  sideImage: {
-    position: "absolute",
-    width: 300,
-    height: 300,
-    left: 331,
-    top: 0,
+  vehicleFallbackHero: {
+    width: "100%",
+    height: "100%",
+    borderWidth: 1,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    justifyContent: "flex-end",
+  },
+  vehicleFallbackEyebrow: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: colors.primary,
+    letterSpacing: 1.2,
+  },
+  vehicleFallbackModel: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.bold,
+    fontSize: 34,
+    lineHeight: 36,
+    color: colors.black,
+  },
+  vehicleFallbackSpecs: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.regular,
+    fontSize: 18,
+    color: colors.textSecondary,
+  },
+  vehicleFallbackChassi: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    color: colors.black,
+  },
+  vehicleFallbackNote: {
+    marginTop: spacing.lg,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: colors.black,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   carLabel: {
     position: "absolute",

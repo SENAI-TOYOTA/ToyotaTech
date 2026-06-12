@@ -5,6 +5,8 @@ param(
   [string]$UserPoolClientName = "mobile",
   [string]$LegacyTableName = "toyotatech-auth-dev",
   [string]$ProfileTableName = "",
+  [string]$GarageTableName = "",
+  [string]$PurchaseTableName = "",
   [string]$HostedUiDomainPrefix = "",
   [string]$GoogleClientId = "",
   [string]$GoogleClientSecret = "",
@@ -30,6 +32,14 @@ if ([string]::IsNullOrWhiteSpace($UserPoolName)) {
 
 if ([string]::IsNullOrWhiteSpace($ProfileTableName)) {
   $ProfileTableName = "$Prefix-profile"
+}
+
+if ([string]::IsNullOrWhiteSpace($GarageTableName)) {
+  $GarageTableName = "$Prefix-garage"
+}
+
+if ([string]::IsNullOrWhiteSpace($PurchaseTableName)) {
+  $PurchaseTableName = "$Prefix-purchases"
 }
 
 if ([string]::IsNullOrWhiteSpace($HostedUiDomainPrefix)) {
@@ -63,6 +73,22 @@ $configureGoogle = -not [string]::IsNullOrWhiteSpace($GoogleClientId) -and `
 
 if ($configureGoogle -and ($callbackUrlList.Count -eq 0 -or $logoutUrlList.Count -eq 0)) {
   throw "Para configurar Google IdP, informe -CallbackUrls e -LogoutUrls."
+}
+
+if ($configureGoogle) {
+  $defaultDevRedirects = @(
+    "exp://localhost:8081/--/",
+    "exp://localhost:8081",
+    "mobile://"
+  )
+  foreach ($redirect in $defaultDevRedirects) {
+    if ($callbackUrlList -notcontains $redirect) {
+      $callbackUrlList += $redirect
+    }
+    if ($logoutUrlList -notcontains $redirect) {
+      $logoutUrlList += $redirect
+    }
+  }
 }
 
 $accountId = aws sts get-caller-identity --query Account --output text --region $Region
@@ -123,7 +149,7 @@ if ($configureGoogle) {
       --user-pool-id $userPoolId `
       --provider-name $idpName `
       --provider-details client_id=$GoogleClientId client_secret=$GoogleClientSecret authorize_scopes="openid email profile" `
-      --attribute-mapping email=email name=name `
+      --attribute-mapping email=email name=name email_verified=email_verified `
       --region $Region | Out-Null
   } else {
     aws cognito-idp create-identity-provider `
@@ -131,7 +157,7 @@ if ($configureGoogle) {
       --provider-name $idpName `
       --provider-type Google `
       --provider-details client_id=$GoogleClientId client_secret=$GoogleClientSecret authorize_scopes="openid email profile" `
-      --attribute-mapping email=email name=name `
+      --attribute-mapping email=email name=name email_verified=email_verified `
       --region $Region | Out-Null
   }
 } else {
@@ -148,7 +174,6 @@ $userPoolClientId = aws cognito-idp list-user-pool-clients `
 $clientArgs = @(
   "--user-pool-id", $userPoolId,
   "--client-name", $UserPoolClientName,
-  "--no-generate-secret",
   "--explicit-auth-flows", "ALLOW_USER_PASSWORD_AUTH", "ALLOW_USER_SRP_AUTH", "ALLOW_REFRESH_TOKEN_AUTH",
   "--prevent-user-existence-errors", "ENABLED",
   "--refresh-token-validity", "30",
@@ -161,7 +186,7 @@ if ($configureGoogle) {
   $clientArgs += @(
     "--allowed-o-auth-flows-user-pool-client",
     "--allowed-o-auth-flows", "code",
-    "--allowed-o-auth-scopes", "openid", "email", "profile",
+    "--allowed-o-auth-scopes", "openid", "email", "profile", "aws.cognito.signin.user.admin",
     "--supported-identity-providers", "COGNITO", "Google",
     "--callback-urls"
   ) + $callbackUrlList + @("--logout-urls") + $logoutUrlList
@@ -195,8 +220,38 @@ if ($LASTEXITCODE -ne 0) {
     --region $Region | Out-Null
 }
 
+$null = aws dynamodb describe-table --table-name $GarageTableName --region $Region 2>$null
+if ($LASTEXITCODE -ne 0) {
+  aws dynamodb create-table `
+    --table-name $GarageTableName `
+    --attribute-definitions AttributeName=userId,AttributeType=S `
+    --key-schema AttributeName=userId,KeyType=HASH `
+    --billing-mode PAY_PER_REQUEST `
+    --region $Region | Out-Null
+}
+
+$null = aws dynamodb describe-table --table-name $PurchaseTableName --region $Region 2>$null
+if ($LASTEXITCODE -ne 0) {
+  aws dynamodb create-table `
+    --table-name $PurchaseTableName `
+    --attribute-definitions AttributeName=purchaseId,AttributeType=S `
+    --key-schema AttributeName=purchaseId,KeyType=HASH `
+    --billing-mode PAY_PER_REQUEST `
+    --region $Region | Out-Null
+}
+
 $profileTableArn = aws dynamodb describe-table `
   --table-name $ProfileTableName `
+  --query "Table.TableArn" `
+  --output text `
+  --region $Region
+$garageTableArn = aws dynamodb describe-table `
+  --table-name $GarageTableName `
+  --query "Table.TableArn" `
+  --output text `
+  --region $Region
+$purchaseTableArn = aws dynamodb describe-table `
+  --table-name $PurchaseTableName `
   --query "Table.TableArn" `
   --output text `
   --region $Region
@@ -207,15 +262,18 @@ $policyDocument = @{
   Statement = @(
     @{
       Effect = "Allow"
-      Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem")
-      Resource = $profileTableArn
+      Action = @("dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query")
+      Resource = @($profileTableArn, $garageTableArn, $purchaseTableArn)
     }
   )
 } | ConvertTo-Json -Depth 5
 aws iam put-role-policy `
   --role-name $roleName `
   --policy-name $policyName `
-  --policy-document $policyDocument | Out-Null
+  --policy-document $policyDocument 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) {
+  Write-Warning "Nao foi possivel atualizar a policy do role. Seguindo com o deploy."
+}
 
 if (Test-Path $zipPath) {
   Remove-Item -Force $zipPath
@@ -239,7 +297,7 @@ if ($LASTEXITCODE -eq 0) {
   $lambdaExists = $true
 }
 
-$envVars = "Variables={COGNITO_USER_POOL_ID=$userPoolId,COGNITO_CLIENT_ID=$userPoolClientId,COGNITO_REGION=$Region,PROFILE_TABLE_NAME=$ProfileTableName}"
+$envVars = "Variables={COGNITO_USER_POOL_ID=$userPoolId,COGNITO_CLIENT_ID=$userPoolClientId,COGNITO_REGION=$Region,PROFILE_TABLE_NAME=$ProfileTableName,GARAGE_TABLE_NAME=$GarageTableName,PURCHASE_TABLE_NAME=$PurchaseTableName}"
 
 if (-not $lambdaExists) {
   aws lambda create-function `
@@ -271,6 +329,30 @@ Start-Sleep -Seconds 5
 
 $lambdaArn = aws lambda get-function --function-name $lambdaName --query "Configuration.FunctionArn" --output text --region $Region
 
+$userPoolArn = "arn:aws:cognito-idp:${Region}:${accountId}:userpool/$userPoolId"
+$cognitoStatementId = "$Prefix-cognito-presignup"
+try {
+  aws lambda remove-permission --function-name $lambdaName --statement-id $cognitoStatementId --region $Region | Out-Null
+} catch {
+}
+
+aws lambda add-permission `
+  --function-name $lambdaName `
+  --statement-id $cognitoStatementId `
+  --action lambda:InvokeFunction `
+  --principal cognito-idp.amazonaws.com `
+  --source-arn $userPoolArn `
+  --region $Region | Out-Null
+
+aws cognito-idp update-user-pool `
+  --user-pool-id $userPoolId `
+  --auto-verified-attributes email `
+  --verification-message-template DefaultEmailOption=CONFIRM_WITH_CODE `
+  --email-configuration EmailSendingAccount=COGNITO_DEFAULT `
+  --policies "PasswordPolicy={MinimumLength=8,RequireUppercase=true,RequireLowercase=true,RequireNumbers=true,RequireSymbols=false}" `
+  --lambda-config PreSignUp=$lambdaArn `
+  --region $Region | Out-Null
+
 $apiId = $null
 $existingApi = aws apigatewayv2 get-apis --region $Region --query "Items[?Name=='$apiName'].ApiId | [0]" --output text
 if ($existingApi -and $existingApi -ne "None") {
@@ -295,9 +377,16 @@ $routes = @(
   "POST /auth/verify-email",
   "POST /auth/resend-verification",
   "POST /auth/refresh",
+  "POST /auth/set-password",
   "GET /profile",
   "PUT /profile",
   "GET /me",
+  "GET /garage/current",
+  "PUT /garage/current",
+  "POST /garage/ingest",
+  "POST /garage/resolve",
+  "POST /garage/link",
+  "GET /garage/status",
   "OPTIONS /{proxy+}"
 )
 foreach ($routeKey in $routes) {
@@ -375,6 +464,8 @@ Write-Host "  Region: $Region"
 Write-Host "  UserPool: $UserPoolName ($userPoolId)"
 Write-Host "  UserPoolClient: $UserPoolClientName ($userPoolClientId)"
 Write-Host "  Profile Dynamo: $ProfileTableName"
+Write-Host "  Garage Dynamo: $GarageTableName"
+Write-Host "  Purchase Dynamo: $PurchaseTableName"
 if ($configureGoogle) {
   Write-Host "  Hosted UI Domain: $hostedUiDomain"
 }

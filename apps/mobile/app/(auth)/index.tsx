@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import Checkbox from "expo-checkbox";
+import { Checkbox } from "expo-checkbox";
 import * as AuthSession from "expo-auth-session";
-import type { DiscoveryDocument } from "expo-auth-session";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
@@ -18,52 +18,20 @@ import { AuthScreenLayout } from "./_layout";
 const googleIcon = require("@/assets/images/google-icon.png");
 
 function useCognitoDiscovery(issuer?: string) {
-  const [discovery, setDiscovery] = useState<DiscoveryDocument | null>(null);
-
-  useEffect(() => {
-    let isActive = true;
-    if (!issuer) {
-      setDiscovery(null);
-      return () => {
-        isActive = false;
-      };
-    }
-
-    const buildDiscovery = () => ({
+  const discovery = useMemo(() => {
+    if (!issuer) return null;
+    return {
       authorizationEndpoint: `${issuer}/oauth2/authorize`,
       tokenEndpoint: `${issuer}/oauth2/token`,
       revocationEndpoint: `${issuer}/oauth2/revoke`,
       userInfoEndpoint: `${issuer}/oauth2/userInfo`,
       endSessionEndpoint: `${issuer}/logout`,
-    });
-
-    if (Platform.OS === "web") {
-      setDiscovery(buildDiscovery());
-      return () => {
-        isActive = false;
-      };
-    }
-
-    AuthSession.fetchDiscoveryAsync(issuer)
-      .then((document) => {
-        if (isActive) {
-          setDiscovery(document);
-        }
-      })
-      .catch((error) => {
-        console.error("Falha ao carregar discovery do Cognito:", error);
-        if (isActive) {
-          setDiscovery(buildDiscovery());
-        }
-      });
-
-    return () => {
-      isActive = false;
     };
   }, [issuer]);
 
   return discovery;
 }
+
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -77,17 +45,50 @@ export default function LoginScreen() {
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const canContinue =
     normalizedEmail.includes("@") && acceptedTerms && !isSubmitting && !isGoogleLoading;
-  const cognitoDomain = process.env.EXPO_PUBLIC_COGNITO_DOMAIN?.trim().replace(/\/$/, "");
+  const domainFromEnv = process.env.EXPO_PUBLIC_COGNITO_DOMAIN?.trim();
+  const domainFromConfig =
+    Constants.expoConfig?.extra?.cognitoDomain ??
+    (Constants.manifest as { extra?: { cognitoDomain?: string } } | null)?.extra?.cognitoDomain;
+  const defaultDomain = "https://toyotatech-mobile.auth.us-east-1.amazoncognito.com";
+  const cognitoDomain = (domainFromEnv || domainFromConfig || defaultDomain)
+    .trim()
+    .replace(/\/$/, "");
   const cognitoClientId = process.env.EXPO_PUBLIC_COGNITO_CLIENT_ID?.trim();
-  const redirectUri = AuthSession.makeRedirectUri({ scheme: "mobile" });
+  const redirectUri = useMemo(() => {
+    if (Platform.OS === "web") {
+      return AuthSession.makeRedirectUri();
+    }
+
+    const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+    if (isExpoGo) {
+      return AuthSession.makeRedirectUri({
+        scheme: "exp",
+      });
+    }
+
+    return AuthSession.makeRedirectUri({
+      scheme: "mobile",
+      native: "mobile://",
+    });
+  }, []);
   const discovery = useCognitoDiscovery(cognitoDomain || undefined);
+
+  // Debug: log the redirect URI so we can verify it matches the Cognito App Client callbacks
+  useEffect(() => {
+    console.log("[Auth] redirectUri gerado:", redirectUri);
+  }, [redirectUri]);
+
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
     {
       clientId: cognitoClientId ?? "",
       redirectUri,
       responseType: AuthSession.ResponseType.Code,
-      scopes: ["openid", "email", "profile"],
+      scopes: ["openid", "email", "profile", "aws.cognito.signin.user.admin"],
       usePKCE: true,
+      // Pula a Hosted UI do Cognito e vai direto ao Google
+      extraParams: {
+        identity_provider: "Google",
+      },
     },
     discovery
   );
@@ -106,6 +107,7 @@ export default function LoginScreen() {
     setIsSubmitting(true);
     try {
       const checkResult = await checkEmail(normalizedEmail);
+
       router.push({
         pathname: checkResult.nextRoute === "/login" ? "/(auth)/login" : "/(auth)/register",
         params: { email: normalizedEmail },

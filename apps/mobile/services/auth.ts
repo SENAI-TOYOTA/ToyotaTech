@@ -8,6 +8,7 @@ import {
   RefreshSessionResponse,
   RegisterPayload,
   RegisterResponse,
+  SetPasswordPayload,
   VerifyEmailPayload,
 } from "@/types/auth";
 
@@ -32,10 +33,11 @@ export async function login(payload: LoginPayload) {
   });
 }
 
-export async function fetchMe(token: string) {
+export async function fetchMe(token: string, options?: { suppressErrorLog?: boolean }) {
   return apiRequest<{ user: AuthUser }>("/me", {
     method: "GET",
     token,
+    suppressErrorLog: options?.suppressErrorLog,
   });
 }
 
@@ -53,9 +55,21 @@ export async function resendVerification(email: string) {
   });
 }
 
-export async function refreshSession(payload: RefreshSessionPayload) {
+export async function refreshSession(
+  payload: RefreshSessionPayload,
+  options?: { suppressErrorLog?: boolean }
+) {
   return apiRequest<RefreshSessionResponse>("/auth/refresh", {
     method: "POST",
+    body: payload,
+    suppressErrorLog: options?.suppressErrorLog,
+  });
+}
+
+export async function setPassword(token: string, payload: SetPasswordPayload) {
+  return apiRequest<{ message: string }>("/auth/set-password", {
+    method: "POST",
+    token,
     body: payload,
   });
 }
