@@ -1,14 +1,16 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import React, { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Login() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [codigo, setCodigo] = useState(["", "", "", "", "", ""]);
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  const [email, setEmail] = useState("admin@admin");
+  const [senha, setSenha] = useState("123456");
   const [erro, setErro] = useState("");
 
+  const router = useRouter();
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleCodigoChange = (index: number, value: string) => {
@@ -30,9 +32,9 @@ export default function Login() {
   };
 
   const handleLogin = () => {
-    if (email === "admin@toyota.com" && senha === "123456") {
+    if (email === "admin@admin" && senha === "123456") {
       alert("Login realizado com sucesso!");
-      window.location.href = "/dashboard";
+      router.push("/sobre");
     } else {
       setErro("Email ou senha inválidos");
     }
@@ -93,7 +95,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border p-2 rounded mt-1 bg-white text-black"
-              placeholder="admin@toyota.com"
+              placeholder="admin@admin"
             />
           </div>
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import HamburgerMenu from "./componentes/menu/hamburguer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +28,18 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <header className="bg-black text-white flex items-center justify-between px-6 py-3 shadow-md">
+          <div className="text-lg font-bold">
+            <span className="text-red-600">Toyota</span>Tech
+          </div>
+          <div className="ml-auto">
+            <HamburgerMenu />
+          </div>
+        </header>
+
+        <main className="flex-1">{children}</main>
+      </body>
     </html>
   );
 }
