@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Camera, Trash2, Save, Menu } from "lucide-react";
+import { Camera, Trash2, Save } from "lucide-react";
 
 export default function Perfil() {
   // Estado para os campos do formulário
@@ -25,16 +25,7 @@ export default function Perfil() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* HEADER - Mantendo a identidade do Login */}
-      <header className="bg-[#262626] text-white p-4 flex justify-between items-center shadow-md">
-        <div className="text-2xl">
-          <span className="text-red-600 font-bold italic">Toyota</span>
-          <span className="text-white font-bold">Tech</span>
-        </div>
-        <button className="p-2 hover:bg-gray-700 rounded-full transition">
-          <Menu size={24} />
-        </button>
-      </header>
+      {/* header compartilhado no layout */}
 
       <main className="flex-1 flex justify-center items-start p-4 md:p-10">
         <div className="bg-white w-full max-w-5xl shadow-sm rounded-sm p-6 md:p-12">

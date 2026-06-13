@@ -1,7 +1,9 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Cadastro() {
+  const router = useRouter();
   const [etapa, setEtapa] = useState(1);
 
   const [form, setForm] = useState({
@@ -11,9 +13,6 @@ export default function Cadastro() {
   });
 
   const [erros, setErros] = useState<Record<string, string>>({});
-  const [codigoEmail, setCodigoEmail] = useState("");
-  const [codigoEnviado, setCodigoEnviado] = useState(false);
-  const [emailVerificado, setEmailVerificado] = useState(false);
 
   // ================= MÁSCARAS =================
   const formatCPF = (value: string) => {
@@ -36,32 +35,10 @@ export default function Cadastro() {
     return value.replace(/^(\d{5})(\d)/, "$1-$2");
   };
 
-  // ================= CPF REAL =================
-  const validarCPF = (cpf: string) => {
-    cpf = cpf.replace(/\D/g, "");
-
-    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
-
-    let soma = 0;
-    for (let i = 0; i < 9; i++)
-      soma += parseInt(cpf.charAt(i)) * (10 - i);
-
-    let resto = (soma * 10) % 11;
-    if (resto === 10) resto = 0;
-    if (resto !== parseInt(cpf.charAt(9))) return false;
-
-    soma = 0;
-    for (let i = 0; i < 10; i++)
-      soma += parseInt(cpf.charAt(i)) * (11 - i);
-
-    resto = (soma * 10) % 11;
-    if (resto === 10) resto = 0;
-
-    return resto === parseInt(cpf.charAt(10));
-  };
+  // removed deep CPF validation for first registration
 
   const senhaValida = (senha: string) =>
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(senha);
+    /^.{6,}$/.test(senha);
 
   // ================= CEP =================
   const buscarCEP = async (cep: string) => {
@@ -97,10 +74,7 @@ export default function Cadastro() {
     if (name === "telefone") novoValor = formatTelefone(value);
     if (name === "cep") novoValor = formatCEP(value);
 
-    if (name === "email") {
-      setCodigoEnviado(false);
-      setEmailVerificado(false);
-    }
+    // no email verification for first registration
 
     if (name === "cep" && novoValor.replace(/\D/g, "").length === 8) {
       buscarCEP(novoValor);
@@ -110,24 +84,7 @@ export default function Cadastro() {
     setErros((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const enviarCodigoEmail = () => {
-    if (!/\S+@\S+\.\S+/.test(form.email)) {
-      setErros((prev) => ({ ...prev, email: "Email inválido" }));
-      return;
-    }
-
-    setCodigoEnviado(true);
-    alert("Código enviado (simulação): 123456");
-  };
-
-  const verificarCodigo = () => {
-    if (codigoEmail === "123456") {
-      setEmailVerificado(true);
-      alert("Email verificado!");
-    } else {
-      alert("Código inválido");
-    }
-  };
+  // removed email verification step: first registration should not require code confirmation
 
   const validarEtapa1 = () => {
     const erros: Record<string, string> = {};
@@ -135,8 +92,7 @@ export default function Cadastro() {
     if (!form.nome) erros.nome = "Obrigatório";
     if (!form.sobrenome) erros.sobrenome = "Obrigatório";
 
-    if (!validarCPF(form.cpf))
-      erros.cpf = "CPF inválido";
+    if (!form.cpf) erros.cpf = "Obrigatório";
 
     if (form.telefone.replace(/\D/g, "").length !== 11)
       erros.telefone = "Telefone inválido";
@@ -145,8 +101,6 @@ export default function Cadastro() {
       erros.email = "Obrigatório";
     } else if (!/\S+@\S+\.\S+/.test(form.email)) {
       erros.email = "Email inválido";
-    } else if (!emailVerificado) {
-      erros.email = "Verifique o email";
     }
 
     if (!form.senha) {
@@ -197,9 +151,13 @@ export default function Cadastro() {
             </div>
 
             <div className="col-span-2 flex justify-center mt-8">
-              <button className="bg-red-600 text-white px-12 py-2 rounded font-bold">
-                Cadastrar-se
-              </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/sobre")}
+                  className="bg-red-600 text-white px-12 py-2 rounded font-bold"
+                >
+                  Cadastrar-se
+                </button>
             </div>
           </form>
         </div>
@@ -236,39 +194,6 @@ export default function Cadastro() {
               onChange={handleChange}
               className={inputClass("email")}
             />
-
-            {!codigoEnviado && (
-              <button
-                type="button"
-                onClick={enviarCodigoEmail}
-                className="text-xs text-black underline mt-1"
-              >
-                Verificar email
-              </button>
-            )}
-
-            {codigoEnviado && !emailVerificado && (
-              <div className="flex gap-2 mt-2">
-                <input
-                  value={codigoEmail}
-                  onChange={(e)=>setCodigoEmail(e.target.value)}
-                  className="border p-1 text-xs text-black bg-white"
-                />
-                <button
-                  type="button"
-                  onClick={verificarCodigo}
-                  className="bg-green-600 text-white px-2 text-xs"
-                >
-                  OK
-                </button>
-              </div>
-            )}
-
-            {emailVerificado && (
-              <span className="text-green-600 text-xs mt-1">
-                ✔ Verificado
-              </span>
-            )}
           </div>
 
           <Campo label="Senha" name="senha" type="password" {...{form,handleChange,erros,inputClass}}/>

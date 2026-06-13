@@ -1,68 +1,15 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
 import ReactCountryFlag from "react-country-flag";
 
 export default function OrderComplete() {
-  const [menuOpen, setMenuOpen] = useState(false);
+ 
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
 
-      {/* ================= HEADER ================= */}
-      <header className="bg-black text-white flex justify-between items-center px-6 py-4">
-        <h1 className="text-lg font-semibold">
-          <span className="text-red-600">Toyota</span>Tech
-        </h1>
-
-        {/* MENU ICON */}
-        <div
-          onClick={() => setMenuOpen(true)}
-          className="space-y-1 cursor-pointer"
-        >
-          <div className="w-6 h-0.5 bg-white"></div>
-          <div className="w-6 h-0.5 bg-white"></div>
-          <div className="w-6 h-0.5 bg-white"></div>
-        </div>
-      </header>
-
-      {/* ================= MENU ================= */}
-      {menuOpen && (
-        <div
-          onClick={() => setMenuOpen(false)}
-          className="fixed inset-0 bg-black/40 z-40"
-        />
-      )}
-
-      <div
-        className={`fixed top-0 right-0 h-full w-[280px] bg-[#1f1f1f] text-white z-50 transform transition-transform duration-300 ${
-          menuOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {/* HEADER MENU */}
-        <div className="flex justify-between items-center p-4 border-b border-gray-600">
-          <span className="font-semibold">Menu</span>
-          <button onClick={() => setMenuOpen(false)}>✕</button>
-        </div>
-
-        {/* USER */}
-        <div className="p-4 border-b border-gray-700">
-          <p className="font-semibold">Olá, John</p>
-        </div>
-
-        {/* MENU ITEMS */}
-        <ul className="flex flex-col gap-4 p-4 text-sm">
-          <li className="cursor-pointer hover:text-gray-300">Perfil</li>
-          <li className="cursor-pointer hover:text-gray-300">Financeiro</li>
-          <li className="cursor-pointer hover:text-gray-300">
-            Gestão de veículo
-          </li>
-          <li className="cursor-pointer hover:text-gray-300">
-            Notificações
-          </li>
-        </ul>
-      </div>
+      {/* header compartilhado no layout */}
 
       {/* ================= MAIN ================= */}
       <main className="flex-1 flex items-center justify-center px-4 py-10">
