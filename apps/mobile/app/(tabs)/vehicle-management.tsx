@@ -15,6 +15,17 @@ import { fetchGarageCurrent } from "@/services/garage";
 import { GarageData } from "@/types/garage";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const documentDatePattern =
+  /(?:\s*[-–—|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
+
+function getDocumentDisplayTitle(title: string) {
+  const sanitizedTitle = title
+    .replace(documentDatePattern, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  return sanitizedTitle || title;
+}
 
 function InteractivePressable({
   children,
@@ -93,24 +104,27 @@ export default function VehicleManagementScreen() {
         </Animated.View>
 
         <View style={styles.documentList}>
-          {documents.length ? documents.map((document, index) => (
-            <Animated.View
-              key={document.id}
-              entering={FadeInDown.delay(200 + index * 100)
-                .duration(600)
-                .springify()}
-              style={styles.documentButtonWrapper}
-            >
-              <View style={styles.documentButtonShadow} />
-              <InteractivePressable style={styles.documentButton}>
-                <View style={styles.documentButtonContent}>
-                  <Text style={styles.documentButtonText}>{document.title}</Text>
-                  <Text style={styles.documentButtonMeta}>{document.date}</Text>
-                </View>
-                <ArrowRight size={30} strokeWidth={2.4} color={colors.black} />
-              </InteractivePressable>
-            </Animated.View>
-          )) : (
+          {documents.length ? documents.map((document, index) => {
+            const documentTitle = getDocumentDisplayTitle(document.title);
+
+            return (
+              <Animated.View
+                key={document.id}
+                entering={FadeInDown.delay(200 + index * 100)
+                  .duration(600)
+                  .springify()}
+                style={styles.documentButtonWrapper}
+              >
+                <View style={styles.documentButtonShadow} />
+                <InteractivePressable style={styles.documentButton}>
+                  <View style={styles.documentButtonContent}>
+                    <Text style={styles.documentButtonText}>{documentTitle}</Text>
+                  </View>
+                  <ArrowRight size={30} strokeWidth={2.4} color={colors.black} />
+                </InteractivePressable>
+              </Animated.View>
+            );
+          }) : (
             <Text style={styles.emptyStateText}>Nenhum documento vinculado.</Text>
           )}
         </View>
@@ -190,12 +204,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semiBold,
     fontSize: fontSize.xl,
     color: colors.textPrimary,
-  },
-  documentButtonMeta: {
-    marginTop: 2,
-    fontFamily: fonts.regular,
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
   },
   emptyStateText: {
     fontFamily: fonts.regular,
