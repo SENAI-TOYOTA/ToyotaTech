@@ -1,12 +1,16 @@
-import time
 import json
+import os
 import random
+import time
 from datetime import datetime
+from urllib import request
+
 import paho.mqtt.client as mqtt
 
-BROKER = "mqtt"
-PORT = 1883
-TOPIC = "Toyota_Tech/linha"
+BROKER = os.getenv("BROKER", "mqtt")
+PORT = int(os.getenv("PORT", "1883"))
+TOPIC = os.getenv("TOPIC", "Toyota_Tech/linha")
+INGEST_URL = os.getenv("INGEST_URL", "").strip()
 
 QTD_CARROS = 10
 
@@ -16,23 +20,42 @@ ETAPAS = [
     "Teste de qualidade",
     "Em transporte",
     "Concessionária",
-    "Pronto para retirada"
+    "Pronto para retirada",
 ]
 
 TEMPOS_ETAPA = [4, 5, 3, 4, 3, 2]
 
-# MQTT
 client = mqtt.Client()
 client.connect(BROKER, PORT)
 client.loop_start()
 
 inicio_carro = {}
 
+
 def timestamp():
     return datetime.utcnow().isoformat()
 
+
 def gerar_chassi(n):
     return f"CHASSI_{str(n).zfill(5)}"
+
+
+def enviar_ingestao(payload):
+    if not INGEST_URL:
+        return
+    try:
+        body = json.dumps(payload).encode("utf-8")
+        req = request.Request(
+            INGEST_URL,
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with request.urlopen(req, timeout=5) as response:
+            response.read()
+    except Exception as exc:
+        print(f"[ingest] {exc}")
+
 
 def publicar(chassi, etapa, status, tempo_etapa=0, posicao_linha=0, falha=0, retrabalho=0, tempo_total=0):
     payload = {
@@ -40,20 +63,21 @@ def publicar(chassi, etapa, status, tempo_etapa=0, posicao_linha=0, falha=0, ret
         "tags": {
             "chassi": chassi,
             "etapa": etapa,
-            "status": status
+            "status": status,
         },
-        "fields": { 
+        "fields": {
             "valor": 1,
             "tempo_etapa": tempo_etapa,
             "posicao_linha": posicao_linha,
             "falha": falha,
             "retrabalho": retrabalho,
-            "tempo_total": tempo_total
+            "tempo_total": tempo_total,
         },
-        "time": timestamp()
+        "time": timestamp(),
     }
 
     client.publish(TOPIC, json.dumps(payload))
+    enviar_ingestao(payload)
     print(payload)
 
 

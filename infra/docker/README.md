@@ -17,6 +17,8 @@
 docker compose up --build
 ```
 
+Opcional: defina `INGEST_URL` com a URL do endpoint `POST /garage/ingest` da AWS para o simulador mandar os eventos de linha para a Lambda.
+
 ## Interfaces Web
 
 | Serviço | URL |
