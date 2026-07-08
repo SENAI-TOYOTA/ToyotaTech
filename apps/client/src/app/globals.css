@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  /* Cores Oficiais da Marca */
+  --color-toyota-red: #EB0A1E;
+  --color-toyota-dark-red: #B30816;
+
+  /* Cores Industriais/Dashboard */
+  --color-industrial-bg: #F4F6F8;
+  --color-industrial-dark: #1A1D20;
+  --color-industrial-gray: #495057;
+  --color-industrial-border: #DEE2E6;
+
+  /* Status */
+  --color-status-waiting: #6C757D;
+  --color-status-production: #0D6EFD;
+  --color-status-quality: #FFC107;
+  --color-status-ready: #198754;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
