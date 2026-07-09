@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  /* Paleta de Cores do Protótipo */
+  --color-bg: #F5F6F8;
+  --color-ink: #16181D;
+  --color-ink-soft: #667085;
+  --color-border: #E6E8EB;
+
+  --color-toyota-red: #DC1A2B;
+  --color-toyota-red-deep: #B01521;
+  --color-toyota-red-tint: #FCEAEC;
+  --color-toyota-red-tint-text: #B01521;
+
+  --color-charcoal: #2A2E36;
+  --color-charcoal-deep: #1B1E24;
+  --color-charcoal-tint: #EEF0F2;
+  --color-charcoal-tint-text: #4A4F58;
+
+  /* Sombras Personalizadas */
+  --shadow-toyota-sm: 0 2px 10px rgba(16, 18, 22, 0.05);
+  --shadow-toyota-md: 0 16px 36px rgba(16, 18, 22, 0.10);
+}
+
+/* Utilitários Globais baseados no HTML de referência */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+  }
+}
+
+/* Animação do Live Dot (Pulse) */
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 rgba(220, 26, 43, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(220, 26, 43, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 26, 43, 0); }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2.4s ease-out infinite;
+}
