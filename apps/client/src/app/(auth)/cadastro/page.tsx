@@ -1,320 +1,371 @@
 "use client";
-import React, { useState } from "react";
 
-export default function Cadastro() {
-  const [etapa, setEtapa] = useState(1);
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/src/components/ui/Button';
 
-  const [form, setForm] = useState({
-    nome: "", sobrenome: "", cpf: "", telefone: "",
-    email: "", senha: "", cep: "", bairro: "", rua: "",
-    numero: "", cidade: "", complemento: "", estado: ""
+export default function CadastroPage() {
+  const router = useRouter();
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  
+  // Estados do Formulário - Dados Pessoais
+  const [formData, setFormData] = useState({
+    nome: '',
+    sobrenome: '',
+    cpf: '',
+    telefone: '',
+    email: '',
+    senha: '',
+    confirmarSenha: '',
+    // Veículo
+    chassi: '',
+    // Endereço
+    cep: '',
+    rua: '',
+    numero: '',
+    bairro: '',
+    complemento: '',
+    cidade: '',
+    estado: ''
   });
 
-  const [erros, setErros] = useState<Record<string, string>>({});
-  const [codigoEmail, setCodigoEmail] = useState("");
-  const [codigoEnviado, setCodigoEnviado] = useState(false);
-  const [emailVerificado, setEmailVerificado] = useState(false);
+  // Estados de controle da simulação do Chassi
+  const [isChassiMode, setIsChassiMode] = useState<boolean>(true);
+  const [chassiSearchActive, setChassiSearchActive] = useState<boolean>(false);
+  const [carFound, setCarFound] = useState<boolean>(false);
 
-  // ================= MÁSCARAS =================
-  const formatCPF = (value: string) => {
-    value = value.replace(/\D/g, "").slice(0, 11);
-    return value
-      .replace(/^(\d{3})(\d)/, "$1.$2")
-      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-      .replace(/\.(\d{3})(\d)/, ".$1-$2");
-  };
-
-  const formatTelefone = (value: string) => {
-    value = value.replace(/\D/g, "").slice(0, 11);
-    return value
-      .replace(/^(\d{2})(\d)/, "($1) $2")
-      .replace(/(\d{5})(\d)/, "$1-$2");
-  };
-
-  const formatCEP = (value: string) => {
-    value = value.replace(/\D/g, "").slice(0, 8);
-    return value.replace(/^(\d{5})(\d)/, "$1-$2");
-  };
-
-  // ================= CPF REAL =================
-  const validarCPF = (cpf: string) => {
-    cpf = cpf.replace(/\D/g, "");
-
-    if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
-
-    let soma = 0;
-    for (let i = 0; i < 9; i++)
-      soma += parseInt(cpf.charAt(i)) * (10 - i);
-
-    let resto = (soma * 10) % 11;
-    if (resto === 10) resto = 0;
-    if (resto !== parseInt(cpf.charAt(9))) return false;
-
-    soma = 0;
-    for (let i = 0; i < 10; i++)
-      soma += parseInt(cpf.charAt(i)) * (11 - i);
-
-    resto = (soma * 10) % 11;
-    if (resto === 10) resto = 0;
-
-    return resto === parseInt(cpf.charAt(10));
-  };
-
-  const senhaValida = (senha: string) =>
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(senha);
-
-  // ================= CEP =================
-  const buscarCEP = async (cep: string) => {
-    const cepLimpo = cep.replace(/\D/g, "");
-    if (cepLimpo.length !== 8) return;
-
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
-      const data = await res.json();
-
-      if (data.erro) {
-        setErros((prev) => ({ ...prev, cep: "CEP não encontrado" }));
-        return;
-      }
-
-      setForm((prev) => ({
-        ...prev,
-        rua: data.logradouro || "",
-        bairro: data.bairro || "",
-        cidade: data.localidade || "",
-        estado: data.uf || ""
-      }));
-    } catch {
-      setErros((prev) => ({ ...prev, cep: "Erro ao buscar CEP" }));
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Manipulador de mudanças nos inputs
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    let novoValor = value;
-
-    if (name === "cpf") novoValor = formatCPF(value);
-    if (name === "telefone") novoValor = formatTelefone(value);
-    if (name === "cep") novoValor = formatCEP(value);
-
-    if (name === "email") {
-      setCodigoEnviado(false);
-      setEmailVerificado(false);
-    }
-
-    if (name === "cep" && novoValor.replace(/\D/g, "").length === 8) {
-      buscarCEP(novoValor);
-    }
-
-    setForm({ ...form, [name]: novoValor });
-    setErros((prev) => ({ ...prev, [name]: "" }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const enviarCodigoEmail = () => {
-    if (!/\S+@\S+\.\S+/.test(form.email)) {
-      setErros((prev) => ({ ...prev, email: "Email inválido" }));
-      return;
-    }
-
-    setCodigoEnviado(true);
-    alert("Código enviado (simulação): 123456");
+  // Simulação de Busca do Chassi (Mocked)
+  const handleChassiSearch = () => {
+    if (!formData.chassi) return;
+    setChassiSearchActive(true);
+    // Simula atraso da busca da API
+    setTimeout(() => {
+      setCarFound(true);
+      setChassiSearchActive(false);
+    }, 1000);
   };
 
-  const verificarCodigo = () => {
-    if (codigoEmail === "123456") {
-      setEmailVerificado(true);
-      alert("Email verificado!");
-    } else {
-      alert("Código inválido");
+  // Simulação de preenchimento do CEP (Mocked)
+  const handleCepSearch = () => {
+    if (formData.cep.length >= 8) {
+      setFormData(prev => ({
+        ...prev,
+        rua: 'Av. Paulista',
+        bairro: 'Bela Vista',
+        cidade: 'São Paulo',
+        estado: 'SP'
+      }));
     }
   };
 
-  const validarEtapa1 = () => {
-    const erros: Record<string, string> = {};
-
-    if (!form.nome) erros.nome = "Obrigatório";
-    if (!form.sobrenome) erros.sobrenome = "Obrigatório";
-
-    if (!validarCPF(form.cpf))
-      erros.cpf = "CPF inválido";
-
-    if (form.telefone.replace(/\D/g, "").length !== 11)
-      erros.telefone = "Telefone inválido";
-
-    if (!form.email) {
-      erros.email = "Obrigatório";
-    } else if (!/\S+@\S+\.\S+/.test(form.email)) {
-      erros.email = "Email inválido";
-    } else if (!emailVerificado) {
-      erros.email = "Verifique o email";
-    }
-
-    if (!form.senha) {
-      erros.senha = "Obrigatório";
-    } else if (!senhaValida(form.senha)) {
-      erros.senha = "Senha fraca";
-    }
-
-    setErros(erros);
-    return Object.keys(erros).length === 0;
+  const nextStep = () => {
+    if (currentStep < 3) setCurrentStep(prev => prev + 1);
   };
 
-  const handleNext = () => {
-    if (validarEtapa1()) setEtapa(2);
+  const prevStep = () => {
+    if (currentStep > 1) setCurrentStep(prev => prev - 1);
   };
 
-  const inputClass = (campo: string) =>
-    `w-full border p-2 rounded bg-gray-100 text-black ${
-      erros[campo] ? "border-red-500" : "border-gray-300"
-    }`;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Redireciona para o portal do cliente após concluir
+    router.push('/cliente');
+  };
 
-  // ================= ETAPA 2 =================
-  if (etapa === 2) {
-    return (
-      <div className="min-h-screen bg-gray-200 flex flex-col items-center p-8">
-        <div className="mb-6">
-          <span className="text-red-600 text-3xl font-bold italic">Toyota</span>
-          <span className="text-black text-3xl font-bold ml-1">Tech</span>
-        </div>
-
-        <div className="w-full max-w-4xl bg-white rounded shadow-2xl p-10">
-          <h2 className="text-center text-2xl font-bold mb-10 text-black">
-            Endereço
-          </h2>
-
-          <form className="grid grid-cols-2 gap-6">
-            <Campo label="CEP" name="cep" {...{form,handleChange,erros,inputClass}}/>
-            <Campo label="Bairro" name="bairro" {...{form,handleChange,erros,inputClass}}/>
-
-            <Campo label="Rua" name="rua" {...{form,handleChange,erros,inputClass}}/>
-            <Campo label="Número" name="numero" {...{form,handleChange,erros,inputClass}}/>
-
-            <Campo label="Cidade" name="cidade" {...{form,handleChange,erros,inputClass}}/>
-            <Campo label="Estado" name="estado" {...{form,handleChange,erros,inputClass}}/>
-
-            <div className="col-span-2">
-              <Campo label="Complemento" name="complemento" {...{form,handleChange,erros,inputClass}}/>
-            </div>
-
-            <div className="col-span-2 flex justify-center mt-8">
-              <button className="bg-red-600 text-white px-12 py-2 rounded font-bold">
-                Cadastrar-se
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  // ================= ETAPA 1 =================
   return (
-    <div className="min-h-screen bg-gray-200 flex flex-col items-center p-8">
-      <div className="mb-6">
-        <span className="text-red-600 text-3xl font-bold italic">Toyota</span>
-        <span className="text-black text-3xl font-bold ml-1">Tech</span>
-      </div>
+    <div className="min-h-screen bg-bg flex flex-col justify-between py-10 px-4">
+      {/* Header */}
+      <header className="max-w-[1180px] w-full mx-auto flex justify-between items-center px-4">
+        <div className="text-2xl font-extrabold tracking-tight">
+          <span className="text-toyota-red">Toyota</span>
+          <span className="text-ink">Tech</span>
+        </div>
+      </header>
 
-      <div className="w-full max-w-4xl bg-white rounded shadow-2xl p-10">
-        <h2 className="text-center text-2xl font-bold mb-10 text-black">
-          Bem vindo!
-        </h2>
+      {/* Card de Cadastro Centralizado */}
+      <main className="flex-1 flex flex-col items-center justify-center my-8">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-black text-ink tracking-tight">Bem vindo<span className="text-toyota-red">!</span></h1>
+          <p className="text-ink-soft text-sm font-medium mt-1">Faça seu cadastro</p>
+        </div>
 
-        <form className="grid grid-cols-2 gap-6">
-          <Campo label="Primeiro nome" name="nome" {...{form,handleChange,erros,inputClass}}/>
-          <Campo label="Segundo nome" name="sobrenome" {...{form,handleChange,erros,inputClass}}/>
+        <div className="bg-white rounded-2xl border border-border shadow-toyota-md w-full max-w-[580px] p-8 md:p-10 relative">
+          
+          {/* Header de Progresso das Etapas */}
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-border">
+            <div className="flex-1 flex flex-col items-center gap-2">
+              <div className={`h-1.5 w-full rounded-full transition-colors ${currentStep >= 1 ? 'bg-toyota-red' : 'bg-border'}`} />
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${currentStep === 1 ? 'text-toyota-red' : 'text-ink-soft'}`}>1. Identificação</span>
+            </div>
+            <div className="w-4" />
+            <div className="flex-1 flex flex-col items-center gap-2">
+              <div className={`h-1.5 w-full rounded-full transition-colors ${currentStep >= 2 ? 'bg-toyota-red' : 'bg-border'}`} />
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${currentStep === 2 ? 'text-toyota-red' : 'text-ink-soft'}`}>2. Veículo</span>
+            </div>
+            <div className="w-4" />
+            <div className="flex-1 flex flex-col items-center gap-2">
+              <div className={`h-1.5 w-full rounded-full transition-colors ${currentStep >= 3 ? 'bg-toyota-red' : 'bg-border'}`} />
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${currentStep === 3 ? 'text-toyota-red' : 'text-ink-soft'}`}>3. Acesso</span>
+            </div>
+          </div>
 
-          <Campo label="CPF" name="cpf" {...{form,handleChange,erros,inputClass}}/>
-          <Campo label="Telefone" name="telefone" {...{form,handleChange,erros,inputClass}}/>
+          {/* Form Multistep */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* ETAPA 1: DADOS PESSOAIS */}
+            {currentStep === 1 && (
+              <div className="space-y-4 animate-fadeIn">
+                <div>
+                  <h2 className="text-lg font-extrabold text-ink">Ative sua Conta ToyotaTech</h2>
+                  <p className="text-xs text-ink-soft">Informe seus dados pessoais para validar sua identidade. Suas informações devem coincidir com os dados de compra do veículo.</p>
+                </div>
 
-          {/* EMAIL */}
-          <div className="flex flex-col">
-            <label className="text-black text-xs font-bold mb-1">Email:</label>
-            <input
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              className={inputClass("email")}
-            />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">Nome <span className="text-toyota-red">*</span></label>
+                    <input 
+                      type="text" name="nome" value={formData.nome} onChange={handleChange} required placeholder="Ex: Thiago"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">Sobrenome <span className="text-toyota-red">*</span></label>
+                    <input 
+                      type="text" name="sobrenome" value={formData.sobrenome} onChange={handleChange} required placeholder="Ex: Antunes"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                </div>
 
-            {!codigoEnviado && (
-              <button
-                type="button"
-                onClick={enviarCodigoEmail}
-                className="text-xs text-black underline mt-1"
-              >
-                Verificar email
-              </button>
-            )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">CPF <span className="text-toyota-red">*</span></label>
+                    <input 
+                      type="text" name="cpf" value={formData.cpf} onChange={handleChange} required placeholder="000.000.000-00"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">Telefone <span className="text-toyota-red">*</span></label>
+                    <input 
+                      type="tel" name="telefone" value={formData.telefone} onChange={handleChange} required placeholder="(00) 00000-0000"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                </div>
 
-            {codigoEnviado && !emailVerificado && (
-              <div className="flex gap-2 mt-2">
-                <input
-                  value={codigoEmail}
-                  onChange={(e)=>setCodigoEmail(e.target.value)}
-                  className="border p-1 text-xs text-black bg-white"
-                />
-                <button
-                  type="button"
-                  onClick={verificarCodigo}
-                  className="bg-green-600 text-white px-2 text-xs"
-                >
-                  OK
-                </button>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-ink">Endereço de e-mail <span className="text-toyota-red">*</span></label>
+                  <input 
+                    type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="usuario@gmail.com"
+                    className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs w-full focus:outline-none focus:border-toyota-red"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">Senha <span className="text-toyota-red">*</span></label>
+                    <input 
+                      type="password" name="senha" value={formData.senha} onChange={handleChange} required placeholder="••••"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">Confirmar senha <span className="text-toyota-red">*</span></label>
+                    <input 
+                      type="password" name="confirmarSenha" value={formData.confirmarSenha} onChange={handleChange} required placeholder="••••"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                </div>
+                <span className="text-[10px] text-ink-soft block">🛡️ Mínimo de 6 caracteres, com letras e números.</span>
+
+                <div className="flex justify-end pt-4">
+                  <Button type="button" onClick={nextStep} variant="solid">
+                    Próxima etapa
+                  </Button>
+                </div>
               </div>
             )}
 
-            {emailVerificado && (
-              <span className="text-green-600 text-xs mt-1">
-                ✔ Verificado
-              </span>
+            {/* ETAPA 2: VEÍCULO */}
+            {currentStep === 2 && (
+              <div className="space-y-4 animate-fadeIn">
+                <div>
+                  <h2 className="text-lg font-extrabold text-ink">Vincule seu Veículo</h2>
+                  <p className="text-xs text-ink-soft">Informe o número do chassi ou a placa para identificarmos o veículo adquirido e ativar o rastreamento na plataforma.</p>
+                </div>
+
+                {/* Seletor Abstrato Chassi / Placa */}
+                <div className="flex bg-gray-100 p-1 rounded-xl">
+                  <button 
+                    type="button" onClick={() => setIsChassiMode(true)}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${isChassiMode ? 'bg-white shadow-sm text-ink' : 'text-ink-soft'}`}
+                  >
+                    Chassi
+                  </button>
+                  <button 
+                    type="button" onClick={() => setIsChassiMode(false)}
+                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${!isChassiMode ? 'bg-white shadow-sm text-ink' : 'text-ink-soft'}`}
+                  >
+                    Placa
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-ink">Número do Chassi <span className="text-toyota-red">*</span></label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" name="chassi" value={formData.chassi} onChange={handleChange} required placeholder="Ex: 9BR*******3456"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs flex-1 focus:outline-none focus:border-toyota-red"
+                    />
+                    <button 
+                      type="button" onClick={handleChassiSearch}
+                      className="bg-toyota-red hover:bg-toyota-red-deep text-white px-4 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                    >
+                      🔍 Buscar
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-ink-soft">ℹ️ O chassi está na nota fiscal, CRLV-e no canto inferior do para-brisa.</span>
+                </div>
+
+                {/* Resultado Simulado da Busca */}
+                {chassiSearchActive && (
+                  <div className="p-4 bg-gray-50 border rounded-xl flex items-center justify-center text-xs text-ink-soft">
+                    Buscando registro no banco de dados da fábrica...
+                  </div>
+                )}
+
+                {carFound && (
+                  <div className="p-4 bg-gray-50 border border-border rounded-xl flex gap-4 items-center animate-fadeIn">
+                    <div className="w-16 h-12 bg-white rounded-lg p-1 border flex items-center justify-center">
+                      <span className="text-lg">🚗</span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-xs font-bold text-ink">Toyota Corolla Cross XRX</h4>
+                      <p className="text-[10px] text-ink-soft">Chassi 9BR*******3456 · Ano 2026</p>
+                      <span className="text-[9px] font-bold text-green-600">✓ Veículo encontrado</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between pt-4 border-t border-border">
+                  <button type="button" onClick={prevStep} className="px-5 py-2.5 border border-border hover:border-ink text-ink text-xs font-bold rounded-xl transition-all">
+                    ← Voltar
+                  </button>
+                  <Button type="button" onClick={nextStep} variant="solid" disabled={!carFound}>
+                    Próxima etapa
+                  </Button>
+                </div>
+              </div>
             )}
-          </div>
 
-          <Campo label="Senha" name="senha" type="password" {...{form,handleChange,erros,inputClass}}/>
+            {/* ETAPA 3: ENDEREÇO E SEGURANÇA */}
+            {currentStep === 3 && (
+              <div className="space-y-4 animate-fadeIn">
+                <div>
+                  <h2 className="text-lg font-extrabold text-ink">Endereço e Segurança</h2>
+                  <p className="text-xs text-ink-soft">Seu CEP irá autocompletar os dados de localização.</p>
+                </div>
 
-          <div className="col-span-2 flex justify-center mt-8">
-            <button
-              type="button"
-              onClick={handleNext}
-              className="bg-red-600 text-white px-12 py-2 rounded font-bold"
-            >
-              Próximo
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-ink">CEP <span className="text-toyota-red">*</span></label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" name="cep" value={formData.cep} onChange={handleChange} onKeyUp={handleCepSearch} required placeholder="00000-000"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs flex-1 focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                </div>
 
-function Campo({ 
-  label, 
-  name, 
-  form, 
-  handleChange, 
-  erros, 
-  inputClass, 
-  type = "text" 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-}: any) {
-  return (
-    <div className="flex flex-col">
-      <label className="text-black text-xs font-bold mb-1">
-        {label}:
-      </label>
-      <input
-        type={type}
-        name={name}
-        value={form[name]}
-        onChange={handleChange}
-        className={inputClass(name)}
-      />
-      {erros[name] && (
-        <span className="text-red-500 text-xs mt-1">
-          {erros[name]}
-        </span>
-      )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <label className="text-xs font-bold text-ink">Rua</label>
+                    <input 
+                      type="text" name="rua" value={formData.rua} onChange={handleChange} placeholder="Av. Paulista"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">Nº <span className="text-toyota-red">*</span></label>
+                    <input 
+                      type="text" name="numero" value={formData.numero} onChange={handleChange} required placeholder="Ex: 100"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">Bairro</label>
+                    <input 
+                      type="text" name="bairro" value={formData.bairro} onChange={handleChange} placeholder="Bela Vista"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">Complemento</label>
+                    <input 
+                      type="text" name="complemento" value={formData.complemento} onChange={handleChange} placeholder="Apto, bloco (opcional)"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">Cidade</label>
+                    <input 
+                      type="text" name="cidade" value={formData.cidade} onChange={handleChange} placeholder="São Paulo"
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-ink">Estado</label>
+                    <select 
+                      name="estado" value={formData.estado} onChange={handleChange}
+                      className="bg-gray-50 border border-border rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-toyota-red"
+                    >
+                      <option value="">Selecione</option>
+                      <option value="SP">São Paulo</option>
+                      <option value="RJ">Rio de Janeiro</option>
+                      <option value="MG">Minas Gerais</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 pt-2">
+                  <input type="checkbox" required className="mt-0.5" />
+                  <span className="text-[10px] text-ink-soft">
+                    Ao ativar minha conta, concordo com os <span className="text-toyota-red underline cursor-pointer">Termos de Uso</span> e a <span className="text-toyota-red underline cursor-pointer">Política de Privacidade</span> da plataforma ToyotaTech.
+                  </span>
+                </div>
+
+                <div className="flex justify-between pt-4 border-t border-border">
+                  <button type="button" onClick={prevStep} className="px-5 py-2.5 border border-border hover:border-ink text-ink text-xs font-bold rounded-xl transition-all">
+                    ← Voltar
+                  </button>
+                  <Button type="submit" variant="solid">
+                    Concluir cadastro
+                  </Button>
+                </div>
+              </div>
+            )}
+
+          </form>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="max-w-[1180px] w-full mx-auto text-center text-xs text-ink-soft pt-4 border-t border-border/10">
+        © 2026 ToyotaTech. Projeto Acadêmico · UNISENAI Sorocaba.
+      </footer>
     </div>
   );
 }
