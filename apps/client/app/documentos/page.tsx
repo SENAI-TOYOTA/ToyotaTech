@@ -20,7 +20,7 @@ const PdfPreview = dynamic<PdfPreviewProps>(
 );
 
 export default function VehicleManagement() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  
   const [mounted, setMounted] = useState(false);
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -50,39 +50,11 @@ export default function VehicleManagement() {
   return (
     <div className="min-h-screen flex flex-col bg-[#f4f4f4] text-black">
       
-      {/* ================= HEADER ================= */}
-      <header className="bg-black text-white flex justify-between items-center px-8 py-5 z-30">
-        <h1 className="text-xl font-bold">
-          <span className="text-red-600">Toyota</span>Tech
-        </h1>
-        <div onClick={() => setMenuOpen(true)} className="space-y-1.5 cursor-pointer">
-          <div className="w-7 h-0.5 bg-white"></div>
-          <div className="w-7 h-0.5 bg-white"></div>
-          <div className="w-7 h-0.5 bg-white"></div>
-        </div>
-      </header>
-
-      {/* ================= MENU LATERAL ================= */}
-      {menuOpen && <div onClick={() => setMenuOpen(false)} className="fixed inset-0 bg-black/40 z-40" />}
-      <div className={`fixed top-0 right-0 h-full w-[280px] bg-[#1f1f1f] text-white z-50 transform transition-transform duration-300 ${menuOpen ? "translate-x-0" : "translate-x-full"}`}>
-        <div className="flex justify-between items-center p-5 border-b border-gray-700">
-          <span className="font-bold">Menu</span>
-          <button onClick={() => setMenuOpen(false)}>✕</button>
-        </div>
-        <div className="p-5 border-b border-gray-800">
-          <p className="font-semibold text-gray-300">Olá, John</p>
-        </div>
-        <ul className="flex flex-col gap-5 p-6 text-sm">
-          <li className="cursor-pointer hover:text-red-500">Perfil</li>
-          <li className="cursor-pointer hover:text-red-500">Financeiro</li>
-          <li className="font-bold text-red-500 cursor-pointer">Gestão de veículo</li>
-          <li className="cursor-pointer hover:text-red-500">Notificações</li>
-        </ul>
-      </div>
+      {/* header compartilhado no layout */}
 
       {/* ================= CONTEÚDO PRINCIPAL ================= */}
       <main className="flex-1 max-w-[1400px] mx-auto w-full px-8 py-12">
-        <h2 className="text-3xl font-bold mb-1">Gestão do Veículo</h2>
+        <h2 className="text-3xl font-bold mb-1">Documentos</h2>
         <p className="text-gray-500 text-sm mb-12">Documentos digitais, lembretes e mais - tudo num só lugar</p>
 
         {/* GRID SUPERIOR (DOCS) */}

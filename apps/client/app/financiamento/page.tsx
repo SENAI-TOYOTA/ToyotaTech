@@ -54,18 +54,7 @@ export default function FinanceiroSection() {
 
   return (
     <div className="w-full">
-      {/* HEADER */}
-      <div className="bg-zinc-900 text-white flex items-center justify-between px-6 py-4">
-        <div className="text-xl font-semibold">
-          <span className="text-red-600">Toyota</span>Tech
-        </div>
-        <div className="flex flex-col gap-1 cursor-pointer">
-          <span className="w-6 h-[2px] bg-white"></span>
-          <span className="w-6 h-[2px] bg-white"></span>
-          <span className="w-6 h-[2px] bg-white"></span>
-        </div>
-      </div>
-
+      {/* header compartilhado no layout */}
       {/* VISUALIZADOR 360 */}
       <div className="bg-white py-12 px-6 flex flex-col items-center border-b">
         <div className="w-full max-w-4xl text-center mb-6">
