@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.juliocoronetti.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -44,6 +45,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "cognitoDomain": "https://toyotatech-mobile.auth.us-east-1.amazoncognito.com",
+      "router": {},
+      "eas": {
+        "projectId": "68df458c-84ad-4a46-954d-74abe07910d0"
+      }
     }
   }
 }

@@ -1,21 +1,62 @@
-import { View, Text, StyleSheet, Platform } from "react-native";
+import { useMemo, useState } from "react";
+import { View, Text, StyleSheet, Platform, Pressable } from "react-native";
 import { ArrowRight, Eye } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
+import { useAuth } from "@/contexts/AuthContext";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { ApiError } from "@/services/api";
 import { AuthScreenLayout } from "./_layout";
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { email: emailFromParams } = useLocalSearchParams<{ email?: string }>();
+  const { signUp } = useAuth();
+  const [email, setEmail] = useState(emailFromParams ?? "");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const handleCreateAccountPress = () => {
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+  const canSubmit = normalizedEmail.includes("@") && password.length >= 8 && !isSubmitting;
+
+  const handleCreateAccountPress = async () => {
+    if (!canSubmit) {
+      setFormError("Informe e-mail valido e senha com ao menos 8 caracteres.");
+      return;
+    }
+
+    setFormError(null);
     if (Platform.OS === "web" && typeof document !== "undefined") {
       (document.activeElement as HTMLElement | null)?.blur();
     }
 
-    router.push("/(auth)/verify-email");
+    setIsSubmitting(true);
+    try {
+      const result = await signUp(normalizedEmail, password);
+      if (result.requiresEmailVerification) {
+        router.push({
+          pathname: "/(auth)/verify-email",
+          params: { email: normalizedEmail },
+        });
+      } else {
+        router.replace({
+          pathname: "/(auth)/login",
+          params: { email: normalizedEmail },
+        });
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setFormError(error.message);
+      } else {
+        setFormError("Nao foi possivel criar a conta. Tente novamente.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -23,24 +64,39 @@ export default function RegisterScreen() {
       <Text style={styles.welcomeText}>BEM-VINDO(A)!</Text>
 
       <View style={styles.formContainer}>
-        <View style={styles.visibilityRow}>
-          <Eye size={18} strokeWidth={1.8} color={colors.black} />
-          <Text style={styles.visibilityText}>EXIBIR</Text>
-        </View>
+        <TextInput
+          placeholder="ENDEREÇO DE EMAIL *"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
 
         <TextInput
           placeholder="SENHA *"
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
           containerStyle={styles.passwordInputContainer}
           style={styles.passwordInputText}
         />
+        <Pressable
+          style={styles.visibilityRow}
+          onPress={() => setShowPassword((current) => !current)}
+        >
+          <Eye size={18} strokeWidth={1.8} color={colors.black} />
+          <Text style={styles.visibilityText}>{showPassword ? "OCULTAR" : "EXIBIR"}</Text>
+        </Pressable>
 
         <Text style={styles.passwordHintText}>
           Mínimo de 8 caracteres com pelo menos uma letrar maiúscula, uma
           minúscula e um número.
         </Text>
 
+        {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+
         <Button
-          title="Criar conta"
+          title={isSubmitting ? "Criando..." : "Criar conta"}
           variant="primary"
           icon={
             <ArrowRight
@@ -53,6 +109,7 @@ export default function RegisterScreen() {
           }
           style={styles.createAccountButton}
           onPress={handleCreateAccountPress}
+          disabled={!canSubmit}
         />
       </View>
     </AuthScreenLayout>
@@ -69,14 +126,14 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: "100%",
-    marginTop: 74,
+    marginTop: spacing.xxl,
   },
   visibilityRow: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-end",
     gap: 6,
-    marginBottom: 6,
+    marginTop: spacing.xs,
   },
   visibilityText: {
     fontFamily: fonts.semiBold,
@@ -88,6 +145,7 @@ const styles = StyleSheet.create({
     height: 50,
     paddingVertical: 0,
     paddingHorizontal: 12,
+    marginTop: spacing.md,
   },
   passwordInputText: {
     fontFamily: fonts.regular,
@@ -103,5 +161,11 @@ const styles = StyleSheet.create({
   createAccountButton: {
     width: "100%",
     marginTop: spacing.xl,
+  },
+  formErrorText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.primary,
   },
 });

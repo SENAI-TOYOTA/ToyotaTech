@@ -1,58 +1,155 @@
 import { ArrowRight } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
-import TextInput from "@/components/ui/TextInput";
 import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchGarageCurrent } from "@/services/garage";
+import { GarageData } from "@/types/garage";
 
-const documentOptions = ["Nota fiscal", "CRLV-e", "Documentos", "Manual do veículo"];
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const documentDatePattern =
+  /(?:\s*[-–—|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
+
+function getDocumentDisplayTitle(title: string) {
+  const sanitizedTitle = title
+    .replace(documentDatePattern, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  return sanitizedTitle || title;
+}
+
+function InteractivePressable({
+  children,
+  style,
+  onPress,
+  ...props
+}: React.ComponentProps<typeof Pressable>) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
+  };
+
+  return (
+    <AnimatedPressable
+      {...props}
+      style={[style, animatedStyle]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
 
 export default function VehicleManagementScreen() {
+  const { token } = useAuth();
+  const [garage, setGarage] = useState<GarageData | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const loadGarage = async () => {
+      if (!token) {
+        return;
+      }
+      try {
+        const result = await fetchGarageCurrent(token);
+        if (active) {
+          setGarage(result.garage);
+        }
+      } catch (error) {
+        console.error("Failed to fetch garage documents", error);
+      }
+    };
+
+    void loadGarage();
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  const documents = garage?.documents ?? [];
+  const recalls = garage?.recalls ?? [];
+
   return (
     <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        <ScreenSectionHeader
-          title="Gestão do veículo"
-          subtitle="Documentos digitais, lembretes e mais!"
-          style={styles.sectionHeader}
-        />
+        <Animated.View entering={FadeInDown.duration(600).springify()}>
+          <ScreenSectionHeader
+            title="Gestão do veículo"
+            subtitle="Documentos digitais, lembretes e mais!"
+            style={styles.sectionHeader}
+          />
+        </Animated.View>
 
         <View style={styles.documentList}>
-          {documentOptions.map((option) => (
-            <View key={option} style={styles.documentButtonWrapper}>
-              <View style={styles.documentButtonShadow} />
-              <Pressable style={styles.documentButton}>
-                <Text style={styles.documentButtonText}>{option}</Text>
-                <ArrowRight size={30} strokeWidth={2.4} color={colors.black} />
-              </Pressable>
-            </View>
-          ))}
+          {documents.length ? documents.map((document, index) => {
+            const documentTitle = getDocumentDisplayTitle(document.title);
+
+            return (
+              <Animated.View
+                key={document.id}
+                entering={FadeInDown.delay(200 + index * 100)
+                  .duration(600)
+                  .springify()}
+                style={styles.documentButtonWrapper}
+              >
+                <View style={styles.documentButtonShadow} />
+                <InteractivePressable style={styles.documentButton}>
+                  <View style={styles.documentButtonContent}>
+                    <Text style={styles.documentButtonText}>{documentTitle}</Text>
+                  </View>
+                  <ArrowRight size={30} strokeWidth={2.4} color={colors.black} />
+                </InteractivePressable>
+              </Animated.View>
+            );
+          }) : (
+            <Text style={styles.emptyStateText}>Nenhum documento vinculado.</Text>
+          )}
         </View>
 
-        <View style={styles.recallCard}>
+        <Animated.View
+          entering={FadeInDown.delay(700).duration(600).springify()}
+          style={styles.recallCard}
+        >
           <Text style={styles.recallTitle}>Programas de recall</Text>
           <Text style={styles.recallDescription}>
             Notificações e agendamentos de reparos obrigatórios.
           </Text>
-
-          <View style={styles.recallActions}>
-            <TextInput
-              placeholder="Título do recall (ex: Airbag)"
-              containerStyle={styles.recallInputContainer}
-              style={styles.recallInput}
-            />
-
-            <View style={styles.addButtonWrapper}>
-              <View style={styles.addButtonShadow} />
-              <Pressable style={styles.addButton}>
-                <Text style={styles.addButtonText}>Adicionar</Text>
-              </Pressable>
-            </View>
+          <View style={styles.recallList}>
+            {recalls.length ? recalls.map((recall) => (
+              <View key={recall.id} style={styles.recallItem}>
+                <Text style={styles.recallItemTitle}>{recall.title}</Text>
+                {recall.description ? (
+                  <Text style={styles.recallItemDescription}>{recall.description}</Text>
+                ) : null}
+              </View>
+            )) : (
+              <Text style={styles.recallEmptyText}>Nenhum recall registrado.</Text>
+            )}
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -99,10 +196,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  documentButtonContent: {
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
   documentButtonText: {
     fontFamily: fonts.semiBold,
     fontSize: fontSize.xl,
     color: colors.textPrimary,
+  },
+  emptyStateText: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
   },
   recallCard: {
     marginTop: spacing.xl + spacing.sm + 2,
@@ -125,51 +231,31 @@ const styles = StyleSheet.create({
     lineHeight: fontSize.md + spacing.xs,
     color: colors.textSecondary,
   },
-  recallActions: {
+  recallList: {
     marginTop: spacing.md + 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md + 2,
+    gap: spacing.sm,
   },
-  recallInputContainer: {
-    flex: 1,
-    minHeight: spacing.xxl - spacing.xs,
-    borderRadius: 0,
-    backgroundColor: colors.grayLight,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md - 2,
+  recallItem: {
+    borderWidth: 1,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.sm,
   },
-  recallInput: {
-    fontFamily: fonts.regular,
-    fontSize: fontSize.sm,
+  recallItemTitle: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.md,
     color: colors.textPrimary,
   },
-  addButtonWrapper: {
-    width: 108,
-    height: spacing.xxl - spacing.sm,
-    marginRight: 4,
+  recallItemDescription: {
+    marginTop: 2,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
   },
-  addButtonShadow: {
-    position: "absolute",
-    top: spacing.xs,
-    left: spacing.xs,
-    right: -spacing.xs,
-    bottom: -spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: "transparent",
-  },
-  addButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  addButtonText: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xl,
-    color: colors.white,
+  recallEmptyText: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
   },
 });
