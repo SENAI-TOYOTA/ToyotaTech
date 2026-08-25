@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional
 from botocore.exceptions import ClientError
 
 from common.cognito import (
-    COGNITO_USER_POOL_ID,
     is_federated,
     link_provider,
     log_error,

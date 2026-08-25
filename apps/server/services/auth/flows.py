@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from typing import Any, Dict
 
@@ -29,12 +30,25 @@ def _email(body: Dict[str, Any]) -> str:
     return email
 
 
+def _normalize_cpf(value: Any) -> str:
+    text = str(value or "").strip()
+    return re.sub(r"\D+", "", text)[:11]
+
+
+def _normalize_birth_date(value: Any) -> str:
+    text = str(value or "").strip()
+    digits = re.sub(r"\D+", "", text)
+    if len(digits) == 8:
+        return f"{digits[:2]}/{digits[2:4]}/{digits[4:]}"
+    return text
+
+
 def _profile(user_id: str) -> Dict[str, str]:
     item = (get_table(PROFILE_TABLE_NAME).get_item(Key={"userId": user_id})).get("Item") or {}
     return {
         "fullName": str(item.get("fullName", "") or ""),
-        "birthDate": str(item.get("birthDate", "") or ""),
-        "cpf": str(item.get("cpf", "") or ""),
+        "birthDate": _normalize_birth_date(item.get("birthDate", "")),
+        "cpf": _normalize_cpf(item.get("cpf", "")),
     }
 
 
@@ -141,11 +155,10 @@ def resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
 
 def login(body: Dict[str, Any]) -> Dict[str, Any]:
     from .users import find_by_email, is_federated, password_auth_candidates
-    from .federation import _link_federated_to_local_if_needed
 
-    email = _email(body)
+    email = str(body.get("email", "")).strip().lower()
     password = body.get("password", "")
-    require(bool(password), 400, "Informe e-mail e senha.")
+    require(bool(email and password), 400, "Informe e-mail e senha.")
 
     users = find_by_email(email)
     auth_result: Dict[str, Any] | None = None

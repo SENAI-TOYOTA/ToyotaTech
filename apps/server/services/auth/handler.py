@@ -19,16 +19,21 @@ ROUTES = {
     "POST /auth/set-password": flows.set_password,
 }
 
+ROUTE_STATUS = {
+    "POST /auth/register": 201,
+}
+
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     _ = context
 
     trigger_source = event.get("triggerSource", "")
     if isinstance(trigger_source, str) and trigger_source.startswith("PreSignUp_"):
-        _require_pool()
         return pre_sign_up(event)
 
-    _require_config()
+    config_error = _validate_config()
+    if config_error:
+        return response(500, {"message": config_error})
 
     method = (event.get("requestContext", {}).get("http") or {}).get("method", "")
     path = event.get("rawPath", "")
@@ -41,7 +46,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return response(404, {"message": "Rota não encontrada."})
 
     try:
-        return response(200, route(event))
+        body = route(event)
+        return response(ROUTE_STATUS.get(f"{method} {path}", 200), body)
     except ApiError as error:
         return response(error.status_code, {"message": error.message, **error.extra})
     except ClientError as error:
@@ -52,11 +58,22 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return response(500, {"message": "Erro interno."})
 
 
+def _validate_config() -> str | None:
+    from common.responses import ApiError
+
+    try:
+        _require_pool()
+        _require_client()
+        return None
+    except (ValueError, ApiError) as error:
+        return str(error)
+
+
 def _require_pool() -> None:
     if not COGNITO_USER_POOL_ID:
         raise ValueError("COGNITO_USER_POOL_ID não configurado.")
 
 
-def _require_config() -> None:
-    if not COGNITO_USER_POOL_ID or not COGNITO_CLIENT_ID:
-        raise ValueError("Configuração Cognito ausente.")
+def _require_client() -> None:
+    if not COGNITO_CLIENT_ID:
+        raise ValueError("COGNITO_CLIENT_ID não configurado.")

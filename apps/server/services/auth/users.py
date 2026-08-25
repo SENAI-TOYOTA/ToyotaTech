@@ -19,15 +19,20 @@ def matches_email(user: Dict[str, Any], email: str) -> bool:
 def scan_by_email(email: str, *, max_pages: int = 10) -> List[Dict[str, Any]]:
     matches: List[Dict[str, Any]] = []
     token: Optional[str] = None
+    pages = 0
 
-    while len(matches) == 0 and (token or max_pages > 0):
+    while pages < max_pages:
+        pages += 1
         params: Dict[str, Any] = {"UserPoolId": COGNITO_USER_POOL_ID, "Limit": 60}
         if token:
             params["PaginationToken"] = token
         result = cognito_client.list_users(**params)
-        matches += [u for u in result.get("Users", []) if matches_email(u, email)]
+        for user in result.get("Users", []):
+            if matches_email(user, email):
+                matches.append(user)
+        if matches:
+            return matches
         token = result.get("PaginationToken")
-        max_pages -= 1
         if not token:
             break
     return matches
