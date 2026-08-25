@@ -191,7 +191,7 @@ def _link_provider_to_local_user(
 ) -> None:
     local_username = local_user.get("Username")
     if not isinstance(local_username, str) or not local_username:
-        raise ValueError("Usuario local sem Username valido.")
+        raise ValueError("Usuário local sem Username válido.")
 
     cognito_client.admin_link_provider_for_user(
         UserPoolId=COGNITO_USER_POOL_ID,
@@ -222,7 +222,7 @@ def handle_pre_sign_up(event: Dict[str, Any]) -> Dict[str, Any]:
 
     if trigger_source == "PreSignUp_SignUp":
         if users:
-            raise ValueError("Usuario ja cadastrado com este e-mail.")
+            raise ValueError("Usuário já cadastrado com este e-mail.")
         return event
 
     if trigger_source != "PreSignUp_ExternalProvider":
@@ -286,7 +286,7 @@ def _build_password_auth_candidates(email: str, users: list[Dict[str, Any]]) -> 
 def check_email(body: Dict[str, Any]) -> Dict[str, Any]:
     email = str(body.get("email", "")).strip().lower()
     if not email or "@" not in email:
-        return response(400, {"message": "E-mail invalido."})
+        return response(400, {"message": "E-mail inválido."})
 
     users = _list_users_by_email(email)
     if not users:
@@ -310,12 +310,12 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
     name = (body.get("name", "") or "").strip()
 
     if not email or "@" not in email:
-        return response(400, {"message": "E-mail invalido."})
+        return response(400, {"message": "E-mail inválido."})
     if len(password) < 8:
         return response(400, {"message": "A senha deve ter ao menos 8 caracteres."})
 
     if _list_users_by_email(email):
-        return response(409, {"message": "Usuario ja cadastrado."})
+        return response(409, {"message": "Usuário já cadastrado."})
 
     attributes = [{"Name": "email", "Value": email}]
     if name:
@@ -331,7 +331,7 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
     except ClientError as error:
         detail = _map_client_error(error)
         if detail["code"] == "UsernameExistsException":
-            return response(409, {"message": "Usuario ja cadastrado."})
+            return response(409, {"message": "Usuário já cadastrado."})
         if detail["code"] in ("InvalidPasswordException", "InvalidParameterException"):
             return response(400, {"message": detail["message"]})
         raise
@@ -339,7 +339,7 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
     return response(
         201,
         {
-            "message": "Usuario cadastrado. Verifique seu e-mail para concluir o acesso.",
+            "message": "Usuário cadastrado. Verifique seu e-mail para concluir o acesso.",
             "requiresEmailVerification": not bool(sign_up.get("UserConfirmed")),
         },
     )
@@ -350,9 +350,9 @@ def verify_email(body: Dict[str, Any]) -> Dict[str, Any]:
     verification_code = str(body.get("code", "")).strip()
 
     if not email or "@" not in email:
-        return response(400, {"message": "E-mail invalido."})
+        return response(400, {"message": "E-mail inválido."})
     if not verification_code:
-        return response(400, {"message": "Codigo de verificacao obrigatorio."})
+        return response(400, {"message": "Código de verificação obrigatório."})
 
     try:
         cognito_client.confirm_sign_up(
@@ -364,32 +364,32 @@ def verify_email(body: Dict[str, Any]) -> Dict[str, Any]:
     except ClientError as error:
         detail = _map_client_error(error)
         if detail["code"] == "CodeMismatchException":
-            return response(400, {"message": "Codigo invalido."})
+            return response(400, {"message": "Código inválido."})
         if detail["code"] == "ExpiredCodeException":
-            return response(400, {"message": "Codigo expirado. Solicite novo codigo."})
+            return response(400, {"message": "Código expirado. Solicite novo código."})
         if detail["code"] == "UserNotFoundException":
-            return response(404, {"message": "Usuario nao encontrado."})
+            return response(404, {"message": "Usuário não encontrado."})
         if detail["code"] == "NotAuthorizedException":
-            return response(200, {"message": "E-mail ja verificado."})
+            return response(200, {"message": "E-mail já verificado."})
         raise
 
 
 def resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
     email = str(body.get("email", "")).strip().lower()
     if not email or "@" not in email:
-        return response(400, {"message": "E-mail invalido."})
+        return response(400, {"message": "E-mail inválido."})
 
     try:
         cognito_client.resend_confirmation_code(ClientId=COGNITO_CLIENT_ID, Username=email)
-        return response(200, {"message": "Codigo reenviado."})
+        return response(200, {"message": "Código reenviado."})
     except ClientError as error:
         detail = _map_client_error(error)
         if detail["code"] == "UserNotFoundException":
-            return response(404, {"message": "Usuario nao encontrado."})
+            return response(404, {"message": "Usuário não encontrado."})
         if detail["code"] == "InvalidParameterException":
-            return response(409, {"message": "E-mail ja verificado."})
+            return response(409, {"message": "E-mail já verificado."})
         if detail["code"] == "NotAuthorizedException":
-            return response(409, {"message": "Nao foi possivel reenviar o codigo no momento."})
+            return response(409, {"message": "Não foi possível reenviar o código no momento."})
         raise
 
 
@@ -418,7 +418,7 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
             if detail["code"] == "UserNotConfirmedException":
                 return response(
                     403,
-                    {"message": "E-mail ainda nao verificado.", "code": "EMAIL_NOT_VERIFIED"},
+                    {"message": "E-mail ainda não verificado.", "code": "EMAIL_NOT_VERIFIED"},
                 )
             if detail["code"] in ("NotAuthorizedException", "UserNotFoundException", "InvalidParameterException"):
                 last_auth_error = error
@@ -438,10 +438,10 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
                 },
             )
         if last_auth_detail and last_auth_detail["code"] in ("NotAuthorizedException", "UserNotFoundException"):
-            return response(401, {"message": "Credenciais invalidas."})
+            return response(401, {"message": "Credenciais inválidas."})
         if last_auth_error:
             raise last_auth_error
-        return response(401, {"message": "Credenciais invalidas."})
+        return response(401, {"message": "Credenciais inválidas."})
 
     authentication = auth_result.get("AuthenticationResult", {})
     access_token = authentication.get("AccessToken")
@@ -450,7 +450,7 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
     expires_in = int(authentication.get("ExpiresIn", 3600))
 
     if not access_token or not id_token or not refresh_token:
-        return response(500, {"message": "Resposta invalida do provedor de autenticacao."})
+        return response(500, {"message": "Resposta inválida do provedor de autenticacao."})
 
     user = get_user_from_access_token(access_token)
     if "sub" in user:
@@ -471,7 +471,7 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
 def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
     access_token = extract_token(event)
     if not access_token:
-        return response(401, {"message": "Token nao informado."})
+        return response(401, {"message": "Token não informado."})
 
     body = parse_body(event)
     password = str(body.get("password", "")).strip()
@@ -485,9 +485,9 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
         email = attrs.get("email", "").strip().lower()
         username = cognito_user.get("Username")
         if not email:
-            return response(500, {"message": "Nao foi possivel identificar o usuario."})
+            return response(500, {"message": "Não foi possível identificar o usuário."})
         if not isinstance(username, str) or not username:
-            return response(500, {"message": "Nao foi possivel identificar o usuario."})
+            return response(500, {"message": "Não foi possível identificar o usuário."})
 
         if _is_federated_user(cognito_user):
             try:
@@ -503,7 +503,7 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
                 detail = _map_client_error(error)
                 if detail["code"] != "AliasExistsException":
                     raise
-                log_error("Nao foi possivel verificar e-mail federado por alias existente.", event=event, error=error)
+                log_error("Não foi possível verificar e-mail federado por alias existente.", event=event, error=error)
 
         cognito_client.admin_set_user_password(
             UserPoolId=COGNITO_USER_POOL_ID,
@@ -516,9 +516,9 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
         detail = _map_client_error(error)
         log_error("Falha ao definir senha.", event=event, error=error)
         if detail["code"] == "NotAuthorizedException":
-            return response(401, {"message": "Sessao invalida ou expirada."})
+            return response(401, {"message": "Sessão inválida ou expirada."})
         if detail["code"] == "UserNotFoundException":
-            return response(409, {"message": "Conta nao encontrada para definir senha."})
+            return response(409, {"message": "Conta não encontrada para definir senha."})
         if detail["code"] in ("InvalidPasswordException", "InvalidParameterException"):
             return response(400, {"message": detail["message"]})
         raise
@@ -527,7 +527,7 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
 def refresh(body: Dict[str, Any]) -> Dict[str, Any]:
     refresh_token = str(body.get("refreshToken", "")).strip()
     if not refresh_token:
-        return response(400, {"message": "Refresh token obrigatorio."})
+        return response(400, {"message": "Refresh token obrigatório."})
 
     try:
         auth_result = cognito_client.initiate_auth(
@@ -538,7 +538,7 @@ def refresh(body: Dict[str, Any]) -> Dict[str, Any]:
     except ClientError as error:
         detail = _map_client_error(error)
         if detail["code"] == "NotAuthorizedException":
-            return response(401, {"message": "Sessao invalida ou expirada."})
+            return response(401, {"message": "Sessão inválida ou expirada."})
         raise
 
     authentication = auth_result.get("AuthenticationResult", {})
@@ -547,7 +547,7 @@ def refresh(body: Dict[str, Any]) -> Dict[str, Any]:
     expires_in = int(authentication.get("ExpiresIn", 3600))
 
     if not access_token or not id_token:
-        return response(500, {"message": "Resposta invalida do provedor de autenticacao."})
+        return response(500, {"message": "Resposta inválida do provedor de autenticacao."})
 
     return response(
         200,
@@ -575,11 +575,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     trigger_source = event.get("triggerSource", "")
     if isinstance(trigger_source, str) and trigger_source.startswith("PreSignUp_"):
         if not COGNITO_USER_POOL_ID:
-            raise ValueError("COGNITO_USER_POOL_ID nao configurado.")
+            raise ValueError("COGNITO_USER_POOL_ID não configurado.")
         return handle_pre_sign_up(event)
 
     if not COGNITO_USER_POOL_ID or not COGNITO_CLIENT_ID:
-        return response(500, {"message": "Configuracao Cognito ausente."})
+        return response(500, {"message": "Configuração Cognito ausente."})
 
     method = event.get("requestContext", {}).get("http", {}).get("method", "")
     path = event.get("rawPath", "")
@@ -589,7 +589,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     handler_fn = ROUTES.get(f"{method} {path}")
     if handler_fn is None:
-        return response(404, {"message": "Rota nao encontrada."})
+        return response(404, {"message": "Rota não encontrada."})
 
     try:
         return handler_fn(event)

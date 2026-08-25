@@ -10,5 +10,5 @@ dynamodb_resource = boto3.resource("dynamodb", region_name=AWS_REGION)
 
 def get_table(name: str) -> Any:
     if not name:
-        raise ValueError("Nome da tabela DynamoDB nao configurado.")
+        raise ValueError("Nome da tabela DynamoDB não configurado.")
     return dynamodb_resource.Table(name)
