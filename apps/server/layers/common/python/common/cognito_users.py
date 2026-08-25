@@ -1,14 +1,13 @@
+import json
 from typing import Any, Dict, List, Optional
 
 from botocore.exceptions import ClientError
 
-from common.cognito import cognito_client, COGNITO_USER_POOL_ID, is_federated
-from common.responses import error_body
+from .cognito import COGNITO_USER_POOL_ID, cognito_client, is_federated, link_provider, parse_attributes
+from .responses import error_body
 
 
 def matches_email(user: Dict[str, Any], email: str) -> bool:
-    from common.cognito import parse_attributes
-
     attrs = parse_attributes(user.get("UserAttributes") or user.get("Attributes") or [])
     if attrs.get("email", "").strip().lower() == email:
         return True
@@ -78,3 +77,39 @@ def password_auth_candidates(email: str, users: List[Dict[str, Any]]) -> List[st
         if isinstance(username, str) and username and username not in candidates:
             candidates.append(username)
     return candidates
+
+
+def _provider_identity(attrs: Dict[str, str]) -> Optional[Dict[str, str]]:
+    try:
+        identities = json.loads(attrs.get("identities") or "null")
+    except (TypeError, ValueError):
+        return None
+    identity = identities[0] if isinstance(identities, list) and identities else None
+    if not isinstance(identity, dict):
+        return None
+    name, user_id = identity.get("providerName"), identity.get("userId")
+    if isinstance(name, str) and isinstance(user_id, str):
+        return {"providerName": name, "providerUserId": user_id}
+    return None
+
+
+def link_federated_if_needed(federated_user: Dict[str, Any]) -> None:
+    attrs = parse_attributes(federated_user.get("UserAttributes", []))
+    email = attrs.get("email", "").strip().lower()
+    identity = _provider_identity(attrs) if email else None
+    if not identity or identity["providerName"] != "Google":
+        return
+
+    local = find_local_by_email(email)
+    local_username = (local or {}).get("Username")
+    federated_username = federated_user.get("Username")
+    if not isinstance(local_username, str) or local_username == federated_username:
+        return
+    try:
+        link_provider(local_username, identity["providerName"], identity["providerUserId"])
+    except ClientError as error:
+        code, _ = error_body(error)
+        if code in ("ResourceNotFoundException", "ResourceConflictException", "AliasExistsException", "InvalidParameterException"):
+            print(f"Aviso: falha ao vincular IdP: {code}")
+            return
+        raise

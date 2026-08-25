@@ -1,57 +1,10 @@
-import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from botocore.exceptions import ClientError
 
-from common.cognito import (
-    is_federated,
-    link_provider,
-    log_error,
-    parse_attributes,
-    warn_link_failure,
-)
+from common.cognito import is_federated, link_provider, log_error
+from common.cognito_users import find_by_email, find_local_by_email
 from common.responses import error_body
-
-
-def _provider_identity(attrs: Dict[str, str]) -> Optional[Dict[str, str]]:
-    try:
-        identities = json.loads(attrs.get("identities") or "null")
-    except (TypeError, ValueError):
-        return None
-    identity = identities[0] if isinstance(identities, list) and identities else None
-    if not isinstance(identity, dict):
-        return None
-    name, user_id = identity.get("providerName"), identity.get("userId")
-    if isinstance(name, str) and isinstance(user_id, str):
-        return {"providerName": name, "providerUserId": user_id}
-    return None
-
-
-def _link_federated_to_local_if_needed(federated_user: Dict[str, Any]) -> None:
-    attrs = parse_attributes(federated_user.get("UserAttributes", []))
-    email = attrs.get("email", "").strip().lower()
-    identity = _provider_identity(attrs) if email else None
-    if not identity or identity["providerName"] != "Google":
-        return
-
-    from .users import find_local_by_email
-
-    local = find_local_by_email(email)
-    local_username = (local or {}).get("Username")
-    federated_username = federated_user.get("Username")
-    if not isinstance(local_username, str) or local_username == federated_username:
-        return
-    try:
-        link_provider(local_username, identity["providerName"], identity["providerUserId"])
-    except ClientError as error:
-        warn_link_failure(error)
-
-
-def _parse_provider_username(username: str) -> Optional[Dict[str, str]]:
-    provider_name, _, provider_user_id = username.partition("_")
-    if provider_name and provider_user_id:
-        return {"providerName": provider_name, "providerUserId": provider_user_id}
-    return None
 
 
 def pre_sign_up(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -62,8 +15,6 @@ def pre_sign_up(event: Dict[str, Any]) -> Dict[str, Any]:
 
     if not email or "@" not in email or trigger_source not in ("PreSignUp_SignUp", "PreSignUp_ExternalProvider"):
         return event
-
-    from .users import find_by_email, find_local_by_email
 
     users = find_by_email(email)
 
@@ -91,4 +42,8 @@ def pre_sign_up(event: Dict[str, Any]) -> Dict[str, Any]:
     return event
 
 
-__all__ = ["pre_sign_up", "_link_federated_to_local_if_needed"]
+def _parse_provider_username(username: str) -> dict | None:
+    provider_name, _, provider_user_id = username.partition("_")
+    if provider_name and provider_user_id:
+        return {"providerName": provider_name, "providerUserId": provider_user_id}
+    return None

@@ -53,7 +53,7 @@ def _profile(user_id: str) -> Dict[str, str]:
 
 
 def check_email(body: Dict[str, Any]) -> Dict[str, Any]:
-    from .users import find_by_email, is_federated as _f
+    from common.cognito_users import find_by_email, is_federated as _f
 
     email = _email(body)
     users = find_by_email(email)
@@ -70,7 +70,7 @@ def check_email(body: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def register(body: Dict[str, Any]) -> Dict[str, Any]:
-    from .users import find_by_email
+    from common.cognito_users import find_by_email
 
     email = _email(body)
     password = body.get("password", "")
@@ -154,7 +154,7 @@ def resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def login(body: Dict[str, Any]) -> Dict[str, Any]:
-    from .users import find_by_email, is_federated, password_auth_candidates
+    from common.cognito_users import find_by_email, is_federated, password_auth_candidates
 
     email = str(body.get("email", "")).strip().lower()
     password = body.get("password", "")
