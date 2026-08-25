@@ -1,11 +1,11 @@
+import os
 from typing import Any
 
 import boto3
-import os
 
-AWS_REGION = os.environ.get("COGNITO_REGION", os.environ.get("AWS_REGION", "us-east-1"))
+REGION = os.environ.get("COGNITO_REGION", os.environ.get("AWS_REGION", "us-east-1"))
 
-dynamodb_resource = boto3.resource("dynamodb", region_name=AWS_REGION)
+dynamodb_resource = boto3.resource("dynamodb", region_name=REGION)
 
 
 def get_table(name: str) -> Any:
