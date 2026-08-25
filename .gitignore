@@ -10,3 +10,6 @@ desktop.ini
 
 # Logs
 *.log
+# Python
+__pycache__/
+*.pyc
