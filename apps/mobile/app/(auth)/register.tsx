@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { ApiError } from "@/services/api";
 import { AuthScreenLayout } from "./_layout";
 

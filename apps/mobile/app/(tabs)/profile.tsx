@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Lock, Pencil } from "lucide-react-native";
+import { ArrowRight } from "lucide-react-native";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -8,11 +8,11 @@ import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { ApiError } from "@/services/api";
 import { resolveGarage } from "@/services/garage";
 import { fetchProfile, updateProfile } from "@/services/profile";
-import { validateBirthDate } from "@/utils/profileValidation";
+import { validateBirthDate } from "@/profileValidation";
 
 const formatBirthDate = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -158,9 +158,6 @@ export default function ProfileScreen() {
             keyboardType="numeric"
             maxLength={14}
             editable={!isCpfLocked}
-            icon={
-              isCpfLocked ? <Lock size={18} strokeWidth={1.8} color={colors.black} /> : undefined
-            }
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
@@ -170,7 +167,6 @@ export default function ProfileScreen() {
             autoCapitalize="none"
             value={email}
             editable={false}
-            icon={<Lock size={18} strokeWidth={1.8} color={colors.black} />}
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
@@ -179,7 +175,6 @@ export default function ProfileScreen() {
             secureTextEntry
             value={password}
             editable={false}
-            icon={<Pencil size={18} strokeWidth={1.8} color={colors.black} />}
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />

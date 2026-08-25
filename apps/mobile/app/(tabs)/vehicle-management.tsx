@@ -9,7 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
-import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageCurrent } from "@/services/garage";
 import { GarageData } from "@/types/garage";

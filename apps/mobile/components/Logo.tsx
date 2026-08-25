@@ -1,5 +1,5 @@
 import { Text, View, StyleSheet } from "react-native";
-import { colors, fonts, fontSize } from "@/constants/theme";
+import { colors, fonts, fontSize } from "@/theme";
 
 interface LogoProps {
   size?: number;

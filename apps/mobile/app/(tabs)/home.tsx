@@ -10,11 +10,14 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
-import { colors, fonts, spacing } from "@/constants/theme";
+import { colors, fonts, spacing } from "@/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageCurrent } from "@/services/garage";
 import { GarageData } from "@/types/garage";
-import { canUseCorollaAltisImage } from "@/utils/vehiclePresentation";
+
+function canUseCorollaAltisImage(model?: string) {
+  return (model ?? "").toLowerCase().includes("corolla altis");
+}
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 const sideCarImage = require("@/assets/images/corolla-side.png");

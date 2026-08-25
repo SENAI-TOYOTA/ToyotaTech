@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Eye, Lock } from "lucide-react-native";
+import { ArrowRight, Eye } from "lucide-react-native";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -7,11 +7,11 @@ import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { ApiError } from "@/services/api";
 import { resolveGarage } from "@/services/garage";
 import { fetchProfile, updateProfile } from "@/services/profile";
-import { validateBirthDate } from "@/utils/profileValidation";
+import { validateBirthDate } from "@/profileValidation";
 
 const formatBirthDate = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -238,9 +238,6 @@ export default function ProfileSetupScreen() {
             keyboardType="numeric"
             maxLength={14}
             editable={!isCpfLocked}
-            icon={
-              isCpfLocked ? <Lock size={18} strokeWidth={1.8} color={colors.black} /> : undefined
-            }
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />

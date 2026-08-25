@@ -7,7 +7,7 @@ import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 import Button from "@/components/ui/Button";
 import { resendVerification, verifyEmail } from "@/services/auth";
 import { ApiError } from "@/services/api";
-import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
 const CODE_LENGTH = 6;
