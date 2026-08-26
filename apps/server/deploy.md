@@ -39,10 +39,10 @@ aws cloudformation describe-stacks \
 Preencha o `.env` do mobile:
 
 ```env
-API_URL=<valor de ApiUrl>
-COGNITO_USER_POOL_ID=<valor de UserPoolId>
-COGNITO_CLIENT_ID=<valor de UserPoolClientId>
-AWS_REGION=<região do deploy>
+EXPO_PUBLIC_API_URL=<valor de ApiUrl>
+EXPO_PUBLIC_COGNITO_USER_POOL_ID=<valor de UserPoolId>
+EXPO_PUBLIC_COGNITO_CLIENT_ID=<valor de UserPoolClientId>
+EXPO_PUBLIC_AWS_REGION=<região do deploy>
 ```
 
 ## Cleanup
