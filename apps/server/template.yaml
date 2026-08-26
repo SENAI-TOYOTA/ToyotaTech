@@ -258,7 +258,7 @@ Resources:
 Outputs:
   ApiUrl:
     Description: URL base da API
-    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
   UserPoolId:
     Description: ID do Cognito User Pool
     Value: !Ref UserPool
