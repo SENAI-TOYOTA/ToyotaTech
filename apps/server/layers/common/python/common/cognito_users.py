@@ -38,15 +38,16 @@ def scan_by_email(email: str, *, max_pages: int = 10) -> List[Dict[str, Any]]:
 
 
 def find_by_email(email: str) -> List[Dict[str, Any]]:
+    normalized_email = email.strip().lower()
     found: Dict[str, Dict[str, Any]] = {}
 
     def add(user: Dict[str, Any]) -> None:
         username = user.get("Username")
-        if isinstance(username, str) and username and matches_email(user, email):
+        if isinstance(username, str) and username and matches_email(user, normalized_email):
             found[username] = user
 
     try:
-        add(cognito_client.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=email))
+        add(cognito_client.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=normalized_email))
     except ClientError as error:
         code, _ = error_body(error)
         if code != "UserNotFoundException":
@@ -54,13 +55,13 @@ def find_by_email(email: str) -> List[Dict[str, Any]]:
 
     result = cognito_client.list_users(
         UserPoolId=COGNITO_USER_POOL_ID,
-        Filter=f'email = "{email}"',
+        Filter=f'email = "{normalized_email}"',
         Limit=10,
     )
     for user in result.get("Users", []):
         add(user)
 
-    for user in scan_by_email(email):
+    for user in scan_by_email(normalized_email):
         add(user)
 
     return list(found.values())

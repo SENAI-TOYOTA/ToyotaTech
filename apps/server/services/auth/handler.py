@@ -59,13 +59,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 
 def _validate_config() -> str | None:
-    from common.responses import ApiError
-
     try:
         _require_pool()
         _require_client()
         return None
-    except (ValueError, ApiError) as error:
+    except ValueError as error:
         return str(error)
 
 

@@ -1,3 +1,5 @@
+import os
+import time
 from typing import Any, Dict
 
 from botocore.exceptions import ClientError
@@ -98,7 +100,7 @@ def save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
             Item={
                 "userId": user_id,
                 **profile,
-                "updatedAt": __import__("time").time(),
+                "updatedAt": int(time.time()),
             }
         )
         return {"profile": profile}

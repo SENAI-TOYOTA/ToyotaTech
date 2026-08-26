@@ -1,5 +1,4 @@
 import json
-import time
 from typing import Any, Dict
 
 from botocore.exceptions import ClientError
