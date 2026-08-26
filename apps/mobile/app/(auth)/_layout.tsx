@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack } from "expo-router";
 
 import Logo from "@/components/Logo";
-import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 
 interface AuthScreenLayoutProps {
   children: ReactNode;

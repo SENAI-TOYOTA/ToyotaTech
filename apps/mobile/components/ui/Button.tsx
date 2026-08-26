@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { useRef } from "react";
-import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 
 type ButtonVariant = "primary" | "outline" | "ghost";
 

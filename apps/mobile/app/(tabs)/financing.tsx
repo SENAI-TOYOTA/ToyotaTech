@@ -11,7 +11,7 @@ import Animated, {
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageCurrent } from "@/services/garage";
-import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { GarageData } from "@/types/garage";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);

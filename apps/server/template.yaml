@@ -1,0 +1,267 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ToyotaTech server - 4 lambdas, HttpApi, DynamoDB, layer comum e Cognito trigger
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 256
+    Timeout: 10
+    Layers:
+      - !Ref CommonLayer
+
+Resources:
+
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: layers/common/
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Delete
+
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: services/auth/
+      Handler: handler.lambda_handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
+          PROFILE_TABLE_NAME: !Ref ProfilesTable
+      Events:
+        CheckEmail:
+          Type: HttpApi
+          Properties:
+            Path: /auth/check-email
+            Method: POST
+        Register:
+          Type: HttpApi
+          Properties:
+            Path: /auth/register
+            Method: POST
+        Login:
+          Type: HttpApi
+          Properties:
+            Path: /auth/login
+            Method: POST
+        VerifyEmail:
+          Type: HttpApi
+          Properties:
+            Path: /auth/verify-email
+            Method: POST
+        ResendVerification:
+          Type: HttpApi
+          Properties:
+            Path: /auth/resend-verification
+            Method: POST
+        Refresh:
+          Type: HttpApi
+          Properties:
+            Path: /auth/refresh
+            Method: POST
+        SetPassword:
+          Type: HttpApi
+          Properties:
+            Path: /auth/set-password
+            Method: POST
+
+  ProfileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: services/profile/
+      Handler: handler.lambda_handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
+      Environment:
+        Variables:
+          PROFILE_TABLE_NAME: !Ref ProfilesTable
+      Events:
+        GetProfile:
+          Type: HttpApi
+          Properties:
+            Path: /profile
+            Method: GET
+        PutProfile:
+          Type: HttpApi
+          Properties:
+            Path: /profile
+            Method: PUT
+        GetMe:
+          Type: HttpApi
+          Properties:
+            Path: /me
+            Method: GET
+
+  GarageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: services/garage/
+      Handler: handler.lambda_handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
+      Environment:
+        Variables:
+          GARAGE_TABLE_NAME: !Ref GarageTable
+          PURCHASE_TABLE_NAME: !Ref PurchasesTable
+          PROFILE_TABLE_NAME: !Ref ProfilesTable
+      Events:
+        GetCurrent:
+          Type: HttpApi
+          Properties:
+            Path: /garage/current
+            Method: GET
+        PutCurrent:
+          Type: HttpApi
+          Properties:
+            Path: /garage/current
+            Method: PUT
+        PostResolve:
+          Type: HttpApi
+          Properties:
+            Path: /garage/resolve
+            Method: POST
+        PostLink:
+          Type: HttpApi
+          Properties:
+            Path: /garage/link
+            Method: POST
+
+  TrackingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: services/tracking/
+      Handler: handler.lambda_handler
+      Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
+      Environment:
+        Variables:
+          TRACKING_TABLE_NAME: !Ref TrackingTable
+          GARAGE_TABLE_NAME: !Ref GarageTable
+      Events:
+        GetStatus:
+          Type: HttpApi
+          Properties:
+            Path: /garage/status
+            Method: GET
+        Ingest:
+          Type: HttpApi
+          Properties:
+            Path: /garage/ingest
+            Method: POST
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowMethods:
+          - OPTIONS
+          - GET
+          - POST
+          - PUT
+
+  ProfilesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+
+  GarageTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+
+  PurchasesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: purchaseId
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: cpf
+          AttributeType: S
+      KeySchema:
+        - AttributeName: purchaseId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: email-index
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: cpf-index
+          KeySchema:
+            - AttributeName: cpf
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  TrackingTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: vehicleId
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: vehicleId
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: ToyotatechUserPool
+      AutoVerifiedAttributes:
+        - email
+      LambdaConfig:
+        PreSignUp: !GetAtt AuthFunction.Arn
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: toyotatech-client
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  AuthFunctionCognitoPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AuthFunction
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+
+Outputs:
+  ApiUrl:
+    Description: URL base da API
+    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+  UserPoolId:
+    Description: ID do Cognito User Pool
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: ID do Cognito User Pool Client
+    Value: !Ref UserPoolClient

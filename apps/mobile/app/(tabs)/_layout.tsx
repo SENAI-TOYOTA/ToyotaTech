@@ -1,5 +1,5 @@
 import { Tabs, useRouter } from "expo-router";
-import { Bell, CarFront, CircleDollarSign, Home, User } from "lucide-react-native";
+import { CarFront, CircleDollarSign, Home, User } from "lucide-react-native";
 import React, { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
@@ -9,10 +9,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 
 import Logo from "@/components/Logo";
-import { colors, fontSize, spacing } from "@/constants/theme";
+import { colors, fontSize, spacing } from "@/theme";
 
 const iconSize = 22;
 const iconStrokeWidth = 1.8;
@@ -32,30 +31,6 @@ function TabsHeader() {
         </Pressable>
       </View>
     </SafeAreaView>
-  );
-}
-
-function NotificationTabBarButton({
-  children,
-  style,
-  accessibilityState,
-  accessibilityLabel,
-  testID,
-  onLongPress,
-}: BottomTabBarButtonProps) {
-  const router = useRouter();
-
-  return (
-    <Pressable
-      style={style}
-      accessibilityState={accessibilityState}
-      accessibilityLabel={accessibilityLabel ?? "Abrir caixa de entrada"}
-      testID={testID}
-      onLongPress={onLongPress}
-      onPress={() => router.push("/notifications")}
-    >
-      {children}
-    </Pressable>
   );
 }
 
@@ -141,16 +116,6 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={CarFront} color={color} focused={focused} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="notifications-tab"
-        options={{
-          title: "Notificações",
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon Icon={Bell} color={color} focused={focused} />
-          ),
-          tabBarButton: (props) => <NotificationTabBarButton {...props} />,
         }}
       />
       <Tabs.Screen

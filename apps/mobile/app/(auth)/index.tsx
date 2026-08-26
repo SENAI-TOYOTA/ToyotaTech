@@ -9,7 +9,7 @@ import Constants, { ExecutionEnvironment } from "expo-constants";
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import SocialButton from "@/components/ui/SocialButton";
-import { colors, fonts, fontSize, spacing } from "@/constants/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { checkEmail } from "@/services/auth";
 import { ApiError } from "@/services/api";

@@ -11,11 +11,14 @@ import {
 import { useRouter } from "expo-router";
 import { ArrowLeft, Check } from "lucide-react-native";
 
-import { colors, fonts, spacing } from "@/constants/theme";
+import { colors, fonts, spacing } from "@/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageStatus } from "@/services/garage";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
-import { canUseCorollaAltisImage } from "@/utils/vehiclePresentation";
+
+function canUseCorollaAltisImage(model?: string) {
+  return (model ?? "").toLowerCase().includes("corolla altis");
+}
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 

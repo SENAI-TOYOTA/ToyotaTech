@@ -6,17 +6,13 @@ import {
   Afacad_500Medium,
   Afacad_600SemiBold,
   Afacad_700Bold,
-  Afacad_400Regular_Italic,
-  Afacad_500Medium_Italic,
-  Afacad_600SemiBold_Italic,
-  Afacad_700Bold_Italic,
 } from "@expo-google-fonts/afacad";
 import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { colors } from "@/constants/theme";
+import { colors } from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
 WebBrowser.maybeCompleteAuthSession();
@@ -80,10 +76,6 @@ export default function RootLayout() {
     Afacad_500Medium,
     Afacad_600SemiBold,
     Afacad_700Bold,
-    Afacad_400Regular_Italic,
-    Afacad_500Medium_Italic,
-    Afacad_600SemiBold_Italic,
-    Afacad_700Bold_Italic,
   });
 
   useEffect(() => {
