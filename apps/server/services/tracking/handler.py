@@ -5,7 +5,14 @@ from botocore.exceptions import ClientError
 
 from common.cognito import build_user, extract_token, get_user_by_access_token
 from common.cognito_users import link_federated_if_needed
-from common.responses import ApiError, error_body, log_error, parse_body, require, response
+from common.responses import (
+    ApiError,
+    error_body,
+    log_error,
+    parse_body,
+    require,
+    response,
+)
 
 from . import ingest, store
 
@@ -28,13 +35,21 @@ def authenticated_user(event: Dict[str, Any]) -> Dict[str, Any]:
 def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
     user_id = user.get("sub")
-    require(isinstance(user_id, str) and bool(user_id), 500, "Usuário sem identificador válido.")
+    require(
+        isinstance(user_id, str) and bool(user_id),
+        500,
+        "Usuário sem identificador válido.",
+    )
 
     garage = store.get_garage(user_id)
     require(bool(garage), 404, "Veículo não vinculado.")
 
-    tracking = garage.get("tracking") if isinstance(garage.get("tracking"), dict) else {}
-    base_vehicle = garage.get("vehicle") if isinstance(garage.get("vehicle"), dict) else {}
+    tracking = (
+        garage.get("tracking") if isinstance(garage.get("tracking"), dict) else {}
+    )
+    base_vehicle = (
+        garage.get("vehicle") if isinstance(garage.get("vehicle"), dict) else {}
+    )
     vehicle_id = ingest.coerce_text(
         tracking.get("vehicleId") or base_vehicle.get("chassi") or garage.get("chassi")
     )
@@ -44,7 +59,9 @@ def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
         received_at = int(event_item.get("receivedAt") or 0)
         tracking_updated_at = int(garage.get("trackingUpdatedAt") or 0)
         if received_at >= tracking_updated_at:
-            tracking = ingest.normalize_factory_tracking(event_item.get("payload") or {}, garage)
+            tracking = ingest.normalize_factory_tracking(
+                event_item.get("payload") or {}, garage
+            )
 
     return {"tracking": tracking}
 

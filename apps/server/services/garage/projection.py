@@ -14,7 +14,9 @@ def merge_purchase_source(purchase: Dict[str, Any]) -> Dict[str, Any]:
     return source
 
 
-def _merge_documents(default_documents: List[Dict[str, Any]], source_documents: List[Any]) -> List[Dict[str, Any]]:
+def _merge_documents(
+    default_documents: List[Dict[str, Any]], source_documents: List[Any]
+) -> List[Dict[str, Any]]:
     merged: List[Dict[str, Any]] = []
     positions: Dict[str, int] = {}
     for document in default_documents:
@@ -42,9 +44,15 @@ def _merge_documents(default_documents: List[Dict[str, Any]], source_documents: 
 def project_garage(user: Dict[str, Any], purchase: Dict[str, Any]) -> Dict[str, Any]:
     source = merge_purchase_source(purchase)
     source_profile = {
-        "fullName": validation.coerce_text(source.get("fullName") or purchases.customer_value(source, "fullName")),
-        "birthDate": validation.normalize_birth_date(source.get("birthDate") or purchases.customer_value(source, "birthDate")),
-        "cpf": validation.normalize_cpf(source.get("cpf") or purchases.customer_value(source, "cpf")),
+        "fullName": validation.coerce_text(
+            source.get("fullName") or purchases.customer_value(source, "fullName")
+        ),
+        "birthDate": validation.normalize_birth_date(
+            source.get("birthDate") or purchases.customer_value(source, "birthDate")
+        ),
+        "cpf": validation.normalize_cpf(
+            source.get("cpf") or purchases.customer_value(source, "cpf")
+        ),
     }
     garage = demo.build_garage(user, source_profile)
     now = int(time.time())
@@ -78,7 +86,8 @@ def project_garage(user: Dict[str, Any], purchase: Dict[str, Any]) -> Dict[str, 
     if match_confidence:
         garage["matchConfidence"] = match_confidence
     garage["matchAlgorithmVersion"] = (
-        validation.coerce_text(source.get("matchAlgorithmVersion")) or demo.GARAGE_MATCH_ALGORITHM_VERSION
+        validation.coerce_text(source.get("matchAlgorithmVersion"))
+        or demo.GARAGE_MATCH_ALGORITHM_VERSION
     )
 
     order_id = validation.coerce_text(
@@ -96,7 +105,9 @@ def project_garage(user: Dict[str, Any], purchase: Dict[str, Any]) -> Dict[str, 
     purchase_date = validation.coerce_text(source.get("purchaseDate"))
     if purchase_date:
         garage["order"]["purchaseDate"] = purchase_date
-    dealership = validation.coerce_text(source.get("dealership") or source.get("dealer"))
+    dealership = validation.coerce_text(
+        source.get("dealership") or source.get("dealer")
+    )
     if dealership:
         garage["order"]["dealership"] = dealership
 
@@ -109,7 +120,9 @@ def project_garage(user: Dict[str, Any], purchase: Dict[str, Any]) -> Dict[str, 
     )
     if vehicle_id:
         garage["vehicle"]["vehicleId"] = vehicle_id
-    chassi = validation.coerce_text(source.get("chassi") or garage["vehicle"].get("chassi") or vehicle_id)
+    chassi = validation.coerce_text(
+        source.get("chassi") or garage["vehicle"].get("chassi") or vehicle_id
+    )
     if chassi:
         garage["vehicle"]["chassi"] = chassi
     if isinstance(tracking, dict):

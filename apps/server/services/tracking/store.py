@@ -24,7 +24,9 @@ def find_garage_by_chassi(chassi: str) -> Optional[Dict[str, Any]]:
         return None
     table = get_table(GARAGE_TABLE_NAME)
     try:
-        result = table.scan(FilterExpression=Attr("vehicle.chassi").eq(normalized), Limit=1)
+        result = table.scan(
+            FilterExpression=Attr("vehicle.chassi").eq(normalized), Limit=1
+        )
         items = result.get("Items", [])
         if items:
             return items[0]
@@ -38,7 +40,9 @@ def find_garage_by_chassi(chassi: str) -> Optional[Dict[str, Any]]:
         raise
 
 
-def save_event(vehicle_id: str, payload: Dict[str, Any], stage: str, status: str) -> Dict[str, Any]:
+def save_event(
+    vehicle_id: str, payload: Dict[str, Any], stage: str, status: str
+) -> Dict[str, Any]:
     now = int(time.time())
     event = {
         "vehicleId": vehicle_id,

@@ -13,11 +13,17 @@ cognito_client = boto3.client("cognito-idp", region_name=REGION)
 
 
 def extract_token(event: Dict[str, Any]) -> Optional[str]:
-    auth_header = (event.get("headers") or {}).get("authorization") or (event.get("headers") or {}).get("Authorization")
+    auth_header = (event.get("headers") or {}).get("authorization") or (
+        event.get("headers") or {}
+    ).get("Authorization")
     if not auth_header:
         return None
     prefix = "bearer "
-    return auth_header[len(prefix):].strip() if auth_header.lower().startswith(prefix) else None
+    return (
+        auth_header[len(prefix) :].strip()
+        if auth_header.lower().startswith(prefix)
+        else None
+    )
 
 
 def parse_attributes(user_data: Any) -> Dict[str, str]:
@@ -52,13 +58,20 @@ def is_federated(user_data: Dict[str, Any]) -> bool:
 
 def warn_link_failure(error: Exception) -> None:
     code, _ = error_body(error)
-    if code in ("ResourceNotFoundException", "ResourceConflictException", "AliasExistsException", "InvalidParameterException"):
+    if code in (
+        "ResourceNotFoundException",
+        "ResourceConflictException",
+        "AliasExistsException",
+        "InvalidParameterException",
+    ):
         print(f"Aviso: falha ao vincular IdP: {code}")
         return
     raise error
 
 
-def link_provider(local_username: str, provider_name: str, provider_user_id: str) -> None:
+def link_provider(
+    local_username: str, provider_name: str, provider_user_id: str
+) -> None:
     cognito_client.admin_link_provider_for_user(
         UserPoolId=COGNITO_USER_POOL_ID,
         DestinationUser={
@@ -79,7 +92,9 @@ def get_user_by_access_token(access_token: str) -> Dict[str, Any]:
 
 
 def initiate_auth(auth_flow: str, params: Dict[str, str]) -> Dict[str, Any]:
-    return cognito_client.initiate_auth(ClientId=COGNITO_CLIENT_ID, AuthFlow=auth_flow, AuthParameters=params)
+    return cognito_client.initiate_auth(
+        ClientId=COGNITO_CLIENT_ID, AuthFlow=auth_flow, AuthParameters=params
+    )
 
 
 __all__ = [

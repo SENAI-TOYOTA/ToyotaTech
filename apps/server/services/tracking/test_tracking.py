@@ -2,14 +2,18 @@ import json
 from typing import Any, Dict, List, Optional
 from unittest.mock import patch
 
-from services.tracking import handler, store
-
+from services.tracking import handler
 
 TABLES: Dict[str, Any] = {}
 
 
 class FakeTable:
-    def __init__(self, items: Optional[List[Dict[str, Any]]] = None, scan_items: Optional[List[Dict[str, Any]]] = None, query_items: Optional[List[Dict[str, Any]]] = None):
+    def __init__(
+        self,
+        items: Optional[List[Dict[str, Any]]] = None,
+        scan_items: Optional[List[Dict[str, Any]]] = None,
+        query_items: Optional[List[Dict[str, Any]]] = None,
+    ):
         self.items = list(items or [])
         self.scan_items = list(scan_items or [])
         self.query_items = list(query_items or [])
@@ -61,13 +65,19 @@ def cognito_user(sub: str = "user-1") -> Dict[str, Any]:
 def garage_item() -> Dict[str, Any]:
     return {
         "userId": "user-1",
-        "tracking": {"vehicleId": "CHASSI_123", "model": "Corolla", "currentStepIndex": 0},
+        "tracking": {
+            "vehicleId": "CHASSI_123",
+            "model": "Corolla",
+            "currentStepIndex": 0,
+        },
         "vehicle": {"chassi": "CHASSI_123", "model": "Corolla"},
         "trackingUpdatedAt": 100,
     }
 
 
-def api_event(method: str, path: str, body: Any = None, token: Optional[str] = None) -> Dict[str, Any]:
+def api_event(
+    method: str, path: str, body: Any = None, token: Optional[str] = None
+) -> Dict[str, Any]:
     event: Dict[str, Any] = {
         "rawPath": path,
         "requestContext": {"http": {"method": method}, "requestId": "req-1"},
@@ -80,7 +90,15 @@ def api_event(method: str, path: str, body: Any = None, token: Optional[str] = N
 
 
 def iot_event() -> Dict[str, Any]:
-    return {"state": {"reported": {"chassi": "CHASSI_123", "stage": "pintura", "status": "EM_ANDAMENTO"}}}
+    return {
+        "state": {
+            "reported": {
+                "chassi": "CHASSI_123",
+                "stage": "pintura",
+                "status": "EM_ANDAMENTO",
+            }
+        }
+    }
 
 
 def test_status_sem_token_retorna_401() -> None:
@@ -92,15 +110,25 @@ def test_status_sem_token_retorna_401() -> None:
 
 
 def test_status_retorna_tracking_da_garage() -> None:
-    old_event = {"vehicleId": "CHASSI_123", "receivedAt": 50, "payload": {"chassi": "CHASSI_123", "currentStepIndex": 4}}
+    old_event = {
+        "vehicleId": "CHASSI_123",
+        "receivedAt": 50,
+        "payload": {"chassi": "CHASSI_123", "currentStepIndex": 4},
+    }
     tracking_table = FakeTable(query_items=[old_event])
     garage_table = FakeTable(items=[garage_item()])
     wire_tables(tracking_table, garage_table)
 
-    with patch("services.tracking.store.get_table", get_table_mock), patch(
-        "services.tracking.handler.get_user_by_access_token", return_value=cognito_user()
+    with (
+        patch("services.tracking.store.get_table", get_table_mock),
+        patch(
+            "services.tracking.handler.get_user_by_access_token",
+            return_value=cognito_user(),
+        ),
     ):
-        result = handler.lambda_handler(api_event("GET", "/garage/status", token="token"), None)
+        result = handler.lambda_handler(
+            api_event("GET", "/garage/status", token="token"), None
+        )
 
     assert result["statusCode"] == 200
     body = json.loads(result["body"])
@@ -114,15 +142,25 @@ def test_status_retorna_tracking_da_garage() -> None:
 
 
 def test_status_evento_mais_recente_da_tracking_table_ganha() -> None:
-    new_event = {"vehicleId": "CHASSI_123", "receivedAt": 200, "payload": {"chassi": "CHASSI_123", "currentStepIndex": 4}}
+    new_event = {
+        "vehicleId": "CHASSI_123",
+        "receivedAt": 200,
+        "payload": {"chassi": "CHASSI_123", "currentStepIndex": 4},
+    }
     tracking_table = FakeTable(query_items=[new_event])
     garage_table = FakeTable(items=[garage_item()])
     wire_tables(tracking_table, garage_table)
 
-    with patch("services.tracking.store.get_table", get_table_mock), patch(
-        "services.tracking.handler.get_user_by_access_token", return_value=cognito_user()
+    with (
+        patch("services.tracking.store.get_table", get_table_mock),
+        patch(
+            "services.tracking.handler.get_user_by_access_token",
+            return_value=cognito_user(),
+        ),
     ):
-        result = handler.lambda_handler(api_event("GET", "/garage/status", token="token"), None)
+        result = handler.lambda_handler(
+            api_event("GET", "/garage/status", token="token"), None
+        )
 
     assert result["statusCode"] == 200
     body = json.loads(result["body"])
@@ -149,7 +187,11 @@ def test_ingest_iot_sem_requestcontext_grava_na_tracking_table() -> None:
     assert isinstance(item["timestamp"], int)
     assert isinstance(item["receivedAt"], int)
     assert item["stage"] == "pintura"
-    assert item["payload"] == {"chassi": "CHASSI_123", "stage": "pintura", "status": "EM_ANDAMENTO"}
+    assert item["payload"] == {
+        "chassi": "CHASSI_123",
+        "stage": "pintura",
+        "status": "EM_ANDAMENTO",
+    }
     assert len(garage_table.scan_calls) == 1
     assert garage_table.put_item_calls == []
 
@@ -163,7 +205,11 @@ def test_ingest_rota_http_explicita_processa_payload() -> None:
 
     with patch("services.tracking.store.get_table", get_table_mock):
         result = handler.lambda_handler(
-            api_event("POST", "/garage/ingest", body={"chassi": "CHASSI_123", "stage": "teste_de_qualidade"}),
+            api_event(
+                "POST",
+                "/garage/ingest",
+                body={"chassi": "CHASSI_123", "stage": "teste_de_qualidade"},
+            ),
             None,
         )
 
@@ -180,7 +226,11 @@ def test_ingest_com_requestcontext_nao_dispara_path_iot() -> None:
 
     with patch("services.tracking.store.get_table", get_table_mock):
         result = handler.lambda_handler(
-            api_event("POST", "/rota-desconhecida", body={"chassi": "CHASSI_123", "stage": "pintura"}),
+            api_event(
+                "POST",
+                "/rota-desconhecida",
+                body={"chassi": "CHASSI_123", "stage": "pintura"},
+            ),
             None,
         )
 
@@ -194,10 +244,15 @@ def test_ingest_sem_identificador_do_veiculo() -> None:
     wire_tables(tracking_table, FakeTable())
 
     with patch("services.tracking.store.get_table", get_table_mock):
-        result = handler.lambda_handler(api_event("POST", "/garage/ingest", body={"stage": "pintura"}), None)
+        result = handler.lambda_handler(
+            api_event("POST", "/garage/ingest", body={"stage": "pintura"}), None
+        )
 
     assert result["statusCode"] == 400
-    assert json.loads(result["body"])["message"] == "Tracking sem identificador do veículo."
+    assert (
+        json.loads(result["body"])["message"]
+        == "Tracking sem identificador do veículo."
+    )
     assert tracking_table.put_item_calls == []
 
 
@@ -208,7 +263,8 @@ def test_ingest_veiculo_nao_vinculado() -> None:
 
     with patch("services.tracking.store.get_table", get_table_mock):
         result = handler.lambda_handler(
-            api_event("POST", "/garage/ingest", body={"chassi": "CHASSI_INEXISTENTE"}), None
+            api_event("POST", "/garage/ingest", body={"chassi": "CHASSI_INEXISTENTE"}),
+            None,
         )
 
     assert result["statusCode"] == 404

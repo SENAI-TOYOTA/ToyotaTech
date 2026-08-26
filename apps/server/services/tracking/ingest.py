@@ -17,12 +17,56 @@ TRACKING_FLOW_STEPS = [
 ]
 
 TRACKING_STAGE_ALIASES = {
-    0: {"inicio_da_producao", "producao_iniciada", "inicio", "start", "production_start", "prep", "estamparia"},
-    1: {"pintura", "montagem_finalizada", "paint", "painting", "coating", "assembly", "assembly_line"},
-    2: {"processo_de_montagem", "teste_de_qualidade", "montagem", "quality_test", "inspection"},
-    3: {"aguardando_o_embarque", "em_transporte", "embarque", "transporte", "in_transit", "shipping", "dispatch"},
-    4: {"concessionaria", "em_concessionaria", "yard", "logistics", "dealer", "handover"},
-    5: {"saiu_para_entrega", "pronto_para_retirada", "entrega", "delivery", "delivered", "pickup_ready"},
+    0: {
+        "inicio_da_producao",
+        "producao_iniciada",
+        "inicio",
+        "start",
+        "production_start",
+        "prep",
+        "estamparia",
+    },
+    1: {
+        "pintura",
+        "montagem_finalizada",
+        "paint",
+        "painting",
+        "coating",
+        "assembly",
+        "assembly_line",
+    },
+    2: {
+        "processo_de_montagem",
+        "teste_de_qualidade",
+        "montagem",
+        "quality_test",
+        "inspection",
+    },
+    3: {
+        "aguardando_o_embarque",
+        "em_transporte",
+        "embarque",
+        "transporte",
+        "in_transit",
+        "shipping",
+        "dispatch",
+    },
+    4: {
+        "concessionaria",
+        "em_concessionaria",
+        "yard",
+        "logistics",
+        "dealer",
+        "handover",
+    },
+    5: {
+        "saiu_para_entrega",
+        "pronto_para_retirada",
+        "entrega",
+        "delivery",
+        "delivered",
+        "pickup_ready",
+    },
 }
 
 TRACKING_FIELDS = (
@@ -58,7 +102,9 @@ def slugify_tracking_token(value: Any) -> str:
     text = coerce_text(value).lower()
     if not text:
         return ""
-    normalized = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    normalized = (
+        unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    )
     return re.sub(r"[^a-z0-9]+", "_", normalized).strip("_")
 
 
@@ -238,7 +284,10 @@ def coerce_iot_tracking_payload(payload: Any) -> Optional[Dict[str, Any]]:
 
     fields = payload.get("fields")
     if isinstance(fields, dict):
-        if "posicao_linha" in fields and flattened.get("currentStepIndex") in (None, ""):
+        if "posicao_linha" in fields and flattened.get("currentStepIndex") in (
+            None,
+            "",
+        ):
             flattened["currentStepIndex"] = fields.get("posicao_linha")
         if "tempo_total" in fields and flattened.get("duration") in (None, ""):
             flattened["duration"] = fields.get("tempo_total")
@@ -253,9 +302,15 @@ def coerce_iot_tracking_payload(payload: Any) -> Optional[Dict[str, Any]]:
     return flattened
 
 
-def normalize_factory_tracking(payload: Dict[str, Any], garage: Dict[str, Any]) -> Dict[str, Any]:
-    base_tracking = garage.get("tracking") if isinstance(garage.get("tracking"), dict) else {}
-    base_vehicle = garage.get("vehicle") if isinstance(garage.get("vehicle"), dict) else {}
+def normalize_factory_tracking(
+    payload: Dict[str, Any], garage: Dict[str, Any]
+) -> Dict[str, Any]:
+    base_tracking = (
+        garage.get("tracking") if isinstance(garage.get("tracking"), dict) else {}
+    )
+    base_vehicle = (
+        garage.get("vehicle") if isinstance(garage.get("vehicle"), dict) else {}
+    )
 
     vehicle_id = coerce_text(
         payload.get("vehicleId")
@@ -266,17 +321,19 @@ def normalize_factory_tracking(payload: Dict[str, Any], garage: Dict[str, Any]) 
         or base_vehicle.get("chassi")
     )
     model = coerce_text(
-        payload.get("model")
-        or base_tracking.get("model")
-        or base_vehicle.get("model")
+        payload.get("model") or base_tracking.get("model") or base_vehicle.get("model")
     )
     version = coerce_text(
         payload.get("version")
         or base_tracking.get("version")
         or base_vehicle.get("version")
     )
-    color = coerce_text(payload.get("color") or base_tracking.get("color") or base_vehicle.get("color"))
-    year = coerce_text(payload.get("year") or base_tracking.get("year") or base_vehicle.get("year"))
+    color = coerce_text(
+        payload.get("color") or base_tracking.get("color") or base_vehicle.get("color")
+    )
+    year = coerce_text(
+        payload.get("year") or base_tracking.get("year") or base_vehicle.get("year")
+    )
     engine = coerce_text(
         payload.get("engine")
         or payload.get("powertrain")
@@ -327,9 +384,7 @@ def normalize_factory_tracking(payload: Dict[str, Any], garage: Dict[str, Any]) 
 def process_ingest(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Processa um evento de tracking da fábrica e grava na TrackingTable."""
     vehicle_ref = coerce_text(
-        payload.get("chassi")
-        or payload.get("vehicleId")
-        or payload.get("vin")
+        payload.get("chassi") or payload.get("vehicleId") or payload.get("vin")
     )
     require(bool(vehicle_ref), 400, "Tracking sem identificador do veículo.")
 

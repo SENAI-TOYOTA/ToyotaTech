@@ -9,9 +9,9 @@ from common.cognito_users import link_federated_if_needed
 from common.ddb import get_table
 from common.responses import ApiError, error_body, parse_body, require
 
-PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()
-
 from . import validation
+
+PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()
 
 
 def authenticated_user(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -30,7 +30,9 @@ def authenticated_user(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _get_profile(user_id: str) -> Dict[str, str]:
-    item = (get_table(PROFILE_TABLE_NAME).get_item(Key={"userId": user_id})).get("Item") or {}
+    item = (get_table(PROFILE_TABLE_NAME).get_item(Key={"userId": user_id})).get(
+        "Item"
+    ) or {}
     return {
         "fullName": str(item.get("fullName", "") or ""),
         "birthDate": validation.normalize_birth_date(item.get("birthDate", "")),
@@ -41,7 +43,11 @@ def _get_profile(user_id: str) -> Dict[str, str]:
 def read_profile(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
     user_id = user.get("sub")
-    require(isinstance(user_id, str) and bool(user_id), 500, "Usuário sem identificador válido.")
+    require(
+        isinstance(user_id, str) and bool(user_id),
+        500,
+        "Usuário sem identificador válido.",
+    )
 
     return {"profile": _get_profile(user_id)}
 
@@ -49,7 +55,11 @@ def read_profile(event: Dict[str, Any]) -> Dict[str, Any]:
 def save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
     user_id = user.get("sub")
-    require(isinstance(user_id, str) and bool(user_id), 500, "Usuário sem identificador válido.")
+    require(
+        isinstance(user_id, str) and bool(user_id),
+        500,
+        "Usuário sem identificador válido.",
+    )
 
     body = parse_body(event)
     updates: Dict[str, str] = {}
@@ -59,8 +69,12 @@ def save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
         updates["fullName"] = body.get("fullName", "").strip()
 
     if "birthDate" in body:
-        require(isinstance(body.get("birthDate"), str), 400, "Data de nascimento inválida.")
-        normalized, error_message = validation.validate_birth_date(body.get("birthDate", ""))
+        require(
+            isinstance(body.get("birthDate"), str), 400, "Data de nascimento inválida."
+        )
+        normalized, error_message = validation.validate_birth_date(
+            body.get("birthDate", "")
+        )
         if error_message:
             raise ApiError(400, error_message)
         updates["birthDate"] = normalized or ""

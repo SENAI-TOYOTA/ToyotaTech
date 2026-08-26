@@ -13,7 +13,11 @@ def pre_sign_up(event: Dict[str, Any]) -> Dict[str, Any]:
     event_response = event.setdefault("response", {})
     email = str((request.get("userAttributes") or {}).get("email", "")).strip().lower()
 
-    if not email or "@" not in email or trigger_source not in ("PreSignUp_SignUp", "PreSignUp_ExternalProvider"):
+    if (
+        not email
+        or "@" not in email
+        or trigger_source not in ("PreSignUp_SignUp", "PreSignUp_ExternalProvider")
+    ):
         return event
 
     users = find_by_email(email)
@@ -29,7 +33,11 @@ def pre_sign_up(event: Dict[str, Any]) -> Dict[str, Any]:
         return event
 
     try:
-        link_provider(local["Username"], provider_identity["providerName"], provider_identity["providerUserId"])
+        link_provider(
+            local["Username"],
+            provider_identity["providerName"],
+            provider_identity["providerUserId"],
+        )
         event_response["autoConfirmUser"] = True
         event_response["autoVerifyEmail"] = True
     except ClientError as error:

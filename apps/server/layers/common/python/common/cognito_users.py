@@ -3,7 +3,13 @@ from typing import Any, Dict, List, Optional
 
 from botocore.exceptions import ClientError
 
-from .cognito import COGNITO_USER_POOL_ID, cognito_client, is_federated, link_provider, parse_attributes
+from .cognito import (
+    COGNITO_USER_POOL_ID,
+    cognito_client,
+    is_federated,
+    link_provider,
+    parse_attributes,
+)
 from .responses import error_body
 
 
@@ -43,11 +49,19 @@ def find_by_email(email: str) -> List[Dict[str, Any]]:
 
     def add(user: Dict[str, Any]) -> None:
         username = user.get("Username")
-        if isinstance(username, str) and username and matches_email(user, normalized_email):
+        if (
+            isinstance(username, str)
+            and username
+            and matches_email(user, normalized_email)
+        ):
             found[username] = user
 
     try:
-        add(cognito_client.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=normalized_email))
+        add(
+            cognito_client.admin_get_user(
+                UserPoolId=COGNITO_USER_POOL_ID, Username=normalized_email
+            )
+        )
     except ClientError as error:
         code, _ = error_body(error)
         if code != "UserNotFoundException":
@@ -107,10 +121,17 @@ def link_federated_if_needed(federated_user: Dict[str, Any]) -> None:
     if not isinstance(local_username, str) or local_username == federated_username:
         return
     try:
-        link_provider(local_username, identity["providerName"], identity["providerUserId"])
+        link_provider(
+            local_username, identity["providerName"], identity["providerUserId"]
+        )
     except ClientError as error:
         code, _ = error_body(error)
-        if code in ("ResourceNotFoundException", "ResourceConflictException", "AliasExistsException", "InvalidParameterException"):
+        if code in (
+            "ResourceNotFoundException",
+            "ResourceConflictException",
+            "AliasExistsException",
+            "InvalidParameterException",
+        ):
             print(f"Aviso: falha ao vincular IdP: {code}")
             return
         raise

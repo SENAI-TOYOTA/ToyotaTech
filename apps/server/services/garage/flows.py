@@ -43,11 +43,17 @@ def resolve(event: Dict[str, Any]) -> Dict[str, Any]:
 def upsert(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
     user_id = user.get("sub")
-    require(isinstance(user_id, str) and bool(user_id), 500, "Usuário sem identificador válido.")
+    require(
+        isinstance(user_id, str) and bool(user_id),
+        500,
+        "Usuário sem identificador válido.",
+    )
 
     body = parse_body(event)
     table = get_table(resolver.GARAGE_TABLE_NAME)
-    garage = table.get_item(Key={"userId": user_id}).get("Item") or demo.build_garage(user)
+    garage = table.get_item(Key={"userId": user_id}).get("Item") or demo.build_garage(
+        user
+    )
 
     for key in ("order", "vehicle", "financing", "documents", "recalls", "tracking"):
         if key in body and body[key] is not None:
@@ -87,7 +93,8 @@ def link(event: Dict[str, Any]) -> Dict[str, Any]:
     if not purchase:
         raise ApiError(404, "Compra não encontrada.")
     require(
-        not purchases.is_generated(purchase) and purchases.matches_profile(purchase, profile),
+        not purchases.is_generated(purchase)
+        and purchases.matches_profile(purchase, profile),
         403,
         "Compra não pertence ao CPF do perfil.",
     )
@@ -101,7 +108,11 @@ def link(event: Dict[str, Any]) -> Dict[str, Any]:
         raise
     if not linked_purchase:
         existing_user_id = validation.coerce_text(purchase.get("userId"))
-        require(not (existing_user_id and existing_user_id != user_id), 409, "Compra já vinculada a outro usuário.")
+        require(
+            not (existing_user_id and existing_user_id != user_id),
+            409,
+            "Compra já vinculada a outro usuário.",
+        )
         raise ApiError(500, "Não foi possível vincular a compra.")
 
     garage = projection.project_garage(user, linked_purchase)

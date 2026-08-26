@@ -22,7 +22,9 @@ def normalize_name(value: Any) -> str:
     text = coerce_text(value).lower()
     if not text:
         return ""
-    normalized = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    normalized = (
+        unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+    )
     return re.sub(r"\s+", " ", normalized).strip()
 
 

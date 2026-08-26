@@ -14,7 +14,9 @@ ROUTES = {
     "POST /auth/register": lambda event: flows.register(parse_body(event)),
     "POST /auth/login": lambda event: flows.login(parse_body(event)),
     "POST /auth/verify-email": lambda event: flows.verify_email(parse_body(event)),
-    "POST /auth/resend-verification": lambda event: flows.resend_verification(parse_body(event)),
+    "POST /auth/resend-verification": lambda event: flows.resend_verification(
+        parse_body(event)
+    ),
     "POST /auth/refresh": lambda event: flows.refresh(parse_body(event)),
     "POST /auth/set-password": flows.set_password,
 }

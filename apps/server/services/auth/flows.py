@@ -20,7 +20,8 @@ from common.responses import ApiError, error_body, parse_body, require
 PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()
 
 FEDERATED_MESSAGE = (
-    "Esta conta foi criada com Google. Entre com Google ou use a senha definida no seu perfil."
+    "Esta conta foi criada com Google. "
+    "Entre com Google ou use a senha definida no seu perfil."
 )
 
 
@@ -44,7 +45,9 @@ def _normalize_birth_date(value: Any) -> str:
 
 
 def _profile(user_id: str) -> Dict[str, str]:
-    item = (get_table(PROFILE_TABLE_NAME).get_item(Key={"userId": user_id})).get("Item") or {}
+    item = (get_table(PROFILE_TABLE_NAME).get_item(Key={"userId": user_id})).get(
+        "Item"
+    ) or {}
     return {
         "fullName": str(item.get("fullName", "") or ""),
         "birthDate": _normalize_birth_date(item.get("birthDate", "")),
@@ -53,7 +56,8 @@ def _profile(user_id: str) -> Dict[str, str]:
 
 
 def check_email(body: Dict[str, Any]) -> Dict[str, Any]:
-    from common.cognito_users import find_by_email, is_federated as _f
+    from common.cognito_users import find_by_email
+    from common.cognito_users import is_federated as _f
 
     email = _email(body)
     users = find_by_email(email)
@@ -138,14 +142,19 @@ def resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
     from common.cognito import cognito_client
 
     try:
-        cognito_client.resend_confirmation_code(ClientId=COGNITO_CLIENT_ID, Username=email)
+        cognito_client.resend_confirmation_code(
+            ClientId=COGNITO_CLIENT_ID, Username=email
+        )
         return {"message": "Código reenviado."}
     except ClientError as error:
         code, _ = error_body(error)
         mapping = {
             "UserNotFoundException": (404, "Usuário não encontrado."),
             "InvalidParameterException": (409, "E-mail já verificado."),
-            "NotAuthorizedException": (409, "Não foi possível reenviar o código no momento."),
+            "NotAuthorizedException": (
+                409,
+                "Não foi possível reenviar o código no momento.",
+            ),
         }
         if code in mapping:
             status, message = mapping[code]
@@ -154,7 +163,11 @@ def resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def login(body: Dict[str, Any]) -> Dict[str, Any]:
-    from common.cognito_users import find_by_email, is_federated, password_auth_candidates
+    from common.cognito_users import (
+        find_by_email,
+        is_federated,
+        password_auth_candidates,
+    )
 
     email = str(body.get("email", "")).strip().lower()
     password = body.get("password", "")
@@ -174,8 +187,14 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
         except ClientError as error:
             code, _ = error_body(error)
             if code == "UserNotConfirmedException":
-                raise ApiError(403, "E-mail ainda não verificado.", {"code": "EMAIL_NOT_VERIFIED"})
-            if code in ("NotAuthorizedException", "UserNotFoundException", "InvalidParameterException"):
+                raise ApiError(
+                    403, "E-mail ainda não verificado.", {"code": "EMAIL_NOT_VERIFIED"}
+                )
+            if code in (
+                "NotAuthorizedException",
+                "UserNotFoundException",
+                "InvalidParameterException",
+            ):
                 last_code, last_error = code, error
                 continue
             raise
@@ -185,7 +204,9 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
             not is_federated(user) for user in users
         )
         if federated_only:
-            raise ApiError(409, FEDERATED_MESSAGE, {"code": "FEDERATED_USER_NO_PASSWORD"})
+            raise ApiError(
+                409, FEDERATED_MESSAGE, {"code": "FEDERATED_USER_NO_PASSWORD"}
+            )
         if last_code in ("NotAuthorizedException", "UserNotFoundException"):
             raise ApiError(401, "Credenciais inválidas.")
         if last_error:
@@ -232,7 +253,11 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
         email = attrs.get("email", "").strip().lower()
         username = cognito_user.get("Username")
         require(bool(email), 500, "Não foi possível identificar o usuário.")
-        require(isinstance(username, str) and bool(username), 500, "Não foi possível identificar o usuário.")
+        require(
+            isinstance(username, str) and bool(username),
+            500,
+            "Não foi possível identificar o usuário.",
+        )
 
         if is_federated(cognito_user):
             try:
@@ -248,7 +273,11 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
                 code, _ = error_body(error)
                 if code != "AliasExistsException":
                     raise
-                log_error("Falha ao verificar e-mail federado por alias existente.", event=event, error=error)
+                log_error(
+                    "Falha ao verificar e-mail federado por alias existente.",
+                    event=event,
+                    error=error,
+                )
 
         cognito_client.admin_set_user_password(
             UserPoolId=COGNITO_USER_POOL_ID,
@@ -277,7 +306,9 @@ def refresh(body: Dict[str, Any]) -> Dict[str, Any]:
     require(bool(refresh_token), 400, "Refresh token obrigatório.")
 
     try:
-        auth_result = initiate_auth("REFRESH_TOKEN_AUTH", {"REFRESH_TOKEN": refresh_token})
+        auth_result = initiate_auth(
+            "REFRESH_TOKEN_AUTH", {"REFRESH_TOKEN": refresh_token}
+        )
     except ClientError as error:
         code, _ = error_body(error)
         if code == "NotAuthorizedException":

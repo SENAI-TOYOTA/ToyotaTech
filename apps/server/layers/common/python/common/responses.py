@@ -8,7 +8,9 @@ class ClientErrorLike(Protocol):
 
 
 class ApiError(Exception):
-    def __init__(self, status_code: int, message: str, extra: Dict[str, Any] | None = None):
+    def __init__(
+        self, status_code: int, message: str, extra: Dict[str, Any] | None = None
+    ):
         super().__init__(message)
         self.status_code = status_code
         self.message = message
@@ -19,7 +21,9 @@ def response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
     def json_default(value: Any) -> Any:
         if isinstance(value, Decimal):
             return int(value) if value % 1 == 0 else str(value)
-        raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+        raise TypeError(
+            f"Object of type {type(value).__name__} is not JSON serializable"
+        )
 
     return {
         "statusCode": status_code,
@@ -47,7 +51,9 @@ def parse_body(event: Dict[str, Any]) -> Dict[str, Any]:
     return json.loads(body) if isinstance(body, str) and body else {}
 
 
-def log_error(message: str, *, event: Dict[str, Any] | None = None, error: Exception | None = None) -> None:
+def log_error(
+    message: str, *, event: Dict[str, Any] | None = None, error: Exception | None = None
+) -> None:
     context = {}
     if event:
         http_ctx = (event.get("requestContext") or {}).get("http") or {}
@@ -57,13 +63,21 @@ def log_error(message: str, *, event: Dict[str, Any] | None = None, error: Excep
             "path": event.get("rawPath"),
             "sourceIp": http_ctx.get("sourceIp"),
         }
-    print(json.dumps(
-        {"message": message, "context": context, "error": str(error) if error else None},
-        ensure_ascii=False,
-    ))
+    print(
+        json.dumps(
+            {
+                "message": message,
+                "context": context,
+                "error": str(error) if error else None,
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
-def require(condition: bool, status_code: int, message: str, extra: Dict[str, Any] | None = None) -> None:
+def require(
+    condition: bool, status_code: int, message: str, extra: Dict[str, Any] | None = None
+) -> None:
     if not condition:
         raise ApiError(status_code, message, extra)
 
