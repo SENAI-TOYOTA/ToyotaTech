@@ -1,17 +1,21 @@
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import {
-  View,
   TextInput as RNTextInput,
-  StyleSheet,
   TextInputProps as RNTextInputProps,
+  StyleSheet,
+  View,
   ViewStyle,
 } from "react-native";
-import { colors, fonts, fontSize, spacing } from "@/theme";
 
 interface TextInputProps extends RNTextInputProps {
   containerStyle?: ViewStyle;
 }
 
-export default function TextInput({ containerStyle, style, ...rest }: TextInputProps) {
+export default function TextInput({
+  containerStyle,
+  style,
+  ...rest
+}: TextInputProps) {
   return (
     <View style={[styles.container, containerStyle]}>
       <RNTextInput

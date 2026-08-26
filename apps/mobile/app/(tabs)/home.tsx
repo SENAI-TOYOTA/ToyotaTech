@@ -1,7 +1,14 @@
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, {
   FadeInDown,
   FadeInRight,
@@ -10,9 +17,9 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
-import { colors, fonts, spacing } from "@/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageCurrent } from "@/services/garage";
+import { colors, fonts, spacing } from "@/theme";
 import { GarageData } from "@/types/garage";
 
 function canUseCorollaAltisImage(model?: string) {
@@ -98,9 +105,13 @@ function VehicleFallbackHero({ vehicle }: { vehicle?: GarageData["vehicle"] }) {
       <Text style={styles.vehicleFallbackModel}>{model}</Text>
       <Text style={styles.vehicleFallbackSpecs}>{specs}</Text>
       {vehicle?.chassi ? (
-        <Text style={styles.vehicleFallbackChassi}>Chassi {vehicle.chassi}</Text>
+        <Text style={styles.vehicleFallbackChassi}>
+          Chassi {vehicle.chassi}
+        </Text>
       ) : null}
-      <Text style={styles.vehicleFallbackNote}>Imagem ilustrativa indisponivel</Text>
+      <Text style={styles.vehicleFallbackNote}>
+        Imagem ilustrativa indisponivel
+      </Text>
     </View>
   );
 }
@@ -156,7 +167,11 @@ export default function HomeScreen() {
         >
           {shouldUseVehicleImage ? (
             <>
-              <Image source={mainCarImage} style={styles.mainImage} resizeMode="cover" />
+              <Image
+                source={mainCarImage}
+                style={styles.mainImage}
+                resizeMode="cover"
+              />
               <View style={styles.carLabel}>
                 <Text style={styles.carLabelText}>{vehicleLabel}</Text>
               </View>
@@ -195,7 +210,11 @@ export default function HomeScreen() {
         >
           {highlightCards.map((card) => (
             <InteractivePressable key={card.id} style={styles.highlightCard}>
-              <Image source={card.image} style={styles.highlightImage} resizeMode="cover" />
+              <Image
+                source={card.image}
+                style={styles.highlightImage}
+                resizeMode="cover"
+              />
               <View style={styles.highlightLabel}>
                 <Text style={styles.highlightLabelText}>{card.title}</Text>
               </View>
@@ -240,7 +259,9 @@ export default function HomeScreen() {
           style={styles.footer}
         >
           <View style={styles.footerDivider} />
-          <Text style={styles.footerText}>Sempre o melhor para o seu Toyota</Text>
+          <Text style={styles.footerText}>
+            Sempre o melhor para o seu Toyota
+          </Text>
         </Animated.View>
       </ScrollView>
     </View>

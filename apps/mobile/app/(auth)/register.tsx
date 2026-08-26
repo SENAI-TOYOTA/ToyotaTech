@@ -1,13 +1,13 @@
-import { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Platform, Pressable } from "react-native";
-import { ArrowRight, Eye } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { ArrowRight, Eye } from "lucide-react-native";
+import { useMemo, useState } from "react";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { colors, fonts, fontSize, spacing } from "@/theme";
 import { ApiError } from "@/services/api";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
 export default function RegisterScreen() {
@@ -21,7 +21,8 @@ export default function RegisterScreen() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
-  const canSubmit = normalizedEmail.includes("@") && password.length >= 8 && !isSubmitting;
+  const canSubmit =
+    normalizedEmail.includes("@") && password.length >= 8 && !isSubmitting;
 
   const handleCreateAccountPress = async () => {
     if (!canSubmit) {
@@ -85,7 +86,9 @@ export default function RegisterScreen() {
           onPress={() => setShowPassword((current) => !current)}
         >
           <Eye size={18} strokeWidth={1.8} color={colors.black} />
-          <Text style={styles.visibilityText}>{showPassword ? "OCULTAR" : "EXIBIR"}</Text>
+          <Text style={styles.visibilityText}>
+            {showPassword ? "OCULTAR" : "EXIBIR"}
+          </Text>
         </Pressable>
 
         <Text style={styles.passwordHintText}>
@@ -93,7 +96,9 @@ export default function RegisterScreen() {
           minúscula e um número.
         </Text>
 
-        {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+        {formError ? (
+          <Text style={styles.formErrorText}>{formError}</Text>
+        ) : null}
 
         <Button
           title={isSubmitting ? "Criando..." : "Criar conta"}

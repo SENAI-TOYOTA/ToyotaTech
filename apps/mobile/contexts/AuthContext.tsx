@@ -1,3 +1,4 @@
+import * as SecureStore from "expo-secure-store";
 import {
   createContext,
   PropsWithChildren,
@@ -8,10 +9,15 @@ import {
   useState,
 } from "react";
 import { Platform } from "react-native";
-import * as SecureStore from "expo-secure-store";
 
 import { ApiError } from "@/services/api";
-import { fetchMe, login, refreshSession, register, setPassword as setPasswordService } from "@/services/auth";
+import {
+  fetchMe,
+  login,
+  refreshSession,
+  register,
+  setPassword as setPasswordService,
+} from "@/services/auth";
 import { fetchGarageCurrent } from "@/services/garage";
 import { AuthUser, RegisterResponse } from "@/types/auth";
 
@@ -52,7 +58,9 @@ async function getStoredSession(): Promise<StoredSession | null> {
   };
 
   if (isWeb) {
-    return parseSession(globalThis.localStorage?.getItem(SESSION_STORAGE_KEY) ?? null);
+    return parseSession(
+      globalThis.localStorage?.getItem(SESSION_STORAGE_KEY) ?? null
+    );
   }
   const raw = await SecureStore.getItemAsync(SESSION_STORAGE_KEY);
   return parseSession(raw);
@@ -97,7 +105,10 @@ function isTokenFederated(idToken: string): boolean {
     }
     // Fallback: username começa com "Google_"
     const username = decoded["cognito:username"];
-    if (typeof username === "string" && username.toLowerCase().startsWith("google_")) {
+    if (
+      typeof username === "string" &&
+      username.toLowerCase().startsWith("google_")
+    ) {
       return true;
     }
     return false;
@@ -107,7 +118,9 @@ function isTokenFederated(idToken: string): boolean {
 }
 
 function hasCompleteProfile(user: AuthUser | null) {
-  return Boolean(user?.profile?.fullName && user.profile.birthDate && user.profile.cpf);
+  return Boolean(
+    user?.profile?.fullName && user.profile.birthDate && user.profile.cpf
+  );
 }
 
 interface AuthContextValue {
@@ -117,7 +130,11 @@ interface AuthContextValue {
   isLoadingSession: boolean;
   isFederatedUser: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name?: string) => Promise<RegisterResponse>;
+  signUp: (
+    email: string,
+    password: string,
+    name?: string
+  ) => Promise<RegisterResponse>;
   signInWithTokens: (session: StoredSession) => Promise<void>;
   setPassword: (password: string) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -131,18 +148,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
 
-  const bootstrapGarage = useCallback(async (accessToken: string, nextUser: AuthUser | null) => {
-    if (!hasCompleteProfile(nextUser)) {
-      return;
-    }
-    try {
-      await fetchGarageCurrent(accessToken);
-    } catch (error) {
-      if (__DEV__) {
-        console.warn("[GARAGE] Falha ao inicializar garagem", error);
+  const bootstrapGarage = useCallback(
+    async (accessToken: string, nextUser: AuthUser | null) => {
+      if (!hasCompleteProfile(nextUser)) {
+        return;
       }
-    }
-  }, []);
+      try {
+        await fetchGarageCurrent(accessToken);
+      } catch (error) {
+        if (__DEV__) {
+          console.warn("[GARAGE] Falha ao inicializar garagem", error);
+        }
+      }
+    },
+    []
+  );
 
   const clearSession = useCallback(async () => {
     await deleteStoredSession();
@@ -160,7 +180,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      const meResult = await fetchMe(storedSession.accessToken, { suppressErrorLog: true });
+      const meResult = await fetchMe(storedSession.accessToken, {
+        suppressErrorLog: true,
+      });
       setSession(storedSession);
       setUser(meResult.user);
       await bootstrapGarage(storedSession.accessToken, meResult.user);
@@ -183,14 +205,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
             refreshToken: storedSession.refreshToken,
             expiresAt: refreshed.expiresAt,
           };
-          const meResult = await fetchMe(refreshedSession.accessToken, { suppressErrorLog: true });
+          const meResult = await fetchMe(refreshedSession.accessToken, {
+            suppressErrorLog: true,
+          });
           await setStoredSession(refreshedSession);
           setSession(refreshedSession);
           setUser(meResult.user);
           await bootstrapGarage(refreshedSession.accessToken, meResult.user);
         } catch (refreshError) {
           if (__DEV__) {
-            console.info("[Auth] Sessao armazenada expirada. Limpando login local.");
+            console.info(
+              "[Auth] Sessao armazenada expirada. Limpando login local."
+            );
           }
           await clearSession();
         }
@@ -237,9 +263,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [applySession]
   );
 
-  const signUp = useCallback(async (email: string, password: string, name?: string) => {
-    return register({ email, password, name });
-  }, []);
+  const signUp = useCallback(
+    async (email: string, password: string, name?: string) => {
+      return register({ email, password, name });
+    },
+    []
+  );
 
   const signInWithTokens = useCallback(
     async (nextSession: StoredSession) => {
@@ -297,7 +326,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
       refreshUser,
       signOut,
     }),
-    [isFederatedUser, isLoadingSession, refreshUser, session, setPassword, signIn, signInWithTokens, signOut, signUp, user]
+    [
+      isFederatedUser,
+      isLoadingSession,
+      refreshUser,
+      session,
+      setPassword,
+      signIn,
+      signInWithTokens,
+      signOut,
+      signUp,
+      user,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

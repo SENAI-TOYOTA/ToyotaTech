@@ -4,16 +4,10 @@ from typing import Any, Dict
 
 from botocore.exceptions import ClientError
 
-from common.cognito import (
-    build_user,
-    get_user_by_access_token,
-    extract_token,
-    parse_attributes,
-)
+from common.cognito import build_user, extract_token, get_user_by_access_token
 from common.cognito_users import link_federated_if_needed
 from common.ddb import get_table
 from common.responses import ApiError, error_body, parse_body, require
-import os
 
 PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()
 

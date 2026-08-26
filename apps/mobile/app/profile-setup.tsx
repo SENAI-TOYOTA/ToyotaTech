@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
-import { ArrowRight, Eye } from "lucide-react-native";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { ArrowRight, Eye } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Button from "@/components/ui/Button";
+import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { validateBirthDate } from "@/profileValidation";
 import { ApiError } from "@/services/api";
 import { resolveGarage } from "@/services/garage";
 import { fetchProfile, updateProfile } from "@/services/profile";
-import { validateBirthDate } from "@/profileValidation";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 
 const formatBirthDate = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -245,10 +245,12 @@ export default function ProfileSetupScreen() {
           {/* Seção de criar senha — aparece apenas para usuários Google */}
           {isFederatedUser ? (
             <View style={styles.passwordSection}>
-              <Text style={styles.passwordSectionTitle}>CRIAR SENHA (OPCIONAL)</Text>
+              <Text style={styles.passwordSectionTitle}>
+                CRIAR SENHA (OPCIONAL)
+              </Text>
               <Text style={styles.passwordSectionSubtitle}>
-                Defina uma senha para poder entrar também com e-mail e senha, sem precisar usar o
-                botão do Google.
+                Defina uma senha para poder entrar também com e-mail e senha,
+                sem precisar usar o botão do Google.
               </Text>
 
               <TextInput
@@ -264,21 +266,27 @@ export default function ProfileSetupScreen() {
                 onPress={() => setShowPassword((current) => !current)}
               >
                 <Eye size={18} strokeWidth={1.8} color={colors.black} />
-                <Text style={styles.visibilityText}>{showPassword ? "OCULTAR" : "EXIBIR"}</Text>
+                <Text style={styles.visibilityText}>
+                  {showPassword ? "OCULTAR" : "EXIBIR"}
+                </Text>
               </Pressable>
 
               <Text style={styles.passwordHintText}>
-                Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma minúscula e um
-                número.
+                Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
+                minúscula e um número.
               </Text>
 
               {passwordSuccess ? (
-                <Text style={styles.passwordSuccessText}>Senha definida com sucesso!</Text>
+                <Text style={styles.passwordSuccessText}>
+                  Senha definida com sucesso!
+                </Text>
               ) : null}
             </View>
           ) : null}
 
-          {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+          {formError ? (
+            <Text style={styles.formErrorText}>{formError}</Text>
+          ) : null}
         </View>
       </ScrollView>
 

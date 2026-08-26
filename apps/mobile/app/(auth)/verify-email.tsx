@@ -1,12 +1,12 @@
-import { useState, useRef } from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
+import { useRef, useState } from "react";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 
 import Button from "@/components/ui/Button";
-import { resendVerification, verifyEmail } from "@/services/auth";
 import { ApiError } from "@/services/api";
+import { resendVerification, verifyEmail } from "@/services/auth";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
@@ -36,7 +36,10 @@ export default function VerifyEmailScreen() {
 
     setIsSubmitting(true);
     try {
-      await verifyEmail({ email: String(email).toLowerCase(), code: verificationCode });
+      await verifyEmail({
+        email: String(email).toLowerCase(),
+        code: verificationCode,
+      });
       router.replace({
         pathname: "/(auth)/login",
         params: { email: String(email).toLowerCase() },
@@ -75,7 +78,9 @@ export default function VerifyEmailScreen() {
   return (
     <AuthScreenLayout contentSectionStyle={styles.contentSection}>
       <Text style={styles.title}>VERIFIQUE SEU EMAIL</Text>
-      <Text style={styles.subtitle}>Não se esqueça de olhar a caixa de spam!</Text>
+      <Text style={styles.subtitle}>
+        Não se esqueça de olhar a caixa de spam!
+      </Text>
 
       <View style={styles.formContainer}>
         <View style={styles.emailRow}>
@@ -123,7 +128,9 @@ export default function VerifyEmailScreen() {
           disabled={isSubmitting || isResending}
         />
         {feedback ? <Text style={styles.feedbackText}>{feedback}</Text> : null}
-        {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+        {formError ? (
+          <Text style={styles.formErrorText}>{formError}</Text>
+        ) : null}
       </View>
     </AuthScreenLayout>
   );

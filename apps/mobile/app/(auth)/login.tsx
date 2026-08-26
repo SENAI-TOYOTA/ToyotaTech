@@ -1,13 +1,13 @@
-import { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Platform, Pressable } from "react-native";
-import { ArrowRight, Eye } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { ArrowRight, Eye } from "lucide-react-native";
+import { useMemo, useState } from "react";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { colors, fonts, fontSize, spacing } from "@/theme";
 import { ApiError } from "@/services/api";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
 export default function LoginScreen() {
@@ -21,7 +21,8 @@ export default function LoginScreen() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
-  const canSubmit = normalizedEmail.includes("@") && password.length >= 8 && !isSubmitting;
+  const canSubmit =
+    normalizedEmail.includes("@") && password.length >= 8 && !isSubmitting;
 
   const handleLoginPress = async () => {
     if (!canSubmit) {
@@ -81,7 +82,9 @@ export default function LoginScreen() {
           onPress={() => setShowPassword((current) => !current)}
         >
           <Eye size={18} strokeWidth={1.8} color={colors.black} />
-          <Text style={styles.visibilityText}>{showPassword ? "OCULTAR" : "EXIBIR"}</Text>
+          <Text style={styles.visibilityText}>
+            {showPassword ? "OCULTAR" : "EXIBIR"}
+          </Text>
         </Pressable>
 
         <Button
@@ -106,7 +109,9 @@ export default function LoginScreen() {
           <Text style={styles.termsLink}>Termos e Condições ToyotaTech</Text>.
         </Text>
 
-        {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+        {formError ? (
+          <Text style={styles.formErrorText}>{formError}</Text>
+        ) : null}
 
         <Pressable
           onPress={() => {
@@ -116,7 +121,9 @@ export default function LoginScreen() {
             });
           }}
         >
-          <Text style={styles.forgotPasswordText}>NÃO TEM CONTA? CRIAR CONTA</Text>
+          <Text style={styles.forgotPasswordText}>
+            NÃO TEM CONTA? CRIAR CONTA
+          </Text>
         </Pressable>
       </View>
     </AuthScreenLayout>

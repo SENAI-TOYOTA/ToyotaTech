@@ -61,9 +61,15 @@ export async function apiRequest<T>(
       parsed = JSON.parse(raw) as { message?: string } & T;
     } catch {
       if (__DEV__) {
-        console.error("[API] Resposta invalida", { path, status: response.status, body: raw });
+        console.error("[API] Resposta invalida", {
+          path,
+          status: response.status,
+          body: raw,
+        });
       }
-      parsed = { message: "Resposta invalida da API." } as { message?: string } & T;
+      parsed = { message: "Resposta invalida da API." } as {
+        message?: string;
+      } & T;
     }
   }
 

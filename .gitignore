@@ -13,3 +13,8 @@ desktop.ini
 # Python
 __pycache__/
 *.pyc
+*.pyo
+.pytest_cache/
+.coverage
+*.egg-info/
+.DS_Store

@@ -88,7 +88,9 @@ export default function FinancingScreen() {
   }, [token]);
 
   const financing = garage?.financing;
-  const vehicleTitle = garage ? `${garage.vehicle.model} ${garage.vehicle.year}` : "";
+  const vehicleTitle = garage
+    ? `${garage.vehicle.model} ${garage.vehicle.year}`
+    : "";
   const paidInstallments = financing
     ? `${financing.paidInstallments} / ${financing.totalInstallments}`
     : "";
@@ -126,13 +128,17 @@ export default function FinancingScreen() {
             </View>
 
             <Text style={styles.bankInfo}>
-              Instituição financeira: <Text style={styles.bankName}>{financing.bank}</Text>
+              Instituição financeira:{" "}
+              <Text style={styles.bankName}>{financing.bank}</Text>
             </Text>
             {financing.contractNumber ? (
-              <Text style={styles.contractInfo}>Contrato: {financing.contractNumber}</Text>
+              <Text style={styles.contractInfo}>
+                Contrato: {financing.contractNumber}
+              </Text>
             ) : null}
             <Text style={styles.invoiceDescription}>
-              Parcela {financing.installmentAmount} | Vencimento {financing.nextDueDate}
+              Parcela {financing.installmentAmount} | Vencimento{" "}
+              {financing.nextDueDate}
             </Text>
           </Animated.View>
         ) : (
@@ -141,7 +147,9 @@ export default function FinancingScreen() {
             style={styles.emptyCard}
           >
             <Text style={styles.emptyText}>
-              {isLoading ? "Carregando financiamento..." : loadError ?? "Financiamento ainda nao vinculado."}
+              {isLoading
+                ? "Carregando financiamento..."
+                : (loadError ?? "Financiamento ainda nao vinculado.")}
             </Text>
           </Animated.View>
         )}
@@ -158,7 +166,10 @@ export default function FinancingScreen() {
 
             <View style={styles.invoiceButtonWrapper}>
               <View style={styles.invoiceButtonShadow} />
-              <InteractivePressable style={styles.invoiceButton} disabled={!boletoAvailable}>
+              <InteractivePressable
+                style={styles.invoiceButton}
+                disabled={!boletoAvailable}
+              >
                 <Text style={styles.invoiceButtonText}>Acessar boleto</Text>
                 <ArrowRight size={28} strokeWidth={2.4} color={colors.white} />
               </InteractivePressable>

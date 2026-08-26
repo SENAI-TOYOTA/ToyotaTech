@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { ArrowRight } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Button from "@/components/ui/Button";
+import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { validateBirthDate } from "@/profileValidation";
 import { ApiError } from "@/services/api";
 import { resolveGarage } from "@/services/garage";
 import { fetchProfile, updateProfile } from "@/services/profile";
-import { validateBirthDate } from "@/profileValidation";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 
 const formatBirthDate = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -178,7 +178,9 @@ export default function ProfileScreen() {
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
-          {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+          {formError ? (
+            <Text style={styles.formErrorText}>{formError}</Text>
+          ) : null}
         </Animated.View>
         <Animated.View
           entering={FadeInDown.delay(400).duration(600).springify()}

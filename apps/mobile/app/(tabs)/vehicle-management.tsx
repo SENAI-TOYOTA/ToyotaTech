@@ -9,9 +9,9 @@ import Animated, {
 } from "react-native-reanimated";
 
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
-import { colors, fonts, fontSize, spacing } from "@/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageCurrent } from "@/services/garage";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { GarageData } from "@/types/garage";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -104,28 +104,38 @@ export default function VehicleManagementScreen() {
         </Animated.View>
 
         <View style={styles.documentList}>
-          {documents.length ? documents.map((document, index) => {
-            const documentTitle = getDocumentDisplayTitle(document.title);
+          {documents.length ? (
+            documents.map((document, index) => {
+              const documentTitle = getDocumentDisplayTitle(document.title);
 
-            return (
-              <Animated.View
-                key={document.id}
-                entering={FadeInDown.delay(200 + index * 100)
-                  .duration(600)
-                  .springify()}
-                style={styles.documentButtonWrapper}
-              >
-                <View style={styles.documentButtonShadow} />
-                <InteractivePressable style={styles.documentButton}>
-                  <View style={styles.documentButtonContent}>
-                    <Text style={styles.documentButtonText}>{documentTitle}</Text>
-                  </View>
-                  <ArrowRight size={30} strokeWidth={2.4} color={colors.black} />
-                </InteractivePressable>
-              </Animated.View>
-            );
-          }) : (
-            <Text style={styles.emptyStateText}>Nenhum documento vinculado.</Text>
+              return (
+                <Animated.View
+                  key={document.id}
+                  entering={FadeInDown.delay(200 + index * 100)
+                    .duration(600)
+                    .springify()}
+                  style={styles.documentButtonWrapper}
+                >
+                  <View style={styles.documentButtonShadow} />
+                  <InteractivePressable style={styles.documentButton}>
+                    <View style={styles.documentButtonContent}>
+                      <Text style={styles.documentButtonText}>
+                        {documentTitle}
+                      </Text>
+                    </View>
+                    <ArrowRight
+                      size={30}
+                      strokeWidth={2.4}
+                      color={colors.black}
+                    />
+                  </InteractivePressable>
+                </Animated.View>
+              );
+            })
+          ) : (
+            <Text style={styles.emptyStateText}>
+              Nenhum documento vinculado.
+            </Text>
           )}
         </View>
 
@@ -138,15 +148,21 @@ export default function VehicleManagementScreen() {
             Notificações e agendamentos de reparos obrigatórios.
           </Text>
           <View style={styles.recallList}>
-            {recalls.length ? recalls.map((recall) => (
-              <View key={recall.id} style={styles.recallItem}>
-                <Text style={styles.recallItemTitle}>{recall.title}</Text>
-                {recall.description ? (
-                  <Text style={styles.recallItemDescription}>{recall.description}</Text>
-                ) : null}
-              </View>
-            )) : (
-              <Text style={styles.recallEmptyText}>Nenhum recall registrado.</Text>
+            {recalls.length ? (
+              recalls.map((recall) => (
+                <View key={recall.id} style={styles.recallItem}>
+                  <Text style={styles.recallItemTitle}>{recall.title}</Text>
+                  {recall.description ? (
+                    <Text style={styles.recallItemDescription}>
+                      {recall.description}
+                    </Text>
+                  ) : null}
+                </View>
+              ))
+            ) : (
+              <Text style={styles.recallEmptyText}>
+                Nenhum recall registrado.
+              </Text>
             )}
           </View>
         </Animated.View>

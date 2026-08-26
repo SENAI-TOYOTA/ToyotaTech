@@ -3,7 +3,7 @@ from typing import Any, Dict
 from botocore.exceptions import ClientError
 
 from common.cognito import is_federated, link_provider, log_error
-from common.cognito_users import find_by_email, find_local_by_email
+from common.cognito_users import find_by_email
 from common.responses import error_body
 
 

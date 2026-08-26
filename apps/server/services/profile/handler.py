@@ -4,7 +4,7 @@ from typing import Any, Dict
 from botocore.exceptions import ClientError
 
 from common.cognito import COGNITO_CLIENT_ID
-from common.responses import ApiError, log_error, parse_body, response
+from common.responses import ApiError, log_error, response
 
 from . import flows
 

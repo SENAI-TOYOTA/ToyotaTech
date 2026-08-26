@@ -33,7 +33,10 @@ export async function login(payload: LoginPayload) {
   });
 }
 
-export async function fetchMe(token: string, options?: { suppressErrorLog?: boolean }) {
+export async function fetchMe(
+  token: string,
+  options?: { suppressErrorLog?: boolean }
+) {
   return apiRequest<{ user: AuthUser }>("/me", {
     method: "GET",
     token,

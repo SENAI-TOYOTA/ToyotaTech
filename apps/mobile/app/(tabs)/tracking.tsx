@@ -1,3 +1,5 @@
+import { useRouter } from "expo-router";
+import { ArrowLeft, Check } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,12 +10,10 @@ import {
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { ArrowLeft, Check } from "lucide-react-native";
 
-import { colors, fonts, spacing } from "@/theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageStatus } from "@/services/garage";
+import { colors, fonts, spacing } from "@/theme";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
 
 function canUseCorollaAltisImage(model?: string) {
@@ -58,7 +58,9 @@ export default function TrackingScreen() {
   if (!trackingData) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Erro ao carregar status do veículo.</Text>
+        <Text style={styles.errorText}>
+          Erro ao carregar status do veículo.
+        </Text>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Voltar</Text>
         </Pressable>
@@ -91,11 +93,19 @@ export default function TrackingScreen() {
         <View style={styles.carCard}>
           <View style={styles.carImageContainer}>
             {canUseCorollaAltisImage(trackingData.model) ? (
-              <Image source={mainCarImage} style={styles.carImage} resizeMode="contain" />
+              <Image
+                source={mainCarImage}
+                style={styles.carImage}
+                resizeMode="contain"
+              />
             ) : (
               <View style={styles.vehicleFallbackCard}>
-                <Text style={styles.vehicleFallbackEyebrow}>VEICULO VINCULADO</Text>
-                <Text style={styles.vehicleFallbackModel}>{trackingData.model}</Text>
+                <Text style={styles.vehicleFallbackEyebrow}>
+                  VEICULO VINCULADO
+                </Text>
+                <Text style={styles.vehicleFallbackModel}>
+                  {trackingData.model}
+                </Text>
                 <Text style={styles.vehicleFallbackSpecs}>
                   {trackingData.version} • {trackingData.color}
                 </Text>
@@ -133,7 +143,13 @@ export default function TrackingScreen() {
   );
 }
 
-function TimelineStep({ step, isLast }: { step: TrackingStep; isLast: boolean }) {
+function TimelineStep({
+  step,
+  isLast,
+}: {
+  step: TrackingStep;
+  isLast: boolean;
+}) {
   const isCompleted = step.status === "completed";
   const isCurrent = step.status === "current";
 
@@ -147,10 +163,16 @@ function TimelineStep({ step, isLast }: { step: TrackingStep; isLast: boolean })
             isCurrent && styles.indicatorCurrent,
           ]}
         >
-          {isCompleted && <Check size={14} color={colors.white} strokeWidth={3} />}
+          {isCompleted && (
+            <Check size={14} color={colors.white} strokeWidth={3} />
+          )}
           {isCurrent && <View style={styles.innerCircle} />}
         </View>
-        {!isLast && <View style={[styles.connector, isCompleted && styles.connectorCompleted]} />}
+        {!isLast && (
+          <View
+            style={[styles.connector, isCompleted && styles.connectorCompleted]}
+          />
+        )}
       </View>
 
       <View style={styles.stepContent}>
