@@ -1,17 +1,13 @@
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  FadeInDown,
-  FadeInRight,
-} from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
 import InteractivePressable from "@/components/ui/InteractivePressable";
+import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchGarageCurrent } from "@/services/garage";
+import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, spacing } from "@/theme";
-import { GarageData } from "@/types/garage";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
@@ -46,60 +42,15 @@ const toyotaTips = [
   },
 ];
 
-function VehicleFallbackHero({ vehicle }: { vehicle?: GarageData["vehicle"] }) {
-  const model = vehicle?.model ?? "Seu Toyota";
-  const specs = vehicle
-    ? `${vehicle.version} • ${vehicle.color}`
-    : "Dados do veiculo em preparacao";
-
-  return (
-    <View style={styles.vehicleFallbackHero}>
-      <Text style={styles.vehicleFallbackEyebrow}>VEICULO VINCULADO</Text>
-      <Text style={styles.vehicleFallbackModel}>{model}</Text>
-      <Text style={styles.vehicleFallbackSpecs}>{specs}</Text>
-      {vehicle?.chassi ? (
-        <Text style={styles.vehicleFallbackChassi}>
-          Chassi {vehicle.chassi}
-        </Text>
-      ) : null}
-      <Text style={styles.vehicleFallbackNote}>
-        Imagem ilustrativa indisponivel
-      </Text>
-    </View>
-  );
-}
-
 export default function HomeScreen() {
   const router = useRouter();
-  const { token, user } = useAuth();
-  const [garage, setGarage] = useState<GarageData | null>(null);
+  const { user } = useAuth();
+  const { garage } = useGarage();
   const displayName = user?.profile?.fullName || user?.name || "Usuário";
   const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
   const vehicle = garage?.vehicle;
   const vehicleLabel = vehicle?.model ?? "Seu Toyota";
   const shouldUseVehicleImage = canUseCorollaAltisImage(vehicle?.model);
-
-  useEffect(() => {
-    let active = true;
-    const loadGarage = async () => {
-      if (!token) {
-        return;
-      }
-      try {
-        const result = await fetchGarageCurrent(token);
-        if (active) {
-          setGarage(result.garage);
-        }
-      } catch (error) {
-        console.error("Failed to fetch garage", error);
-      }
-    };
-
-    void loadGarage();
-    return () => {
-      active = false;
-    };
-  }, [token]);
 
   return (
     <View style={styles.container}>
@@ -130,7 +81,13 @@ export default function HomeScreen() {
               </View>
             </>
           ) : (
-            <VehicleFallbackHero vehicle={vehicle} />
+            <VehicleFallback
+              model={vehicle?.model}
+              version={vehicle?.version}
+              color={vehicle?.color}
+              chassi={vehicle?.chassi}
+              variant="hero"
+            />
           )}
         </Animated.View>
 
@@ -245,51 +202,6 @@ const styles = StyleSheet.create({
   mainImage: {
     width: "100%",
     height: "100%",
-  },
-  vehicleFallbackHero: {
-    width: "100%",
-    height: "100%",
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    padding: spacing.lg,
-    justifyContent: "flex-end",
-  },
-  vehicleFallbackEyebrow: {
-    fontFamily: fonts.bold,
-    fontSize: 12,
-    color: colors.primary,
-    letterSpacing: 1.2,
-  },
-  vehicleFallbackModel: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.bold,
-    fontSize: 34,
-    lineHeight: 36,
-    color: colors.black,
-  },
-  vehicleFallbackSpecs: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.regular,
-    fontSize: 18,
-    color: colors.textSecondary,
-  },
-  vehicleFallbackChassi: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.medium,
-    fontSize: 14,
-    color: colors.black,
-  },
-  vehicleFallbackNote: {
-    marginTop: spacing.lg,
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: colors.black,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.textSecondary,
   },
   carLabel: {
     position: "absolute",

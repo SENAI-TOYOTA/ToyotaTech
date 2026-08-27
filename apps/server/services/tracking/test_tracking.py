@@ -122,7 +122,7 @@ def test_status_retorna_tracking_da_garage() -> None:
     with (
         patch("services.tracking.store.get_table", get_table_mock),
         patch(
-            "services.tracking.handler.get_user_by_access_token",
+            "common.auth.get_user_by_access_token",
             return_value=cognito_user(),
         ),
     ):
@@ -154,7 +154,7 @@ def test_status_evento_mais_recente_da_tracking_table_ganha() -> None:
     with (
         patch("services.tracking.store.get_table", get_table_mock),
         patch(
-            "services.tracking.handler.get_user_by_access_token",
+            "common.auth.get_user_by_access_token",
             return_value=cognito_user(),
         ),
     ):
@@ -197,7 +197,6 @@ def test_ingest_iot_sem_requestcontext_grava_na_tracking_table() -> None:
 
 
 def test_ingest_rota_http_explicita_processa_payload() -> None:
-    """No novo design o ingest é a rota explícita POST /garage/ingest."""
     tracking_table = FakeTable()
     garage = garage_item()
     garage_table = FakeTable(scan_items=[garage])

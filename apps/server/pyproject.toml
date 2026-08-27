@@ -21,24 +21,3 @@ known-first-party = ["common", "services"]
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-
-[tool.black]
-line-length = 88
-target-version = ["py312"]
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.venv
-  | venv
-  | __pycache__
-  | \.pytest_cache
-)/
-'''
-
-[tool.isort]
-profile = "black"
-line_length = 88
-src_paths = [".", "services", "layers/common/python"]
-known_first_party = ["common", "services"]
-sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]

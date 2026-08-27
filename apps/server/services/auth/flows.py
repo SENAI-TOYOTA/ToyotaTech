@@ -1,5 +1,4 @@
 import os
-import re
 import time
 from typing import Any, Dict
 
@@ -16,6 +15,7 @@ from common.cognito import (
 )
 from common.ddb import get_table
 from common.responses import ApiError, error_body, parse_body, require
+from common.validation import normalize_birth_date, normalize_cpf
 
 PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()
 
@@ -31,27 +31,14 @@ def _email(body: Dict[str, Any]) -> str:
     return email
 
 
-def _normalize_cpf(value: Any) -> str:
-    text = str(value or "").strip()
-    return re.sub(r"\D+", "", text)[:11]
-
-
-def _normalize_birth_date(value: Any) -> str:
-    text = str(value or "").strip()
-    digits = re.sub(r"\D+", "", text)
-    if len(digits) == 8:
-        return f"{digits[:2]}/{digits[2:4]}/{digits[4:]}"
-    return text
-
-
 def _profile(user_id: str) -> Dict[str, str]:
     item = (get_table(PROFILE_TABLE_NAME).get_item(Key={"userId": user_id})).get(
         "Item"
     ) or {}
     return {
         "fullName": str(item.get("fullName", "") or ""),
-        "birthDate": _normalize_birth_date(item.get("birthDate", "")),
-        "cpf": _normalize_cpf(item.get("cpf", "")),
+        "birthDate": normalize_birth_date(item.get("birthDate", "")),
+        "cpf": normalize_cpf(item.get("cpf", "")),
     }
 
 

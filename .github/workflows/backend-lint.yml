@@ -23,16 +23,10 @@ jobs:
           cache: pip
 
       - name: Install linters
-        run: pip install ruff black isort
+        run: pip install ruff
 
       - name: Ruff check
         run: ruff check .
 
       - name: Ruff format check
         run: ruff format --check .
-
-      - name: Black check
-        run: black --check .
-
-      - name: Isort check
-        run: isort --check .

@@ -1,52 +1,14 @@
 import { ArrowRight } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import InteractivePressable from "@/components/ui/InteractivePressable";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
-import { useAuth } from "@/contexts/AuthContext";
-import { fetchGarageCurrent } from "@/services/garage";
+import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, fontSize, spacing } from "@/theme";
-import { GarageData } from "@/types/garage";
 
 export default function FinancingScreen() {
-  const { token } = useAuth();
-  const [garage, setGarage] = useState<GarageData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const loadGarage = async () => {
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const result = await fetchGarageCurrent(token);
-        if (active) {
-          setGarage(result.garage);
-          setLoadError(null);
-        }
-      } catch (error) {
-        console.error("Failed to fetch financing data", error);
-        if (active) {
-          setLoadError("Nao foi possivel carregar o financiamento.");
-        }
-      } finally {
-        if (active) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadGarage();
-    return () => {
-      active = false;
-    };
-  }, [token]);
+  const { garage, isLoading, error } = useGarage();
 
   const financing = garage?.financing;
   const vehicleTitle = garage
@@ -110,7 +72,7 @@ export default function FinancingScreen() {
             <Text style={styles.emptyText}>
               {isLoading
                 ? "Carregando financiamento..."
-                : (loadError ?? "Financiamento ainda nao vinculado.")}
+                : (error ?? "Financiamento ainda nao vinculado.")}
             </Text>
           </Animated.View>
         )}

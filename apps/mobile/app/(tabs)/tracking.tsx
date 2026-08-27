@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 
+import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageStatus } from "@/services/garage";
 import { colors, fonts, spacing } from "@/theme";
@@ -96,20 +97,12 @@ export default function TrackingScreen() {
                 resizeMode="contain"
               />
             ) : (
-              <View style={styles.vehicleFallbackCard}>
-                <Text style={styles.vehicleFallbackEyebrow}>
-                  VEICULO VINCULADO
-                </Text>
-                <Text style={styles.vehicleFallbackModel}>
-                  {trackingData.model}
-                </Text>
-                <Text style={styles.vehicleFallbackSpecs}>
-                  {trackingData.version} • {trackingData.color}
-                </Text>
-                <Text style={styles.vehicleFallbackNote}>
-                  Imagem ilustrativa indisponivel
-                </Text>
-              </View>
+              <VehicleFallback
+                model={trackingData.model}
+                version={trackingData.version}
+                color={trackingData.color}
+                variant="card"
+              />
             )}
           </View>
           <View style={styles.carDetails}>
@@ -248,40 +241,6 @@ const styles = StyleSheet.create({
   carImage: {
     width: "100%",
     height: "100%",
-  },
-  vehicleFallbackCard: {
-    width: "100%",
-    height: "100%",
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    padding: spacing.md,
-    justifyContent: "center",
-  },
-  vehicleFallbackEyebrow: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-    color: colors.primary,
-    letterSpacing: 1,
-  },
-  vehicleFallbackModel: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.bold,
-    fontSize: 28,
-    lineHeight: 30,
-    color: colors.black,
-  },
-  vehicleFallbackSpecs: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.regular,
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  vehicleFallbackNote: {
-    marginTop: spacing.md,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.textSecondary,
   },
   carDetails: {
     marginTop: spacing.sm,

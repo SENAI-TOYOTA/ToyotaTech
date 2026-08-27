@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from common.responses import require
+from common.validation import coerce_text
 
 from . import store
 
@@ -88,14 +89,6 @@ TRACKING_FIELDS = (
     "fields",
     "measurement",
 )
-
-
-def coerce_text(value: Any) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, str):
-        return value.strip()
-    return str(value).strip()
 
 
 def slugify_tracking_token(value: Any) -> str:
@@ -239,13 +232,6 @@ def extract_step_dates(payload: Dict[str, Any]) -> Dict[int, str]:
 
 
 def extract_iot_tracking_payload(event: Any) -> Optional[Dict[str, Any]]:
-    """Detecta invocação direta de IoT/fábrica.
-
-    Eventos HTTP do API Gateway sempre têm ``requestContext`` e triggers do
-    Cognito têm ``triggerSource``; nesses casos retorna None para o evento ser
-    tratado pelo roteamento normal. Invocações diretas (regras IoT, Step
-    Functions) sem esses campos são reconhecidas como payloads de tracking.
-    """
     if not isinstance(event, dict):
         return None
     if event.get("requestContext") or event.get("triggerSource"):
@@ -271,7 +257,6 @@ def extract_iot_tracking_payload(event: Any) -> Optional[Dict[str, Any]]:
 
 
 def coerce_iot_tracking_payload(payload: Any) -> Optional[Dict[str, Any]]:
-    """Achata variações de payload IoT (tags/fields/time) num dicionário plano."""
     if not isinstance(payload, dict):
         return None
 
@@ -382,7 +367,6 @@ def normalize_factory_tracking(
 
 
 def process_ingest(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Processa um evento de tracking da fábrica e grava na TrackingTable."""
     vehicle_ref = coerce_text(
         payload.get("chassi") or payload.get("vehicleId") or payload.get("vin")
     )

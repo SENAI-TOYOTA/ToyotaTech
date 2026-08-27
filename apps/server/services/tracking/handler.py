@@ -3,33 +3,17 @@ from typing import Any, Dict
 
 from botocore.exceptions import ClientError
 
-from common.cognito import build_user, extract_token, get_user_by_access_token
-from common.cognito_users import link_federated_if_needed
+from common.auth import authenticated_user
 from common.responses import (
     ApiError,
-    error_body,
     log_error,
     parse_body,
     require,
     response,
 )
+from common.validation import coerce_text
 
 from . import ingest, store
-
-
-def authenticated_user(event: Dict[str, Any]) -> Dict[str, Any]:
-    access_token = extract_token(event)
-    require(bool(access_token), 401, "Token não informado.")
-
-    try:
-        cognito_user = get_user_by_access_token(access_token)
-        link_federated_if_needed(cognito_user)
-        return build_user(cognito_user)
-    except ClientError as error:
-        code, _ = error_body(error)
-        if code == "NotAuthorizedException":
-            raise ApiError(401, "Sessão inválida ou expirada.")
-        raise
 
 
 def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -50,7 +34,7 @@ def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
     base_vehicle = (
         garage.get("vehicle") if isinstance(garage.get("vehicle"), dict) else {}
     )
-    vehicle_id = ingest.coerce_text(
+    vehicle_id = coerce_text(
         tracking.get("vehicleId") or base_vehicle.get("chassi") or garage.get("chassi")
     )
 
@@ -67,13 +51,6 @@ def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def receive_ingest(event: Dict[str, Any]) -> Dict[str, Any]:
-    """Rota explícita POST /garage/ingest para payloads IoT/fábrica via HTTP.
-
-    No monolito o ingest era detectado implicitamente pela ausência de
-    ``requestContext``; aqui o remetente HTTP publica diretamente nesta rota,
-    sem autenticação. Invocações diretas (sem requestContext) continuam
-    reconhecidas pelo atalho IoT no lambda_handler.
-    """
     payload = ingest.coerce_iot_tracking_payload(parse_body(event))
     require(bool(payload), 400, "Payload de tracking inválido.")
     return ingest.process_ingest(payload)

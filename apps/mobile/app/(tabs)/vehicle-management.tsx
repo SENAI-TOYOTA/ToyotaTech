@@ -1,14 +1,11 @@
 import { ArrowRight } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import InteractivePressable from "@/components/ui/InteractivePressable";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
-import { useAuth } from "@/contexts/AuthContext";
-import { fetchGarageCurrent } from "@/services/garage";
+import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, fontSize, spacing } from "@/theme";
-import { GarageData } from "@/types/garage";
 const documentDatePattern =
   /(?:\s*[-–—|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
 
@@ -21,30 +18,7 @@ function getDocumentDisplayTitle(title: string) {
 }
 
 export default function VehicleManagementScreen() {
-  const { token } = useAuth();
-  const [garage, setGarage] = useState<GarageData | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const loadGarage = async () => {
-      if (!token) {
-        return;
-      }
-      try {
-        const result = await fetchGarageCurrent(token);
-        if (active) {
-          setGarage(result.garage);
-        }
-      } catch (error) {
-        console.error("Failed to fetch garage documents", error);
-      }
-    };
-
-    void loadGarage();
-    return () => {
-      active = false;
-    };
-  }, [token]);
+  const { garage } = useGarage();
 
   const documents = garage?.documents ?? [];
   const recalls = garage?.recalls ?? [];
