@@ -64,7 +64,7 @@ def warn_link_failure(error: Exception) -> None:
         "AliasExistsException",
         "InvalidParameterException",
     ):
-        print(f"Aviso: falha ao vincular IdP: {code}")
+        print(f"Warning: failed to link IdP: {code}")
         return
     raise error
 

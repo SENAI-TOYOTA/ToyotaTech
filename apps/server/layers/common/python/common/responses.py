@@ -84,4 +84,4 @@ def require(
 
 def error_body(error: ClientErrorLike) -> tuple[str, str]:
     payload = error.response.get("Error", {})
-    return payload.get("Code", "Unknown"), payload.get("Message", "Erro desconhecido.")
+    return payload.get("Code", "Unknown"), payload.get("Message", "Unknown error.")
