@@ -15,10 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageStatus } from "@/services/garage";
 import { colors, fonts, spacing } from "@/theme";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
-
-function canUseCorollaAltisImage(model?: string) {
-  return (model ?? "").toLowerCase().includes("corolla altis");
-}
+import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 

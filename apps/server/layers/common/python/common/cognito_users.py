@@ -9,6 +9,7 @@ from .cognito import (
     is_federated,
     link_provider,
     parse_attributes,
+    warn_link_failure,
 )
 from .responses import error_body
 
@@ -125,13 +126,5 @@ def link_federated_if_needed(federated_user: Dict[str, Any]) -> None:
             local_username, identity["providerName"], identity["providerUserId"]
         )
     except ClientError as error:
-        code, _ = error_body(error)
-        if code in (
-            "ResourceNotFoundException",
-            "ResourceConflictException",
-            "AliasExistsException",
-            "InvalidParameterException",
-        ):
-            print(f"Aviso: falha ao vincular IdP: {code}")
-            return
-        raise
+        warn_link_failure(error)
+        return

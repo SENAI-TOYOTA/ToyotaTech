@@ -7,64 +7,15 @@ import Button from "@/components/ui/Button";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { validateBirthDate } from "@/profileValidation";
+import {
+  validateBirthDate,
+  validatePassword,
+} from "@/profileValidation";
 import { ApiError } from "@/services/api";
 import { resolveGarage } from "@/services/garage";
 import { fetchProfile, updateProfile } from "@/services/profile";
 import { colors, fonts, fontSize, spacing } from "@/theme";
-
-const formatBirthDate = (value: string) => {
-  const digits = value.replace(/\D/g, "").slice(0, 8);
-  if (!digits) {
-    return "";
-  }
-  let result = digits.slice(0, 2);
-  if (digits.length > 2) {
-    result += `/${digits.slice(2, 4)}`;
-  }
-  if (digits.length > 4) {
-    result += `/${digits.slice(4, 8)}`;
-  }
-  return result;
-};
-
-const normalizeCpf = (value: string) => value.replace(/\D/g, "").slice(0, 11);
-
-const formatCpf = (value: string) => {
-  const digits = normalizeCpf(value);
-  if (!digits) {
-    return "";
-  }
-  let result = digits.slice(0, 3);
-  if (digits.length > 3) {
-    result += `.${digits.slice(3, 6)}`;
-  }
-  if (digits.length > 6) {
-    result += `.${digits.slice(6, 9)}`;
-  }
-  if (digits.length > 9) {
-    result += `-${digits.slice(9, 11)}`;
-  }
-  return result;
-};
-
-const PASSWORD_MIN_LENGTH = 8;
-
-function validatePassword(password: string): string | null {
-  if (password.length < PASSWORD_MIN_LENGTH) {
-    return `A senha deve ter ao menos ${PASSWORD_MIN_LENGTH} caracteres.`;
-  }
-  if (!/[A-Z]/.test(password)) {
-    return "A senha deve conter ao menos uma letra maiúscula.";
-  }
-  if (!/[a-z]/.test(password)) {
-    return "A senha deve conter ao menos uma letra minúscula.";
-  }
-  if (!/[0-9]/.test(password)) {
-    return "A senha deve conter ao menos um número.";
-  }
-  return null;
-}
+import { formatBirthDate, formatCpf, normalizeCpf } from "@/utils/format";
 
 export default function ProfileSetupScreen() {
   const router = useRouter();

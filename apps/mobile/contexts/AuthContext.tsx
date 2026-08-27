@@ -18,6 +18,7 @@ import {
   register,
   setPassword as setPasswordService,
 } from "@/services/auth";
+import { hasCompleteProfile } from "@/profileValidation";
 import { fetchGarageCurrent } from "@/services/garage";
 import { AuthUser, RegisterResponse } from "@/types/auth";
 
@@ -115,12 +116,6 @@ function isTokenFederated(idToken: string): boolean {
   } catch {
     return false;
   }
-}
-
-function hasCompleteProfile(user: AuthUser | null) {
-  return Boolean(
-    user?.profile?.fullName && user.profile.birthDate && user.profile.cpf
-  );
 }
 
 interface AuthContextValue {

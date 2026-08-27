@@ -1,53 +1,14 @@
 import { ArrowRight } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageCurrent } from "@/services/garage";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { GarageData } from "@/types/garage";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-function InteractivePressable({
-  children,
-  style,
-  onPress,
-  ...props
-}: React.ComponentProps<typeof Pressable>) {
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
-  };
-
-  return (
-    <AnimatedPressable
-      {...props}
-      style={[style, animatedStyle]}
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-    >
-      {children}
-    </AnimatedPressable>
-  );
-}
 
 export default function FinancingScreen() {
   const { token } = useAuth();

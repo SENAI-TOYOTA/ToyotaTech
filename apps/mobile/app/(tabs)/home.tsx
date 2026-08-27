@@ -1,30 +1,18 @@
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeInDown,
   FadeInRight,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
 } from "react-native-reanimated";
 
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchGarageCurrent } from "@/services/garage";
 import { colors, fonts, spacing } from "@/theme";
 import { GarageData } from "@/types/garage";
-
-function canUseCorollaAltisImage(model?: string) {
-  return (model ?? "").toLowerCase().includes("corolla altis");
-}
+import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 const sideCarImage = require("@/assets/images/corolla-side.png");
@@ -57,41 +45,6 @@ const toyotaTips = [
     category: "ESTILO",
   },
 ];
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-function InteractivePressable({
-  children,
-  style,
-  onPress,
-  ...props
-}: React.ComponentProps<typeof Pressable>) {
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
-  };
-
-  return (
-    <AnimatedPressable
-      {...props}
-      style={[style, animatedStyle]}
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-    >
-      {children}
-    </AnimatedPressable>
-  );
-}
 
 function VehicleFallbackHero({ vehicle }: { vehicle?: GarageData["vehicle"] }) {
   const model = vehicle?.model ?? "Seu Toyota";

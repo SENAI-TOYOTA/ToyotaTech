@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { hasCompleteProfile } from "@/profileValidation";
 import { colors } from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -24,11 +25,7 @@ function AppNavigator() {
 
   const isInAuthGroup = segments[0] === "(auth)";
   const isInProfileSetup = segments[0] === "profile-setup";
-  const needsProfile =
-    Boolean(isAuthenticated) &&
-    (!user?.profile?.fullName ||
-      !user?.profile?.birthDate ||
-      !user?.profile?.cpf);
+  const needsProfile = Boolean(isAuthenticated) && !hasCompleteProfile(user);
 
   useEffect(() => {
     if (isLoadingSession) {
