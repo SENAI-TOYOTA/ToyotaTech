@@ -46,7 +46,7 @@ export function AuthScreenLayout({
               footerTextColor && { color: footerTextColor },
             ]}
           >
-            todos os direitos reservados © 2026
+            all rights reserved 2026
           </Text>
         </View>
       </View>

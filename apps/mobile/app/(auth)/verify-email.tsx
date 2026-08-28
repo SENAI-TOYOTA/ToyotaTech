@@ -24,7 +24,7 @@ export default function VerifyEmailScreen() {
 
   const handleVerifyPress = async () => {
     if (verificationCode.length !== CODE_LENGTH) {
-      setFormError("Informe o código completo de verificação.");
+      setFormError("Enter the full verification code.");
       return;
     }
     setFormError(null);
@@ -48,7 +48,7 @@ export default function VerifyEmailScreen() {
       if (error instanceof ApiError) {
         setFormError(error.message);
       } else {
-        setFormError("Não foi possível validar o código. Tente novamente.");
+        setFormError("Unable to validate code. Try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -61,14 +61,14 @@ export default function VerifyEmailScreen() {
     setIsResending(true);
     try {
       await resendVerification(String(email).toLowerCase());
-      setFeedback("Código reenviado.");
+      setFeedback("Code resent.");
       setVerificationCode("");
       otpRef.current?.clear();
     } catch (error) {
       if (error instanceof ApiError) {
         setFormError(error.message);
       } else {
-        setFormError("Não foi possível reenviar o código.");
+        setFormError("Unable to resend code.");
       }
     } finally {
       setIsResending(false);
@@ -77,15 +77,15 @@ export default function VerifyEmailScreen() {
 
   return (
     <AuthScreenLayout contentSectionStyle={styles.contentSection}>
-      <Text style={styles.title}>VERIFIQUE SEU EMAIL</Text>
+      <Text style={styles.title}>VERIFY YOUR EMAIL</Text>
       <Text style={styles.subtitle}>
-        Não se esqueça de olhar a caixa de spam!
+        Do not forget to check your spam folder!
       </Text>
 
       <View style={styles.formContainer}>
         <View style={styles.emailRow}>
-          <Text style={styles.emailLabel}>Email enviado para:</Text>
-          <Text style={styles.emailValue}>{email || "seu e-mail"}</Text>
+          <Text style={styles.emailLabel}>Email sent to:</Text>
+          <Text style={styles.emailValue}>{email || "your email"}</Text>
         </View>
 
         <View style={styles.codeInputsRow}>
@@ -105,7 +105,7 @@ export default function VerifyEmailScreen() {
         </View>
 
         <Button
-          title={isSubmitting ? "Verificando..." : "Verificar"}
+          title={isSubmitting ? "Verifying..." : "Verify"}
           variant="primary"
           icon={
             <ArrowRight
@@ -121,7 +121,7 @@ export default function VerifyEmailScreen() {
           disabled={isSubmitting || isResending}
         />
         <Button
-          title={isResending ? "Reenviando..." : "Reenviar código"}
+          title={isResending ? "Resending..." : "Resend code"}
           variant="outline"
           style={styles.resendButton}
           onPress={handleResendPress}

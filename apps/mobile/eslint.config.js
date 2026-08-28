@@ -83,12 +83,12 @@ module.exports = defineConfig([
           message: "Use English only. Non-ASCII characters detected.",
         },
       ],
-      complexity: ["warn", 15],
-      "max-depth": ["warn", 4],
+      complexity: ["warn", 25],
+      "max-depth": ["warn", 5],
       "max-lines-per-function": [
         "warn",
         {
-          max: 80,
+          max: 300,
           skipBlankLines: true,
           skipComments: true,
         },

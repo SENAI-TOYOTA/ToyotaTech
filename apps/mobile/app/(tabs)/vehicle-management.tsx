@@ -6,8 +6,9 @@ import InteractivePressable from "@/components/ui/InteractivePressable";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, fontSize, spacing } from "@/theme";
+
 const documentDatePattern =
-  /(?:\s*[-–—|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
+  /(?:\s*[-|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
 
 function getDocumentDisplayTitle(title: string) {
   const sanitizedTitle = title
@@ -31,8 +32,8 @@ export default function VehicleManagementScreen() {
       >
         <Animated.View entering={FadeInDown.duration(600).springify()}>
           <ScreenSectionHeader
-            title="Gestão do veículo"
-            subtitle="Documentos digitais, lembretes e mais!"
+            title="Vehicle Management"
+            subtitle="Digital documents, reminders and more!"
             style={styles.sectionHeader}
           />
         </Animated.View>
@@ -67,9 +68,7 @@ export default function VehicleManagementScreen() {
               );
             })
           ) : (
-            <Text style={styles.emptyStateText}>
-              Nenhum documento vinculado.
-            </Text>
+            <Text style={styles.emptyStateText}>No linked documents.</Text>
           )}
         </View>
 
@@ -77,9 +76,9 @@ export default function VehicleManagementScreen() {
           entering={FadeInDown.delay(700).duration(600).springify()}
           style={styles.recallCard}
         >
-          <Text style={styles.recallTitle}>Programas de recall</Text>
+          <Text style={styles.recallTitle}>Recall programs</Text>
           <Text style={styles.recallDescription}>
-            Notificações e agendamentos de reparos obrigatórios.
+            Notifications and mandatory repair scheduling.
           </Text>
           <View style={styles.recallList}>
             {recalls.length ? (
@@ -94,9 +93,7 @@ export default function VehicleManagementScreen() {
                 </View>
               ))
             ) : (
-              <Text style={styles.recallEmptyText}>
-                Nenhum recall registrado.
-              </Text>
+              <Text style={styles.recallEmptyText}>No recalls registered.</Text>
             )}
           </View>
         </Animated.View>

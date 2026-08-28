@@ -13,7 +13,7 @@ import {
 
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchGarageStatus } from "@/services/garage";
+import { fetchTrackingStatus } from "@/services/tracking";
 import { colors, fonts, spacing } from "@/theme";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
@@ -33,16 +33,16 @@ export default function TrackingScreen() {
         return;
       }
       try {
-        const data = await fetchGarageStatus(token);
-        setTrackingData(data.tracking);
+        const data = await fetchTrackingStatus(token);
+        setTrackingData(data);
       } catch (error) {
-        console.error("Failed to fetch tracking data", error);
+        console.warn("Failed to fetch tracking data", error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    void loadData();
   }, [token]);
 
   if (loading) {
@@ -56,11 +56,9 @@ export default function TrackingScreen() {
   if (!trackingData) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>
-          Erro ao carregar status do veículo.
-        </Text>
+        <Text style={styles.errorText}>Failed to load vehicle status.</Text>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Voltar</Text>
+          <Text style={styles.backButtonText}>Go back</Text>
         </Pressable>
       </View>
     );
@@ -68,7 +66,6 @@ export default function TrackingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header with Back Button */}
       <View style={styles.header}>
         <Pressable
           onPress={() => router.back()}
@@ -80,14 +77,13 @@ export default function TrackingScreen() {
         >
           <ArrowLeft size={24} color={colors.black} />
         </Pressable>
-        <Text style={styles.headerTitle}>Status do Pedido</Text>
+        <Text style={styles.headerTitle}>Order Status</Text>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        {/* Car Card */}
         <View style={styles.carCard}>
           <View style={styles.carImageContainer}>
             {canUseCorollaAltisImage(trackingData.model) ? (
@@ -116,9 +112,8 @@ export default function TrackingScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Acompanhamento</Text>
+        <Text style={styles.sectionTitle}>Tracking</Text>
 
-        {/* Timeline */}
         <View style={styles.timelineContainer}>
           {trackingData.steps.map((step, index) => (
             <TimelineStep

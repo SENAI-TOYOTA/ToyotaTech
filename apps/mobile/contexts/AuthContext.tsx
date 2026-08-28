@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Platform } from "react-native";
 
+import { hasCompleteProfile } from "@/profileValidation";
 import { ApiError } from "@/services/api";
 import {
   fetchMe,
@@ -18,7 +19,6 @@ import {
   register,
   setPassword as setPasswordService,
 } from "@/services/auth";
-import { hasCompleteProfile } from "@/profileValidation";
 import { fetchGarageCurrent } from "@/services/garage";
 import { AuthUser, RegisterResponse } from "@/types/auth";
 
@@ -84,27 +84,17 @@ async function deleteStoredSession() {
   await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
 }
 
-/**
- * Verifica se o idToken indica que o usuário foi autenticado via provedor
- * externo (Google). O Cognito inclui no campo `cognito:username` do token
- * o prefixo "Google_" para usuários federados, e o campo `identities` com
- * o provedor. Decodificamos o payload do JWT (sem verificar assinatura, pois
- * isso é responsabilidade do servidor) apenas para leitura local de UX.
- */
 function isTokenFederated(idToken: string): boolean {
   try {
     const parts = idToken.split(".");
     if (parts.length !== 3) return false;
-    // Adiciona padding necessário para base64
     const payload = parts[1];
     const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
     const decoded = JSON.parse(atob(padded)) as Record<string, unknown>;
 
-    // Cognito marca usuários SSO com o provedor no campo `identities`
     if (Array.isArray(decoded.identities) && decoded.identities.length > 0) {
       return true;
     }
-    // Fallback: username começa com "Google_"
     const username = decoded["cognito:username"];
     if (
       typeof username === "string" &&
@@ -152,7 +142,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         await fetchGarageCurrent(accessToken);
       } catch (error) {
         if (__DEV__) {
-          console.warn("[GARAGE] Falha ao inicializar garagem", error);
+          console.warn("[GARAGE] Failed to initialize garage", error);
         }
       }
     },
@@ -207,16 +197,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
           setSession(refreshedSession);
           setUser(meResult.user);
           await bootstrapGarage(refreshedSession.accessToken, meResult.user);
-        } catch (refreshError) {
+        } catch {
           if (__DEV__) {
-            console.info(
-              "[Auth] Sessao armazenada expirada. Limpando login local."
+            console.warn(
+              "[Auth] Stored session expired. Clearing local login."
             );
           }
           await clearSession();
         }
       } else {
-        console.error("Falha ao restaurar sessao:", error);
+        console.error("Failed to restore session:", error);
         await clearSession();
       }
     } finally {
@@ -275,7 +265,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const setPassword = useCallback(
     async (password: string) => {
       if (!session?.accessToken) {
-        throw new Error("Sessao invalida. Faca login novamente.");
+        throw new Error("Invalid session. Sign in again.");
       }
       await setPasswordService(session.accessToken, { password });
     },
@@ -341,7 +331,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth deve ser usado dentro de AuthProvider.");
+    throw new Error("useAuth must be used within AuthProvider.");
   }
   return context;
 }

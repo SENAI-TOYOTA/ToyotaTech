@@ -25,8 +25,8 @@ export function useGarage() {
           setError(null);
         }
       } catch (err) {
-        if (active) setError("Falha ao carregar garagem");
-        console.error("Failed to fetch garage", err);
+        if (active) setError("Failed to load garage");
+        console.warn("Failed to fetch garage", err);
       } finally {
         if (active) setIsLoading(false);
       }

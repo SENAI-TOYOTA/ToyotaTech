@@ -22,14 +22,14 @@ export function useProfileForm() {
       setCpf(formatCpf(loadedCpf));
       setIsCpfLocked(true);
     }
-  }, [user?.profile?.cpf]);
+  }, [user?.profile]);
 
   useEffect(() => {
     if (user?.profile) {
       setFullName(user.profile.fullName ?? "");
       setBirthDate(formatBirthDate(user.profile.birthDate ?? ""));
     }
-  }, [user?.profile?.fullName, user?.profile?.birthDate]);
+  }, [user?.profile]);
 
   useEffect(() => {
     let isActive = true;
@@ -55,7 +55,7 @@ export function useProfileForm() {
         } else if (error instanceof ApiError) {
           setFormError(error.message);
         } else {
-          setFormError("Nao foi possivel carregar o perfil.");
+          setFormError("Unable to load profile.");
         }
       } finally {
         if (isActive) setIsLoadingProfile(false);
@@ -69,12 +69,12 @@ export function useProfileForm() {
 
   const saveProfile = async () => {
     if (!token) {
-      setFormError("Sessao invalida. Faça login novamente.");
+      setFormError("Invalid session. Sign in again.");
       return false;
     }
     const normalizedCpf = normalizeCpf(cpf);
     if (!fullName.trim()) {
-      setFormError("Preencha o nome completo.");
+      setFormError("Enter your full name.");
       return false;
     }
     const birthDateError = validateBirthDate(birthDate.trim());
@@ -83,7 +83,7 @@ export function useProfileForm() {
       return false;
     }
     if (!isCpfLocked && normalizedCpf.length !== 11) {
-      setFormError("Preencha um CPF valido.");
+      setFormError("Enter a valid CPF.");
       return false;
     }
     setIsSaving(true);
@@ -101,7 +101,7 @@ export function useProfileForm() {
       if (error instanceof ApiError) {
         setFormError(error.message);
       } else {
-        setFormError("Nao foi possivel salvar o perfil.");
+        setFormError("Unable to save profile.");
       }
       return false;
     } finally {

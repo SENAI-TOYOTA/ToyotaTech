@@ -27,8 +27,8 @@ export default function FinancingScreen() {
       >
         <Animated.View entering={FadeInDown.duration(600).springify()}>
           <ScreenSectionHeader
-            title="Financiamento"
-            subtitle="Acompanhe o seu financiamento"
+            title="Financing"
+            subtitle="Track your financing"
             style={styles.sectionHeader}
           />
         </Animated.View>
@@ -41,7 +41,7 @@ export default function FinancingScreen() {
             <Text style={styles.carTitle}>{vehicleTitle}</Text>
 
             <View style={styles.installmentRow}>
-              <Text style={styles.installmentLabel}>Parcelas pagas:</Text>
+              <Text style={styles.installmentLabel}>Installments paid:</Text>
               <View style={styles.installmentBadgeWrapper}>
                 <View style={styles.installmentBadgeShadow} />
                 <View style={styles.installmentBadge}>
@@ -51,16 +51,16 @@ export default function FinancingScreen() {
             </View>
 
             <Text style={styles.bankInfo}>
-              Instituição financeira:{" "}
+              Financial institution:{" "}
               <Text style={styles.bankName}>{financing.bank}</Text>
             </Text>
             {financing.contractNumber ? (
               <Text style={styles.contractInfo}>
-                Contrato: {financing.contractNumber}
+                Contract: {financing.contractNumber}
               </Text>
             ) : null}
             <Text style={styles.invoiceDescription}>
-              Parcela {financing.installmentAmount} | Vencimento{" "}
+              Installment {financing.installmentAmount} | Due{" "}
               {financing.nextDueDate}
             </Text>
           </Animated.View>
@@ -71,8 +71,8 @@ export default function FinancingScreen() {
           >
             <Text style={styles.emptyText}>
               {isLoading
-                ? "Carregando financiamento..."
-                : (error ?? "Financiamento ainda nao vinculado.")}
+                ? "Loading financing..."
+                : (error ?? "Financing not linked yet.")}
             </Text>
           </Animated.View>
         )}
@@ -82,9 +82,9 @@ export default function FinancingScreen() {
             entering={FadeInDown.delay(400).duration(600).springify()}
             style={styles.invoiceCard}
           >
-            <Text style={styles.invoiceTitle}>2° Via do boleto</Text>
+            <Text style={styles.invoiceTitle}>Second copy of invoice</Text>
             <Text style={styles.invoiceDescription}>
-              Baixe seus boletos e carnês com facilidade
+              Download your invoices easily
             </Text>
 
             <View style={styles.invoiceButtonWrapper}>
@@ -93,7 +93,7 @@ export default function FinancingScreen() {
                 style={styles.invoiceButton}
                 disabled={!boletoAvailable}
               >
-                <Text style={styles.invoiceButtonText}>Acessar boleto</Text>
+                <Text style={styles.invoiceButtonText}>Access invoice</Text>
                 <ArrowRight size={28} strokeWidth={2.4} color={colors.white} />
               </InteractivePressable>
             </View>

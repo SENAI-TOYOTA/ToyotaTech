@@ -26,7 +26,9 @@ export default function RegisterScreen() {
 
   const handleCreateAccountPress = async () => {
     if (!canSubmit) {
-      setFormError("Informe e-mail valido e senha com ao menos 8 caracteres.");
+      setFormError(
+        "Enter a valid email and a password with at least 8 characters."
+      );
       return;
     }
 
@@ -53,7 +55,7 @@ export default function RegisterScreen() {
       if (error instanceof ApiError) {
         setFormError(error.message);
       } else {
-        setFormError("Nao foi possivel criar a conta. Tente novamente.");
+        setFormError("Unable to create account. Try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -62,11 +64,11 @@ export default function RegisterScreen() {
 
   return (
     <AuthScreenLayout>
-      <Text style={styles.welcomeText}>BEM-VINDO(A)!</Text>
+      <Text style={styles.welcomeText}>WELCOME!</Text>
 
       <View style={styles.formContainer}>
         <TextInput
-          placeholder="ENDEREÇO DE EMAIL *"
+          placeholder="EMAIL ADDRESS *"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -74,7 +76,7 @@ export default function RegisterScreen() {
         />
 
         <TextInput
-          placeholder="SENHA *"
+          placeholder="PASSWORD *"
           secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
@@ -87,13 +89,13 @@ export default function RegisterScreen() {
         >
           <Eye size={18} strokeWidth={1.8} color={colors.black} />
           <Text style={styles.visibilityText}>
-            {showPassword ? "OCULTAR" : "EXIBIR"}
+            {showPassword ? "HIDE" : "SHOW"}
           </Text>
         </Pressable>
 
         <Text style={styles.passwordHintText}>
-          Mínimo de 8 caracteres com pelo menos uma letrar maiúscula, uma
-          minúscula e um número.
+          At least 8 characters with one uppercase, one lowercase and one
+          number.
         </Text>
 
         {formError ? (
@@ -101,7 +103,7 @@ export default function RegisterScreen() {
         ) : null}
 
         <Button
-          title={isSubmitting ? "Criando..." : "Criar conta"}
+          title={isSubmitting ? "Creating..." : "Create account"}
           variant="primary"
           icon={
             <ArrowRight

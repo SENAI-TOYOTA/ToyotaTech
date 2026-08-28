@@ -39,8 +39,8 @@ export default function ProfileScreen() {
       >
         <Animated.View entering={FadeInDown.duration(600).springify()}>
           <ScreenSectionHeader
-            title="Perfil"
-            subtitle="Suas informações pessoais"
+            title="Profile"
+            subtitle="Your personal information"
             style={styles.sectionHeader}
           />
         </Animated.View>
@@ -50,14 +50,14 @@ export default function ProfileScreen() {
           style={styles.formContainer}
         >
           <TextInput
-            placeholder="Nome completo"
+            placeholder="Full name"
             value={fullName}
             onChangeText={setFullName}
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
           <TextInput
-            placeholder="Data de nascimento (DD/MM/AAAA)"
+            placeholder="Birth date (DD/MM/YYYY)"
             value={birthDate}
             onChangeText={(text) => setBirthDate(formatBirthDate(text))}
             keyboardType="numeric"
@@ -76,7 +76,7 @@ export default function ProfileScreen() {
             style={styles.inputText}
           />
           <TextInput
-            placeholder="e-mail"
+            placeholder="Email"
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -85,7 +85,7 @@ export default function ProfileScreen() {
             style={styles.inputText}
           />
           <TextInput
-            placeholder="Senha"
+            placeholder="Password"
             secureTextEntry
             value={password}
             editable={false}
@@ -101,7 +101,7 @@ export default function ProfileScreen() {
           style={styles.actionContainer}
         >
           <Button
-            title="Sair da conta"
+            title="Sign out"
             variant="outline"
             style={styles.logoutButton}
             onPress={async () => {
@@ -110,7 +110,7 @@ export default function ProfileScreen() {
             }}
           />
           <Button
-            title={isSaving ? "Salvando..." : "Salvar"}
+            title={isSaving ? "Saving..." : "Save"}
             style={styles.saveButton}
             icon={
               <ArrowRight

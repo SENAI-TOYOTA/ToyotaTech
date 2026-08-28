@@ -26,7 +26,9 @@ export default function LoginScreen() {
 
   const handleLoginPress = async () => {
     if (!canSubmit) {
-      setFormError("Informe e-mail valido e senha com ao menos 8 caracteres.");
+      setFormError(
+        "Enter a valid email and a password with at least 8 characters."
+      );
       return;
     }
 
@@ -40,7 +42,7 @@ export default function LoginScreen() {
       await signIn(normalizedEmail, password);
       router.replace("/home");
     } catch (error) {
-      console.error("[Login] Erro ao fazer login:", error);
+      console.error("[Login] Sign-in failed:", error);
       if (error instanceof ApiError) {
         if (error.status === 403) {
           router.push({
@@ -51,7 +53,7 @@ export default function LoginScreen() {
         }
         setFormError(error.message);
       } else {
-        setFormError("Nao foi possivel fazer login. Tente novamente.");
+        setFormError("Unable to sign in. Try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -62,7 +64,7 @@ export default function LoginScreen() {
     <AuthScreenLayout>
       <View style={styles.formContainer}>
         <TextInput
-          placeholder="ENDEREÇO DE EMAIL *"
+          placeholder="EMAIL ADDRESS *"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -70,7 +72,7 @@ export default function LoginScreen() {
         />
 
         <TextInput
-          placeholder="SENHA *"
+          placeholder="PASSWORD *"
           secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
@@ -83,12 +85,12 @@ export default function LoginScreen() {
         >
           <Eye size={18} strokeWidth={1.8} color={colors.black} />
           <Text style={styles.visibilityText}>
-            {showPassword ? "OCULTAR" : "EXIBIR"}
+            {showPassword ? "HIDE" : "SHOW"}
           </Text>
         </Pressable>
 
         <Button
-          title={isSubmitting ? "Entrando..." : "Fazer login"}
+          title={isSubmitting ? "Signing in..." : "Sign in"}
           variant="primary"
           icon={
             <ArrowRight
@@ -105,8 +107,8 @@ export default function LoginScreen() {
         />
 
         <Text style={styles.termsText}>
-          Ao clicar em fazer login, você concorda{"\n"}com os{" "}
-          <Text style={styles.termsLink}>Termos e Condições ToyotaTech</Text>.
+          By clicking sign in, you agree{"\n"}to the{" "}
+          <Text style={styles.termsLink}>ToyotaTech Terms and Conditions</Text>.
         </Text>
 
         {formError ? (
@@ -122,7 +124,7 @@ export default function LoginScreen() {
           }}
         >
           <Text style={styles.forgotPasswordText}>
-            NÃO TEM CONTA? CRIAR CONTA
+            DO NOT HAVE AN ACCOUNT? CREATE ACCOUNT
           </Text>
         </Pressable>
       </View>

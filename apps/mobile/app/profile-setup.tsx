@@ -1,110 +1,41 @@
 import { useRouter } from "expo-router";
 import { ArrowRight, Eye } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  validateBirthDate,
-  validatePassword,
-} from "@/profileValidation";
+import { useProfileForm } from "@/hooks/useProfileForm";
+import { validatePassword } from "@/profileValidation";
 import { ApiError } from "@/services/api";
-import { resolveGarage } from "@/services/garage";
-import { fetchProfile, updateProfile } from "@/services/profile";
 import { colors, fonts, fontSize, spacing } from "@/theme";
-import { formatBirthDate, formatCpf, normalizeCpf } from "@/utils/format";
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
-  const { token, user, refreshUser, isFederatedUser, setPassword } = useAuth();
-  const [fullName, setFullName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [cpf, setCpf] = useState("");
+  const { isFederatedUser, setPassword, token } = useAuth();
+  const {
+    fullName,
+    setFullName,
+    birthDate,
+    setBirthDate,
+    cpf,
+    setCpf,
+    isCpfLocked,
+    isLoadingProfile,
+    isSaving,
+    formError,
+    setFormError,
+    saveProfile,
+    formatBirthDate,
+    formatCpf,
+  } = useProfileForm();
   const [password, setPasswordValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
-  const [isCpfLocked, setIsCpfLocked] = useState(false);
-
-  useEffect(() => {
-    if (user?.profile) {
-      const loadedCpf = user.profile.cpf ?? "";
-      setFullName(user.profile.fullName ?? "");
-      setBirthDate(formatBirthDate(user.profile.birthDate ?? ""));
-      setCpf(formatCpf(loadedCpf));
-      setIsCpfLocked(normalizeCpf(loadedCpf).length === 11);
-    }
-  }, [user?.profile]);
-
-  useEffect(() => {
-    let isActive = true;
-    const loadProfile = async () => {
-      if (!token) {
-        setIsLoadingProfile(false);
-        return;
-      }
-      setIsLoadingProfile(true);
-      try {
-        const profileResult = await fetchProfile(token);
-        if (!isActive) {
-          return;
-        }
-        const loadedCpf = profileResult.profile.cpf ?? "";
-        setFullName(profileResult.profile.fullName ?? "");
-        setBirthDate(formatBirthDate(profileResult.profile.birthDate ?? ""));
-        setCpf(formatCpf(loadedCpf));
-        setIsCpfLocked(normalizeCpf(loadedCpf).length === 11);
-        setFormError(null);
-      } catch (error) {
-        if (!isActive) {
-          return;
-        }
-        if (error instanceof ApiError && error.status === 404) {
-          setFormError(null);
-        } else if (error instanceof ApiError) {
-          setFormError(error.message);
-        } else {
-          setFormError("Nao foi possivel carregar o perfil.");
-        }
-      } finally {
-        if (isActive) {
-          setIsLoadingProfile(false);
-        }
-      }
-    };
-
-    void loadProfile();
-    return () => {
-      isActive = false;
-    };
-  }, [token]);
 
   const handleSave = async () => {
-    if (!token) {
-      setFormError("Sessao invalida. Faça login novamente.");
-      return;
-    }
-    const normalizedCpf = normalizeCpf(cpf);
-    if (!fullName.trim()) {
-      setFormError("Preencha o nome completo.");
-      return;
-    }
-    const birthDateError = validateBirthDate(birthDate.trim());
-    if (birthDateError) {
-      setFormError(birthDateError);
-      return;
-    }
-    if (!isCpfLocked && normalizedCpf.length !== 11) {
-      setFormError("Preencha um CPF valido.");
-      return;
-    }
-
-    // Se o usuário federado preencheu a senha, valida antes de salvar
     if (isFederatedUser && password.length > 0) {
       const passwordError = validatePassword(password);
       if (passwordError) {
@@ -113,43 +44,25 @@ export default function ProfileSetupScreen() {
       }
     }
 
-    setIsSaving(true);
-    setFormError(null);
     setPasswordSuccess(false);
 
-    try {
-      // Define a senha, se preenchida por usuário Google
-      if (isFederatedUser && password.length > 0) {
-        try {
-          await setPassword(password);
-          setPasswordSuccess(true);
-        } catch (passwordError) {
-          if (passwordError instanceof ApiError) {
-            setFormError(passwordError.message);
-          } else {
-            setFormError("Nao foi possivel definir a senha. Tente novamente.");
-          }
-          setIsSaving(false);
-          return;
+    if (isFederatedUser && password.length > 0) {
+      try {
+        await setPassword(password);
+        setPasswordSuccess(true);
+      } catch (passwordError) {
+        if (passwordError instanceof ApiError) {
+          setFormError(passwordError.message);
+        } else {
+          setFormError("Unable to set password. Try again.");
         }
+        return;
       }
+    }
 
-      await updateProfile(token, {
-        fullName: fullName.trim(),
-        birthDate: birthDate.trim(),
-        ...(isCpfLocked ? {} : { cpf: normalizedCpf }),
-      });
-      await resolveGarage(token);
-      await refreshUser();
+    const saved = await saveProfile();
+    if (saved) {
       router.replace("/home");
-    } catch (error) {
-      if (error instanceof ApiError) {
-        setFormError(error.message);
-      } else {
-        setFormError("Nao foi possivel salvar o perfil.");
-      }
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -160,21 +73,21 @@ export default function ProfileSetupScreen() {
         contentContainerStyle={styles.contentContainer}
       >
         <ScreenSectionHeader
-          title="Complete seu perfil"
-          subtitle="Informe os dados para continuar"
+          title="Complete your profile"
+          subtitle="Provide your data to continue"
           style={styles.sectionHeader}
         />
 
         <View style={styles.formContainer}>
           <TextInput
-            placeholder="Nome completo"
+            placeholder="Full name"
             value={fullName}
             onChangeText={setFullName}
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
           <TextInput
-            placeholder="Data de nascimento (DD/MM/AAAA)"
+            placeholder="Birth date (DD/MM/YYYY)"
             value={birthDate}
             onChangeText={(text) => setBirthDate(formatBirthDate(text))}
             keyboardType="numeric"
@@ -192,20 +105,18 @@ export default function ProfileSetupScreen() {
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
-
-          {/* Seção de criar senha — aparece apenas para usuários Google */}
           {isFederatedUser ? (
             <View style={styles.passwordSection}>
               <Text style={styles.passwordSectionTitle}>
-                CRIAR SENHA (OPCIONAL)
+                CREATE PASSWORD (OPTIONAL)
               </Text>
               <Text style={styles.passwordSectionSubtitle}>
-                Defina uma senha para poder entrar também com e-mail e senha,
-                sem precisar usar o botão do Google.
+                Set a password to sign in with email and password as well,
+                without using Google button.
               </Text>
 
               <TextInput
-                placeholder="NOVA SENHA"
+                placeholder="NEW PASSWORD"
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPasswordValue}
@@ -218,18 +129,18 @@ export default function ProfileSetupScreen() {
               >
                 <Eye size={18} strokeWidth={1.8} color={colors.black} />
                 <Text style={styles.visibilityText}>
-                  {showPassword ? "OCULTAR" : "EXIBIR"}
+                  {showPassword ? "HIDE" : "SHOW"}
                 </Text>
               </Pressable>
 
               <Text style={styles.passwordHintText}>
-                Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
-                minúscula e um número.
+                At least 8 characters with one uppercase, one lowercase and one
+                number.
               </Text>
 
               {passwordSuccess ? (
                 <Text style={styles.passwordSuccessText}>
-                  Senha definida com sucesso!
+                  Password set successfully!
                 </Text>
               ) : null}
             </View>
@@ -243,7 +154,7 @@ export default function ProfileSetupScreen() {
 
       <View style={styles.saveButtonContainer}>
         <Button
-          title={isSaving ? "Salvando..." : "Salvar e continuar"}
+          title={isSaving ? "Saving..." : "Save and continue"}
           style={styles.saveButton}
           icon={
             <ArrowRight
@@ -291,7 +202,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textPrimary,
   },
-  // Seção de senha para usuários Google
   passwordSection: {
     marginTop: spacing.lg,
     gap: spacing.sm,

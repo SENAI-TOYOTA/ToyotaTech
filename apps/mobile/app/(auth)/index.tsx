@@ -78,9 +78,10 @@ export default function LoginScreen() {
   }, []);
   const discovery = useCognitoDiscovery(cognitoDomain || undefined);
 
-  // Debug: log the redirect URI so we can verify it matches the Cognito App Client callbacks
   useEffect(() => {
-    console.log("[Auth] redirectUri gerado:", redirectUri);
+    if (__DEV__) {
+      console.warn("[Auth] generated redirectUri:", redirectUri);
+    }
   }, [redirectUri]);
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
@@ -90,7 +91,6 @@ export default function LoginScreen() {
       responseType: AuthSession.ResponseType.Code,
       scopes: ["openid", "email", "profile", "aws.cognito.signin.user.admin"],
       usePKCE: true,
-      // Pula a Hosted UI do Cognito e vai direto ao Google
       extraParams: {
         identity_provider: "Google",
       },
@@ -100,7 +100,7 @@ export default function LoginScreen() {
 
   const handleContinuePress = async () => {
     if (!canContinue) {
-      setFormError("Preencha e-mail valido e aceite os termos.");
+      setFormError("Enter a valid email and accept the terms.");
       return;
     }
 
@@ -124,7 +124,7 @@ export default function LoginScreen() {
       if (error instanceof ApiError) {
         setFormError(error.message);
       } else {
-        setFormError("Nao foi possivel validar o e-mail. Tente novamente.");
+        setFormError("Unable to validate email. Try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -137,11 +137,11 @@ export default function LoginScreen() {
         return;
       }
       if (!discovery || !cognitoClientId) {
-        setFormError("Login Google nao configurado.");
+        setFormError("Google sign-in not configured.");
         return;
       }
       if (!request?.codeVerifier) {
-        setFormError("Nao foi possivel completar o login Google.");
+        setFormError("Unable to complete Google sign-in.");
         return;
       }
       setIsGoogleLoading(true);
@@ -162,7 +162,7 @@ export default function LoginScreen() {
           !tokenResponse.idToken ||
           !tokenResponse.refreshToken
         ) {
-          throw new Error("Tokens incompletos");
+          throw new Error("Incomplete tokens");
         }
         const expiresAt =
           Math.floor(Date.now() / 1000) + (tokenResponse.expiresIn ?? 3600);
@@ -173,8 +173,8 @@ export default function LoginScreen() {
           expiresAt,
         });
       } catch (error) {
-        console.error("Falha no login Google:", error);
-        setFormError("Nao foi possivel completar o login Google.");
+        console.error("Google sign-in failed:", error);
+        setFormError("Unable to complete Google sign-in.");
       } finally {
         setIsGoogleLoading(false);
       }
@@ -192,11 +192,11 @@ export default function LoginScreen() {
 
   const handleGooglePress = async () => {
     if (!cognitoDomain || !cognitoClientId) {
-      setFormError("Login Google nao configurado.");
+      setFormError("Google sign-in not configured.");
       return;
     }
     if (!discovery || !request) {
-      setFormError("Login Google ainda nao esta pronto.");
+      setFormError("Google sign-in not ready yet.");
       return;
     }
     setFormError(null);
@@ -207,8 +207,8 @@ export default function LoginScreen() {
         setIsGoogleLoading(false);
       }
     } catch (error) {
-      console.error("Falha ao abrir login Google:", error);
-      setFormError("Nao foi possivel abrir o login Google.");
+      console.error("Failed to open Google sign-in:", error);
+      setFormError("Unable to open Google sign-in.");
       setIsGoogleLoading(false);
     }
   };
@@ -220,7 +220,7 @@ export default function LoginScreen() {
       bottomContent={
         <View style={styles.bottomContentContainer}>
           <Button
-            title={isSubmitting ? "Verificando..." : "Prosseguir"}
+            title={isSubmitting ? "Verifying..." : "Continue"}
             variant="primary"
             icon={
               <ArrowRight
@@ -244,7 +244,7 @@ export default function LoginScreen() {
           onPress={isGoogleLoading ? undefined : handleGooglePress}
         />
         <TextInput
-          placeholder="ENDEREÇO DE EMAIL *"
+          placeholder="EMAIL ADDRESS *"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -258,9 +258,9 @@ export default function LoginScreen() {
             color={acceptedTerms ? colors.black : undefined}
           />
           <Text style={styles.termsText}>
-            Ao clicar em prosseguir, você{"\n"}concorda com os{" "}
+            By clicking continue, you{"\n"}agree to the{" "}
             <Text style={styles.termsLink}>
-              Termos e{"\n"}Condições ToyotaTech
+              ToyotaTech{"\n"}Terms and Conditions
             </Text>
             .
           </Text>
@@ -269,7 +269,7 @@ export default function LoginScreen() {
           <Text style={styles.formErrorText}>{formError}</Text>
         ) : null}
         {isGoogleLoading ? (
-          <Text style={styles.formInfoText}>Conectando ao Google...</Text>
+          <Text style={styles.formInfoText}>Connecting to Google...</Text>
         ) : null}
       </View>
     </AuthScreenLayout>

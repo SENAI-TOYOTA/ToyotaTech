@@ -13,7 +13,7 @@ function getApiUrl() {
   const baseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (!baseUrl) {
     throw new Error(
-      "EXPO_PUBLIC_API_URL nao configurada. Execute o deploy em aws/scripts/deploy.ps1."
+      "EXPO_PUBLIC_API_URL not configured. Run deploy at aws/scripts/deploy.ps1."
     );
   }
   return baseUrl.replace(/\/$/, "");
@@ -44,10 +44,10 @@ export async function apiRequest<T>(
     });
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new ApiError("Tempo limite da requisicao excedido.", 408);
+      throw new ApiError("Request timeout exceeded.", 408);
     }
     if (__DEV__) {
-      console.error("[API] Falha na requisicao", { path, error });
+      console.error("[API] Request failed", { path, error });
     }
     throw error;
   } finally {
@@ -61,22 +61,22 @@ export async function apiRequest<T>(
       parsed = JSON.parse(raw) as { message?: string } & T;
     } catch {
       if (__DEV__) {
-        console.error("[API] Resposta invalida", {
+        console.error("[API] Invalid response", {
           path,
           status: response.status,
           body: raw,
         });
       }
-      parsed = { message: "Resposta invalida da API." } as {
+      parsed = { message: "Invalid API response." } as {
         message?: string;
       } & T;
     }
   }
 
   if (!response.ok) {
-    const message = (parsed as { message?: string }).message ?? "Erro na API.";
+    const message = (parsed as { message?: string }).message ?? "API error.";
     if (__DEV__ && !options?.suppressErrorLog) {
-      console.error("[API] Erro na resposta", {
+      console.error("[API] Response error", {
         path,
         status: response.status,
         message,

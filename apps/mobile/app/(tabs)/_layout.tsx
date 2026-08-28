@@ -25,7 +25,7 @@ function TabsHeader() {
         <Pressable
           onPress={() => router.replace("/home")}
           accessibilityRole="button"
-          accessibilityLabel="Ir para a home"
+          accessibilityLabel="Go to home"
         >
           <Logo size={fontSize.xxl + spacing.xs} />
         </Pressable>
@@ -102,7 +102,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="financing"
         options={{
-          title: "Financiamento",
+          title: "Financing",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={CircleDollarSign} color={color} focused={focused} />
           ),
@@ -111,7 +111,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="vehicle-management"
         options={{
-          title: "Gestão do veículo",
+          title: "Vehicle Management",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={CarFront} color={color} focused={focused} />
           ),
@@ -120,7 +120,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Perfil",
+          title: "Profile",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={User} color={color} focused={focused} />
           ),
