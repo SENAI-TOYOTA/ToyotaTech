@@ -44,7 +44,7 @@ def pre_sign_up(event: Dict[str, Any]) -> Dict[str, Any]:
         code, _ = error_body(error)
         if code == "ResourceConflictException":
             return event
-        log_error("Falha ao vincular provedor no PreSignUp.", event=event, error=error)
+        log_error("Failed to link provider on PreSignUp.", event=event, error=error)
         raise
 
     return event

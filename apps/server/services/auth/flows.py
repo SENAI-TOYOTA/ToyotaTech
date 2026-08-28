@@ -261,7 +261,7 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
                 if code != "AliasExistsException":
                     raise
                 log_error(
-                    "Falha ao verificar e-mail federado por alias existente.",
+                    "Failed to verify federated email due to existing alias.",
                     event=event,
                     error=error,
                 )
@@ -275,7 +275,7 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
         return {"message": "Senha definida com sucesso."}
     except ClientError as error:
         code, message = error_body(error)
-        log_error("Falha ao definir senha.", event=event, error=error)
+        log_error("Failed to set password.", event=event, error=error)
         mapping = {
             "NotAuthorizedException": (401, "Sessão inválida ou expirada."),
             "UserNotFoundException": (409, "Conta não encontrada para definir senha."),

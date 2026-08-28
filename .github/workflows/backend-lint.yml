@@ -33,7 +33,7 @@ jobs:
 
       - name: Forbid comments
         run: |
-          if grep -R --include="*.py" -nE '^\s*#' .; then
+          if grep -R --include="*.py" -n -e '#' .; then
             echo "Comments are not allowed"
             exit 1
           fi
