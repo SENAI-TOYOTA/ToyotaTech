@@ -2,13 +2,12 @@ import os
 import time
 from typing import Any, Dict
 
+import validation
 from botocore.exceptions import ClientError
 
 from common.auth import authenticated_user
 from common.ddb import get_table
 from common.responses import ApiError, error_body, parse_body, require
-
-from . import validation
 
 PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()
 

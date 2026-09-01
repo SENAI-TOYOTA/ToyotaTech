@@ -28,43 +28,48 @@ Resources:
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
-          COGNITO_USER_POOL_ID: !Ref UserPool
-          COGNITO_CLIENT_ID: !Ref UserPoolClient
           PROFILE_TABLE_NAME: !Ref ProfilesTable
       Events:
         CheckEmail:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /auth/check-email
             Method: POST
         Register:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /auth/register
             Method: POST
         Login:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /auth/login
             Method: POST
         VerifyEmail:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /auth/verify-email
             Method: POST
         ResendVerification:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /auth/resend-verification
             Method: POST
         Refresh:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /auth/refresh
             Method: POST
         SetPassword:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /auth/set-password
             Method: POST
 
@@ -83,16 +88,19 @@ Resources:
         GetProfile:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /profile
             Method: GET
         PutProfile:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /profile
             Method: PUT
         GetMe:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /me
             Method: GET
 
@@ -113,21 +121,25 @@ Resources:
         GetCurrent:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /garage/current
             Method: GET
         PutCurrent:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /garage/current
             Method: PUT
         PostResolve:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /garage/resolve
             Method: POST
         PostLink:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /garage/link
             Method: POST
 
@@ -147,11 +159,13 @@ Resources:
         GetStatus:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /garage/status
             Method: GET
         Ingest:
           Type: HttpApi
           Properties:
+            ApiId: !Ref HttpApi
             Path: /garage/ingest
             Method: POST
 

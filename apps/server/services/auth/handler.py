@@ -1,13 +1,12 @@
 import json
 from typing import Any, Dict
 
+import flows
 from botocore.exceptions import ClientError
+from federation import pre_sign_up
 
 from common.cognito import COGNITO_CLIENT_ID, COGNITO_USER_POOL_ID
 from common.responses import ApiError, log_error, parse_body, response
-
-from . import flows
-from .federation import pre_sign_up
 
 ROUTES = {
     "POST /auth/check-email": lambda event: flows.check_email(parse_body(event)),

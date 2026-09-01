@@ -1,12 +1,14 @@
 import os
 from typing import Any, Dict, Optional, Tuple
 
+import demo
+import projection
+import purchases
+import validation
 from botocore.exceptions import ClientError
 
 from common.ddb import get_table
 from common.responses import ApiError, error_body, require
-
-from . import demo, projection, purchases, validation
 
 GARAGE_TABLE_NAME = os.environ.get("GARAGE_TABLE_NAME", "").strip()
 PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()

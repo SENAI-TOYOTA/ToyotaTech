@@ -1,13 +1,16 @@
 import time
 from typing import Any, Dict
 
+import demo
+import projection
+import purchases
+import resolver
+import validation
 from botocore.exceptions import ClientError
 
 from common.auth import authenticated_user
 from common.ddb import get_table
 from common.responses import ApiError, error_body, parse_body, require
-
-from . import demo, projection, purchases, resolver, validation
 
 
 def current(event: Dict[str, Any]) -> Dict[str, Any]:

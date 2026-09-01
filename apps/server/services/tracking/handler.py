@@ -1,6 +1,8 @@
 import json
 from typing import Any, Dict
 
+import ingest
+import store
 from botocore.exceptions import ClientError
 
 from common.auth import authenticated_user
@@ -12,8 +14,6 @@ from common.responses import (
     response,
 )
 from common.validation import coerce_text
-
-from . import ingest, store
 
 
 def read_status(event: Dict[str, Any]) -> Dict[str, Any]:

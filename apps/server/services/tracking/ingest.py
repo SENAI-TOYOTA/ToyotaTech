@@ -3,10 +3,10 @@ import unicodedata
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
+import store
+
 from common.responses import require
 from common.validation import coerce_text
-
-from . import store
 
 TRACKING_FLOW_STEPS = [
     {"id": "1", "label": "Inicio da producao"},

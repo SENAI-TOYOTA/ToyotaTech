@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from . import validation
+import validation
 
 GARAGE_MATCH_ALGORITHM_VERSION = "cpf_v2"
 

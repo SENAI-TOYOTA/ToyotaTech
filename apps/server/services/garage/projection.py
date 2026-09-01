@@ -1,7 +1,9 @@
 import time
 from typing import Any, Dict, List
 
-from . import demo, purchases, validation
+import demo
+import purchases
+import validation
 
 
 def merge_purchase_source(purchase: Dict[str, Any]) -> Dict[str, Any]:

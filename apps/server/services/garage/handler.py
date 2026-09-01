@@ -1,12 +1,11 @@
 import json
 from typing import Any, Dict
 
+import flows
 from botocore.exceptions import ClientError
 
 from common.cognito import COGNITO_CLIENT_ID
 from common.responses import ApiError, log_error, response
-
-from . import flows
 
 ROUTES = {
     "GET /garage/current": flows.current,

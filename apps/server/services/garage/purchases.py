@@ -2,13 +2,13 @@ import os
 import time
 from typing import Any, Dict, List, Optional
 
+import demo
+import validation
 from boto3.dynamodb.conditions import Attr, Key
 from botocore.exceptions import ClientError
 
 from common.ddb import get_table
 from common.responses import error_body
-
-from . import demo, validation
 
 PURCHASE_TABLE_NAME = os.environ.get("PURCHASE_TABLE_NAME", "").strip()
 
