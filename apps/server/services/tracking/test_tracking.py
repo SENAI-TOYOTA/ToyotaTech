@@ -1,8 +1,9 @@
+import importlib
 import json
 from typing import Any, Dict, List, Optional
 from unittest.mock import patch
 
-from services.tracking import handler
+handler = importlib.import_module("services.tracking.handler")
 
 TABLES: Dict[str, Any] = {}
 

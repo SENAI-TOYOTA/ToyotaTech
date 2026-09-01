@@ -76,6 +76,8 @@ Resources:
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
           PROFILE_TABLE_NAME: !Ref ProfilesTable
       Events:
         GetProfile:
@@ -102,6 +104,8 @@ Resources:
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
           GARAGE_TABLE_NAME: !Ref GarageTable
           PURCHASE_TABLE_NAME: !Ref PurchasesTable
           PROFILE_TABLE_NAME: !Ref ProfilesTable
@@ -135,6 +139,8 @@ Resources:
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
           TRACKING_TABLE_NAME: !Ref TrackingTable
           GARAGE_TABLE_NAME: !Ref GarageTable
       Events:
@@ -197,6 +203,10 @@ Resources:
           AttributeType: S
         - AttributeName: cpf
           AttributeType: S
+        - AttributeName: orderId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
       KeySchema:
         - AttributeName: purchaseId
           KeyType: HASH
@@ -210,6 +220,18 @@ Resources:
         - IndexName: cpf-index
           KeySchema:
             - AttributeName: cpf
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: orderId-index
+          KeySchema:
+            - AttributeName: orderId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: userId-index
+          KeySchema:
+            - AttributeName: userId
               KeyType: HASH
           Projection:
             ProjectionType: ALL
@@ -254,11 +276,12 @@ Resources:
       FunctionName: !Ref AuthFunction
       Action: lambda:InvokeFunction
       Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
 
 Outputs:
   ApiUrl:
     Description: URL base da API
-    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
   UserPoolId:
     Description: ID do Cognito User Pool
     Value: !Ref UserPool
