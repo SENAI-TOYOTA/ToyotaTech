@@ -18,6 +18,8 @@ class ApiError(Exception):
 
 
 def response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
+    import os
+
     def json_default(value: Any) -> Any:
         if isinstance(value, Decimal):
             return int(value) if value % 1 == 0 else str(value)
@@ -25,11 +27,13 @@ def response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
             f"Object of type {type(value).__name__} is not JSON serializable"
         )
 
+    allowed_origin = os.environ.get("ALLOWED_ORIGIN", "*")
+
     return {
         "statusCode": status_code,
         "headers": {
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": allowed_origin,
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
             "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT",
         },

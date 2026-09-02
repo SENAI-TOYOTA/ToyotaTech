@@ -2,6 +2,12 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: ToyotaTech server - 4 lambdas, HttpApi, DynamoDB, layer comum e Cognito trigger
 
+Parameters:
+  AllowedOrigin:
+    Type: String
+    Default: "*"
+    Description: CORS allowed origin
+
 Globals:
   Function:
     Runtime: python3.12
@@ -9,6 +15,9 @@ Globals:
     Timeout: 10
     Layers:
       - !Ref CommonLayer
+    Environment:
+      Variables:
+        ALLOWED_ORIGIN: !Ref AllowedOrigin
 
 Resources:
 
@@ -174,7 +183,7 @@ Resources:
     Properties:
       CorsConfiguration:
         AllowOrigins:
-          - '*'
+          - !Ref AllowedOrigin
         AllowHeaders:
           - Content-Type
           - Authorization
