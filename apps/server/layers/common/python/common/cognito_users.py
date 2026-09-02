@@ -68,16 +68,18 @@ def find_by_email(email: str) -> List[Dict[str, Any]]:
         if code != "UserNotFoundException":
             raise
 
+    escaped_email = normalized_email.replace('"', '\\"')
     result = cognito_client.list_users(
         UserPoolId=COGNITO_USER_POOL_ID,
-        Filter=f'email = "{normalized_email}"',
+        Filter=f'email = "{escaped_email}"',
         Limit=10,
     )
     for user in result.get("Users", []):
         add(user)
 
-    for user in scan_by_email(normalized_email):
-        add(user)
+    if not found:
+        for user in scan_by_email(normalized_email):
+            add(user)
 
     return list(found.values())
 

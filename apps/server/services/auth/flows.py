@@ -26,8 +26,17 @@ FEDERATED_MESSAGE = (
 
 
 def _email(body: Dict[str, Any]) -> str:
-    email = str(body.get("email", "")).strip().lower()
-    require(bool(email) and "@" in email, 400, "E-mail inválido.")
+    import re
+
+    value = body.get("email")
+    require(isinstance(value, str), 400, "E-mail inválido.")
+    email = value.strip().lower()
+    email_pattern = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    require(
+        bool(email) and bool(email_pattern.match(email)) and '"' not in email,
+        400,
+        "E-mail inválido.",
+    )
     return email
 
 
@@ -65,8 +74,17 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
 
     email = _email(body)
     password = body.get("password", "")
-    name = (body.get("name", "") or "").strip()
+    require(isinstance(password, str), 400, "A senha deve ter ao menos 8 caracteres.")
     require(len(password) >= 8, 400, "A senha deve ter ao menos 8 caracteres.")
+    if "cpf" in body:
+        cpf_value = body.get("cpf")
+        require(isinstance(cpf_value, str), 400, "CPF inválido.")
+        require(len(normalize_cpf(cpf_value)) == 11, 400, "CPF inválido.")
+    name_value = body.get("name")
+    name = ""
+    if name_value is not None:
+        require(isinstance(name_value, str), 400, "Nome inválido.")
+        name = name_value.strip()
     require(not find_by_email(email), 409, "Usuário já cadastrado.")
 
     attributes = [{"Name": "email", "Value": email}]
