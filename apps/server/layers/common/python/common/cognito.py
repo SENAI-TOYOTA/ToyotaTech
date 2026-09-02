@@ -13,17 +13,15 @@ cognito_client = boto3.client("cognito-idp", region_name=REGION)
 
 
 def extract_token(event: Dict[str, Any]) -> Optional[str]:
-    auth_header = (event.get("headers") or {}).get("authorization") or (
-        event.get("headers") or {}
-    ).get("Authorization")
+    headers = event.get("headers") or {}
+    auth_header = headers.get("authorization") or headers.get("Authorization") or ""
+    auth_header = auth_header.strip()
     if not auth_header:
         return None
     prefix = "bearer "
-    return (
-        auth_header[len(prefix) :].strip()
-        if auth_header.lower().startswith(prefix)
-        else None
-    )
+    if not auth_header.lower().startswith(prefix):
+        return None
+    return auth_header[len(prefix) :].strip()
 
 
 def parse_attributes(user_data: Any) -> Dict[str, str]:

@@ -49,10 +49,18 @@ def parse_body(event: Dict[str, Any]) -> Dict[str, Any]:
         return {}
     if isinstance(body, dict):
         return body
-    if event.get("isBase64Encoded"):
-        decoded = base64.b64decode(body).decode("utf-8")
-        return json.loads(decoded) if decoded else {}
-    return json.loads(body) if isinstance(body, str) and body else {}
+    try:
+        if event.get("isBase64Encoded"):
+            decoded = base64.b64decode(body).decode("utf-8")
+            return json.loads(decoded) if decoded else {}
+        return json.loads(body) if isinstance(body, str) and body else {}
+    except (
+        ValueError,
+        TypeError,
+        json.JSONDecodeError,
+        base64.binascii.Error,
+    ) as error:
+        raise ApiError(400, "Invalid request body.") from error
 
 
 def log_error(
