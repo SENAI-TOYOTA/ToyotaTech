@@ -1,7 +1,7 @@
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-exclude = [".git", "__pycache__", ".venv", "venv", ".pytest_cache"]
+exclude = [".git", "__pycache__", ".venv", "venv", ".pytest_cache", ".aws-sam"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "C90", "ERA"]
