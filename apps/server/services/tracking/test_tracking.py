@@ -121,6 +121,7 @@ def test_status_retorna_tracking_da_garage() -> None:
     wire_tables(tracking_table, garage_table)
 
     with (
+        patch("store.get_table", get_table_mock),
         patch("services.tracking.store.get_table", get_table_mock),
         patch(
             "common.auth.get_user_by_access_token",
@@ -153,6 +154,7 @@ def test_status_evento_mais_recente_da_tracking_table_ganha() -> None:
     wire_tables(tracking_table, garage_table)
 
     with (
+        patch("store.get_table", get_table_mock),
         patch("services.tracking.store.get_table", get_table_mock),
         patch(
             "common.auth.get_user_by_access_token",
@@ -175,7 +177,7 @@ def test_ingest_iot_sem_requestcontext_grava_na_tracking_table() -> None:
     garage_table = FakeTable(scan_items=[garage])
     wire_tables(tracking_table, garage_table)
 
-    with patch("services.tracking.store.get_table", get_table_mock):
+    with patch("store.get_table", get_table_mock):
         result = handler.lambda_handler(iot_event(), None)
 
     assert result["statusCode"] == 200
@@ -203,7 +205,7 @@ def test_ingest_rota_http_explicita_processa_payload() -> None:
     garage_table = FakeTable(scan_items=[garage])
     wire_tables(tracking_table, garage_table)
 
-    with patch("services.tracking.store.get_table", get_table_mock):
+    with patch("store.get_table", get_table_mock):
         result = handler.lambda_handler(
             api_event(
                 "POST",
@@ -224,7 +226,7 @@ def test_ingest_com_requestcontext_nao_dispara_path_iot() -> None:
     tracking_table = FakeTable()
     wire_tables(tracking_table, FakeTable())
 
-    with patch("services.tracking.store.get_table", get_table_mock):
+    with patch("store.get_table", get_table_mock):
         result = handler.lambda_handler(
             api_event(
                 "POST",
@@ -243,7 +245,7 @@ def test_ingest_sem_identificador_do_veiculo() -> None:
     tracking_table = FakeTable()
     wire_tables(tracking_table, FakeTable())
 
-    with patch("services.tracking.store.get_table", get_table_mock):
+    with patch("store.get_table", get_table_mock):
         result = handler.lambda_handler(
             api_event("POST", "/garage/ingest", body={"stage": "pintura"}), None
         )
@@ -261,7 +263,7 @@ def test_ingest_veiculo_nao_vinculado() -> None:
     garage_table = FakeTable(scan_items=[])
     wire_tables(tracking_table, garage_table)
 
-    with patch("services.tracking.store.get_table", get_table_mock):
+    with patch("store.get_table", get_table_mock):
         result = handler.lambda_handler(
             api_event("POST", "/garage/ingest", body={"chassi": "CHASSI_INEXISTENTE"}),
             None,

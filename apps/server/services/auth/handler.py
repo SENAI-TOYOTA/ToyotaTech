@@ -6,7 +6,14 @@ from botocore.exceptions import ClientError
 from federation import pre_sign_up
 
 from common.cognito import COGNITO_CLIENT_ID, COGNITO_USER_POOL_ID
-from common.responses import ApiError, log_error, parse_body, response
+from common.ratelimit import enforce_rate_limit
+from common.responses import (
+    ApiError,
+    error_body,
+    log_error,
+    parse_body,
+    response,
+)
 
 ROUTES = {
     "POST /auth/check-email": lambda event: flows.check_email(parse_body(event)),
@@ -23,6 +30,8 @@ ROUTES = {
 ROUTE_STATUS = {
     "POST /auth/register": 201,
 }
+
+THROTTLING_CODES = ("LimitExceededException", "TooManyRequestsException")
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -46,17 +55,44 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if route is None:
         return response(404, {"message": "Rota não encontrada."})
 
+    source_ip = (event.get("requestContext", {}).get("http") or {}).get(
+        "sourceIp", ""
+    )
+    try:
+        enforce_rate_limit(source_ip, f"{method} {path}")
+    except ApiError as error:
+        return _api_error_response(error)
+    except ClientError as error:
+        log_error("Rate limit store error.", event=event, error=error)
+
     try:
         body = route(event)
         return response(ROUTE_STATUS.get(f"{method} {path}", 200), body)
     except ApiError as error:
-        return response(error.status_code, {"message": error.message, **error.extra})
+        return _api_error_response(error)
     except ClientError as error:
+        code, _ = error_body(error)
+        if code in THROTTLING_CODES:
+            return response(
+                429,
+                {"message": "Muitas requisições.", "retryAfter": 60},
+                headers={"Retry-After": "60"},
+            )
         log_error("Cognito error.", event=event, error=error)
         return response(500, {"message": "Erro interno."})
     except (ValueError, TypeError, json.JSONDecodeError) as error:
         log_error("Internal error.", event=event, error=error)
         return response(500, {"message": "Erro interno."})
+
+
+def _api_error_response(error: ApiError) -> Dict[str, Any]:
+    headers = None
+    retry_after = error.extra.get("retryAfter")
+    if error.status_code == 429 and retry_after is not None:
+        headers = {"Retry-After": str(retry_after)}
+    return response(
+        error.status_code, {"message": error.message, **error.extra}, headers
+    )
 
 
 def _validate_config() -> str | None:

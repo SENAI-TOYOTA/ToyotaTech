@@ -32,12 +32,17 @@ Resources:
   AuthFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: toyotatech-auth
       CodeUri: services/auth/
       Handler: handler.lambda_handler
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
           PROFILE_TABLE_NAME: !Ref ProfilesTable
+          COGNITO_USER_POOL_ID: !Ref UserPool
+          COGNITO_CLIENT_ID: !Ref UserPoolClient
+          COGNITO_REGION: !Ref AWS::Region
+          RATE_LIMIT_TABLE_NAME: !Ref AuthRateLimitTable
       Events:
         CheckEmail:
           Type: HttpApi
@@ -181,6 +186,10 @@ Resources:
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      StageName: $default
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 100
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
@@ -192,6 +201,22 @@ Resources:
           - GET
           - POST
           - PUT
+        ExposeHeaders:
+          - Retry-After
+
+  AuthRateLimitTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
 
   ProfilesTable:
     Type: AWS::DynamoDB::Table
@@ -281,7 +306,7 @@ Resources:
       AutoVerifiedAttributes:
         - email
       LambdaConfig:
-        PreSignUp: !GetAtt AuthFunction.Arn
+        PreSignUp: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:toyotatech-auth
 
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient

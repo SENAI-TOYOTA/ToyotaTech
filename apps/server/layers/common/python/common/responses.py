@@ -17,7 +17,11 @@ class ApiError(Exception):
         self.extra = extra or {}
 
 
-def response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
+def response(
+    status_code: int,
+    body: Dict[str, Any],
+    headers: Dict[str, str] | None = None,
+) -> Dict[str, Any]:
     import os
 
     def json_default(value: Any) -> Any:
@@ -29,14 +33,19 @@ def response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
 
     allowed_origin = os.environ.get("ALLOWED_ORIGIN", "*")
 
+    out_headers = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": allowed_origin,
+        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT",
+        "Access-Control-Expose-Headers": "Retry-After",
+    }
+    if headers:
+        out_headers.update(headers)
+
     return {
         "statusCode": status_code,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": allowed_origin,
-            "Access-Control-Allow-Headers": "Content-Type,Authorization",
-            "Access-Control-Allow-Methods": "OPTIONS,GET,POST,PUT",
-        },
+        "headers": out_headers,
         "body": json.dumps(body, default=json_default, ensure_ascii=False),
     }
 

@@ -33,7 +33,16 @@ def _email(body: Dict[str, Any]) -> str:
     email = value.strip().lower()
     email_pattern = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
     require(
-        bool(email) and bool(email_pattern.match(email)) and '"' not in email,
+        bool(email)
+        and len(email) <= 254
+        and bool(email_pattern.match(email))
+        and '"' not in email,
+        400,
+        "E-mail inválido.",
+    )
+    domain = email.split("@", 1)[1]
+    require(
+        all(len(label) <= 63 and len(label) > 0 for label in domain.split(".")),
         400,
         "E-mail inválido.",
     )
@@ -86,6 +95,7 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
         require(isinstance(name_value, str), 400, "Nome inválido.")
         name = name_value.strip()
     require(not find_by_email(email), 409, "Usuário já cadastrado.")
+    require(len(email) <= 128, 400, "E-mail inválido.")
 
     attributes = [{"Name": "email", "Value": email}]
     if name:
@@ -102,10 +112,14 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
         )
     except ClientError as error:
         code, message = error_body(error)
+        if code in ("LimitExceededException", "TooManyRequestsException"):
+            raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
         if code == "UsernameExistsException":
             raise ApiError(409, "Usuário já cadastrado.")
-        if code in ("InvalidPasswordException", "InvalidParameterException"):
+        if code == "InvalidPasswordException":
             raise ApiError(400, message)
+        if code == "InvalidParameterException":
+            raise ApiError(400, "Dados inválidos.")
         raise
 
     return {
@@ -116,6 +130,7 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
 
 def verify_email(body: Dict[str, Any]) -> Dict[str, Any]:
     email = _email(body)
+    require(len(email) <= 128, 400, "E-mail inválido.")
     code_value = str(body.get("code", "")).strip()
     require(bool(code_value), 400, "Código de verificação obrigatório.")
 
@@ -128,10 +143,13 @@ def verify_email(body: Dict[str, Any]) -> Dict[str, Any]:
         return {"message": "E-mail verificado com sucesso."}
     except ClientError as error:
         code, _ = error_body(error)
+        if code in ("LimitExceededException", "TooManyRequestsException"):
+            raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
         mapping = {
             "CodeMismatchException": (400, "Código inválido."),
             "ExpiredCodeException": (400, "Código expirado. Solicite novo código."),
             "UserNotFoundException": (404, "Usuário não encontrado."),
+            "InvalidParameterException": (400, "Dados inválidos."),
         }
         if code in mapping:
             status, message = mapping[code]
@@ -143,6 +161,7 @@ def verify_email(body: Dict[str, Any]) -> Dict[str, Any]:
 
 def resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
     email = _email(body)
+    require(len(email) <= 128, 400, "E-mail inválido.")
 
     from common.cognito import cognito_client
 
@@ -153,6 +172,8 @@ def resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
         return {"message": "Código reenviado."}
     except ClientError as error:
         code, _ = error_body(error)
+        if code in ("LimitExceededException", "TooManyRequestsException"):
+            raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
         mapping = {
             "UserNotFoundException": (404, "Usuário não encontrado."),
             "InvalidParameterException": (409, "E-mail já verificado."),
@@ -174,9 +195,14 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
         password_auth_candidates,
     )
 
-    email = str(body.get("email", "")).strip().lower()
+    email_value = body.get("email")
     password = body.get("password", "")
-    require(bool(email and password), 400, "Informe e-mail e senha.")
+    require(
+        isinstance(email_value, str) and bool(email_value.strip()) and bool(password),
+        400,
+        "Informe e-mail e senha.",
+    )
+    email = _email(body)
 
     users = find_by_email(email)
     auth_result: Dict[str, Any] | None = None
@@ -191,6 +217,8 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
             break
         except ClientError as error:
             code, _ = error_body(error)
+            if code in ("LimitExceededException", "TooManyRequestsException"):
+                raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
             if code == "UserNotConfirmedException":
                 raise ApiError(
                     403, "E-mail ainda não verificado.", {"code": "EMAIL_NOT_VERIFIED"}
@@ -212,7 +240,11 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
             raise ApiError(
                 409, FEDERATED_MESSAGE, {"code": "FEDERATED_USER_NO_PASSWORD"}
             )
-        if last_code in ("NotAuthorizedException", "UserNotFoundException"):
+        if last_code in (
+            "NotAuthorizedException",
+            "UserNotFoundException",
+            "InvalidParameterException",
+        ):
             raise ApiError(401, "Credenciais inválidas.")
         if last_error:
             raise last_error
@@ -298,11 +330,14 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
             "NotAuthorizedException": (401, "Sessão inválida ou expirada."),
             "UserNotFoundException": (409, "Conta não encontrada para definir senha."),
             "InvalidPasswordException": (400, message),
-            "InvalidParameterException": (400, message),
+            "InvalidParameterException": (400, "Dados inválidos."),
+            "LimitExceededException": (429, "Muitas requisições."),
+            "TooManyRequestsException": (429, "Muitas requisições."),
         }
         if code in mapping:
             status, msg = mapping[code]
-            raise ApiError(status, msg)
+            extra = {"retryAfter": 60} if status == 429 else None
+            raise ApiError(status, msg, extra)
         raise
 
 
@@ -316,6 +351,8 @@ def refresh(body: Dict[str, Any]) -> Dict[str, Any]:
         )
     except ClientError as error:
         code, _ = error_body(error)
+        if code in ("LimitExceededException", "TooManyRequestsException"):
+            raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
         if code == "NotAuthorizedException":
             raise ApiError(401, "Sessão inválida ou expirada.")
         raise
