@@ -55,9 +55,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     if route is None:
         return response(404, {"message": "Rota não encontrada."})
 
-    source_ip = (event.get("requestContext", {}).get("http") or {}).get(
-        "sourceIp", ""
-    )
+    source_ip = (event.get("requestContext", {}).get("http") or {}).get("sourceIp", "")
     try:
         enforce_rate_limit(source_ip, f"{method} {path}")
     except ApiError as error:

@@ -115,9 +115,7 @@ def test_rate_limit_store_client_error_handler_fails_open():
         {"Error": {"Code": "ValidationException", "Message": "bad"}}, "GetItem"
     )
     with patch("common.cognito_users.find_by_email", return_value=[]):
-        with patch(
-            "services.auth.handler.enforce_rate_limit", side_effect=error
-        ):
+        with patch("services.auth.handler.enforce_rate_limit", side_effect=error):
             with patch("services.auth.handler.COGNITO_USER_POOL_ID", "pool"):
                 with patch("services.auth.handler.COGNITO_CLIENT_ID", "client"):
                     with patch(
