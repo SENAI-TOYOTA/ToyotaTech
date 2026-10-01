@@ -35,6 +35,7 @@ Resources:
       FunctionName: toyotatech-auth
       CodeUri: services/auth/
       Handler: handler.lambda_handler
+      ReservedConcurrentExecutions: 4
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
@@ -92,6 +93,7 @@ Resources:
     Properties:
       CodeUri: services/profile/
       Handler: handler.lambda_handler
+      ReservedConcurrentExecutions: 2
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
@@ -123,6 +125,7 @@ Resources:
     Properties:
       CodeUri: services/garage/
       Handler: handler.lambda_handler
+      ReservedConcurrentExecutions: 2
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
@@ -162,6 +165,7 @@ Resources:
     Properties:
       CodeUri: services/tracking/
       Handler: handler.lambda_handler
+      ReservedConcurrentExecutions: 1
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
@@ -183,13 +187,21 @@ Resources:
             Path: /garage/ingest
             Method: POST
 
+  AuthFunctionEventInvokeConfig:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      FunctionName: !Ref AuthFunction
+      Qualifier: $LATEST
+      MaximumRetryAttempts: 0
+      MaximumEventAgeInSeconds: 60
+
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: $default
       DefaultRouteSettings:
-        ThrottlingBurstLimit: 50
-        ThrottlingRateLimit: 100
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 20
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
