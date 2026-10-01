@@ -5,7 +5,7 @@ import { Platform, StyleSheet, Text, View } from "react-native";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 
 import Button from "@/components/ui/Button";
-import { ApiError } from "@/services/api";
+import { apiErrorMessage } from "@/services/api";
 import { resendVerification, verifyEmail } from "@/services/auth";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
@@ -45,11 +45,9 @@ export default function VerifyEmailScreen() {
         params: { email: String(email).toLowerCase() },
       });
     } catch (error) {
-      if (error instanceof ApiError) {
-        setFormError(error.message);
-      } else {
-        setFormError("Unable to validate code. Try again.");
-      }
+      setFormError(
+        apiErrorMessage(error, "Unable to validate code. Try again.")
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -65,11 +63,7 @@ export default function VerifyEmailScreen() {
       setVerificationCode("");
       otpRef.current?.clear();
     } catch (error) {
-      if (error instanceof ApiError) {
-        setFormError(error.message);
-      } else {
-        setFormError("Unable to resend code.");
-      }
+      setFormError(apiErrorMessage(error, "Unable to resend code."));
     } finally {
       setIsResending(false);
     }

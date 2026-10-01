@@ -10,7 +10,7 @@ import Button from "@/components/ui/Button";
 import SocialButton from "@/components/ui/SocialButton";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { ApiError } from "@/services/api";
+import { apiErrorMessage } from "@/services/api";
 import { checkEmail } from "@/services/auth";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
@@ -121,11 +121,9 @@ export default function LoginScreen() {
         params: { email: normalizedEmail },
       });
     } catch (error) {
-      if (error instanceof ApiError) {
-        setFormError(error.message);
-      } else {
-        setFormError("Unable to validate email. Try again.");
-      }
+      setFormError(
+        apiErrorMessage(error, "Unable to validate email. Try again.")
+      );
     } finally {
       setIsSubmitting(false);
     }

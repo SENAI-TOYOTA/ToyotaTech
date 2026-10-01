@@ -6,7 +6,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { ApiError } from "@/services/api";
+import { ApiError, apiErrorMessage } from "@/services/api";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
@@ -43,18 +43,14 @@ export default function LoginScreen() {
       router.replace("/home");
     } catch (error) {
       console.error("[Login] Sign-in failed:", error);
-      if (error instanceof ApiError) {
-        if (error.status === 403) {
-          router.push({
-            pathname: "/(auth)/verify-email",
-            params: { email: normalizedEmail },
-          });
-          return;
-        }
-        setFormError(error.message);
-      } else {
-        setFormError("Unable to sign in. Try again.");
+      if (error instanceof ApiError && error.status === 403) {
+        router.push({
+          pathname: "/(auth)/verify-email",
+          params: { email: normalizedEmail },
+        });
+        return;
       }
+      setFormError(apiErrorMessage(error, "Unable to sign in. Try again."));
     } finally {
       setIsSubmitting(false);
     }

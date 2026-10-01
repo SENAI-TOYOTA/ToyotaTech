@@ -1,10 +1,36 @@
 export class ApiError extends Error {
   status: number;
+  retryAfter?: number;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, retryAfter?: number) {
     super(message);
     this.status = status;
+    this.retryAfter = retryAfter;
   }
+}
+
+export function apiErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof ApiError)) {
+    return fallback;
+  }
+  if (error.status === 429 && error.retryAfter !== undefined) {
+    return `${error.message} Try again in ${error.retryAfter}s.`;
+  }
+  return error.message;
+}
+
+function parseRetryAfter(
+  body: { retryAfter?: number },
+  header: string | null
+): number | undefined {
+  if (typeof body.retryAfter === "number") {
+    return body.retryAfter;
+  }
+  if (!header) {
+    return undefined;
+  }
+  const value = Number(header);
+  return Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 
 const REQUEST_TIMEOUT_MS = 15000;
@@ -75,15 +101,20 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const message = (parsed as { message?: string }).message ?? "API error.";
+    const retryAfter = parseRetryAfter(
+      parsed as { retryAfter?: number },
+      response.headers.get("Retry-After")
+    );
     if (__DEV__ && !options?.suppressErrorLog) {
       console.error("[API] Response error", {
         path,
         status: response.status,
         message,
+        retryAfter,
         body: raw,
       });
     }
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, retryAfter);
   }
 
   return parsed as T;
