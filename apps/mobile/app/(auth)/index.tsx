@@ -1,7 +1,7 @@
 import * as AuthSession from "expo-auth-session";
 import { Checkbox } from "expo-checkbox";
 import Constants, { ExecutionEnvironment } from "expo-constants";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
@@ -34,8 +34,9 @@ function useCognitoDiscovery(issuer?: string) {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { email: emailFromParams } = useLocalSearchParams<{ email?: string }>();
   const { signInWithTokens } = useAuth();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailFromParams ?? "");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -112,6 +113,13 @@ export default function LoginScreen() {
     setIsSubmitting(true);
     try {
       const checkResult = await checkEmail(normalizedEmail);
+
+      if (checkResult.isFederated) {
+        setFormError(
+          "This account was created with Google. Continue with Google."
+        );
+        return;
+      }
 
       router.push({
         pathname:

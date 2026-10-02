@@ -87,6 +87,24 @@ describe("apiRequest on 429", () => {
     expect(apiErrorMessage(error, "fallback")).toBe("Too many requests.");
   });
 
+  it("surfaces the machine code from the response body", async () => {
+    globalThis.fetch = () =>
+      Promise.resolve(
+        responseWith(409, {
+          message: "This account was created with Google.",
+          code: "FEDERATED_USER_NO_PASSWORD",
+        })
+      );
+
+    const error = (await captureError(
+      apiRequest("/auth/login", { method: "POST" })
+    )) as ApiError;
+
+    expect(error.status).toBe(409);
+    expect(error.code).toBe("FEDERATED_USER_NO_PASSWORD");
+    expect(error.retryAfter).toBeUndefined();
+  });
+
   it("returns the fallback for failures that are not ApiError", () => {
     expect(apiErrorMessage(new Error("boom"), "fallback")).toBe("fallback");
   });

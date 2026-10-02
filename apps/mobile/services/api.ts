@@ -1,11 +1,18 @@
 export class ApiError extends Error {
   status: number;
   retryAfter?: number;
+  code?: string;
 
-  constructor(message: string, status: number, retryAfter?: number) {
+  constructor(
+    message: string,
+    status: number,
+    retryAfter?: number,
+    code?: string
+  ) {
     super(message);
     this.status = status;
     this.retryAfter = retryAfter;
+    this.code = code;
   }
 }
 
@@ -105,16 +112,18 @@ export async function apiRequest<T>(
       parsed as { retryAfter?: number },
       response.headers.get("Retry-After")
     );
+    const code = (parsed as { code?: string }).code;
     if (__DEV__ && !options?.suppressErrorLog) {
       console.error("[API] Response error", {
         path,
         status: response.status,
         message,
         retryAfter,
+        code,
         body: raw,
       });
     }
-    throw new ApiError(message, response.status, retryAfter);
+    throw new ApiError(message, response.status, retryAfter, code);
   }
 
   return parsed as T;

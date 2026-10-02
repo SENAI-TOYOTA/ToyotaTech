@@ -19,6 +19,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isFederatedError, setIsFederatedError] = useState(false);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const canSubmit =
@@ -33,6 +34,7 @@ export default function LoginScreen() {
     }
 
     setFormError(null);
+    setIsFederatedError(false);
     if (Platform.OS === "web" && typeof document !== "undefined") {
       (document.activeElement as HTMLElement | null)?.blur();
     }
@@ -50,6 +52,9 @@ export default function LoginScreen() {
         });
         return;
       }
+      setIsFederatedError(
+        error instanceof ApiError && error.code === "FEDERATED_USER_NO_PASSWORD"
+      );
       setFormError(apiErrorMessage(error, "Unable to sign in. Try again."));
     } finally {
       setIsSubmitting(false);
@@ -109,6 +114,21 @@ export default function LoginScreen() {
 
         {formError ? (
           <Text style={styles.formErrorText}>{formError}</Text>
+        ) : null}
+
+        {isFederatedError ? (
+          <Pressable
+            onPress={() => {
+              router.push({
+                pathname: "/(auth)/index",
+                params: { email: normalizedEmail },
+              });
+            }}
+          >
+            <Text style={styles.forgotPasswordText}>
+              SIGN IN WITH GOOGLE INSTEAD
+            </Text>
+          </Pressable>
         ) : null}
 
         <Pressable
