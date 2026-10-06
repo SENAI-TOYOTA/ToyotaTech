@@ -105,6 +105,23 @@ describe("apiRequest on 429", () => {
     expect(error.retryAfter).toBeUndefined();
   });
 
+  it("rejects a negative retryAfter from either source", async () => {
+    globalThis.fetch = () =>
+      Promise.resolve(
+        responseWith(429, {
+          message: "Too many requests.",
+          retryAfter: -5,
+        })
+      );
+
+    const error = (await captureError(
+      apiRequest("/auth/login", { method: "POST" })
+    )) as ApiError;
+
+    expect(error.retryAfter).toBeUndefined();
+    expect(apiErrorMessage(error, "fallback")).toBe("Too many requests.");
+  });
+
   it("returns the fallback for failures that are not ApiError", () => {
     expect(apiErrorMessage(new Error("boom"), "fallback")).toBe("fallback");
   });

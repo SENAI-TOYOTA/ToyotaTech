@@ -30,14 +30,21 @@ function parseRetryAfter(
   body: { retryAfter?: number },
   header: string | null
 ): number | undefined {
-  if (typeof body.retryAfter === "number") {
-    return body.retryAfter;
+  const fromBody = body.retryAfter;
+  if (
+    typeof fromBody === "number" &&
+    Number.isFinite(fromBody) &&
+    fromBody >= 0
+  ) {
+    return fromBody;
   }
   if (!header) {
     return undefined;
   }
-  const value = Number(header);
-  return Number.isFinite(value) && value >= 0 ? value : undefined;
+  const fromHeader = Number(header);
+  return Number.isFinite(fromHeader) && fromHeader >= 0
+    ? fromHeader
+    : undefined;
 }
 
 const REQUEST_TIMEOUT_MS = 15000;
