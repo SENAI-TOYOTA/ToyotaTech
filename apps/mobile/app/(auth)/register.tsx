@@ -6,6 +6,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
+import { validatePassword } from "@/profileValidation";
 import { apiErrorMessage } from "@/services/api";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
@@ -22,13 +23,23 @@ export default function RegisterScreen() {
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const canSubmit =
-    normalizedEmail.includes("@") && password.length >= 8 && !isSubmitting;
+    normalizedEmail.includes("@") &&
+    validatePassword(password) === null &&
+    !isSubmitting;
 
   const handleCreateAccountPress = async () => {
-    if (!canSubmit) {
-      setFormError(
-        "Enter a valid email and a password with at least 8 characters."
-      );
+    if (!normalizedEmail.includes("@")) {
+      setFormError("Informe um email válido.");
+      return;
+    }
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setFormError(passwordError);
+      return;
+    }
+
+    if (isSubmitting) {
       return;
     }
 
@@ -53,7 +64,10 @@ export default function RegisterScreen() {
       }
     } catch (error) {
       setFormError(
-        apiErrorMessage(error, "Unable to create account. Try again.")
+        apiErrorMessage(
+          error,
+          "Não foi possível criar a conta. Tente novamente."
+        )
       );
     } finally {
       setIsSubmitting(false);
@@ -62,11 +76,11 @@ export default function RegisterScreen() {
 
   return (
     <AuthScreenLayout>
-      <Text style={styles.welcomeText}>WELCOME!</Text>
+      <Text style={styles.welcomeText}>BEM-VINDO(A)!</Text>
 
       <View style={styles.formContainer}>
         <TextInput
-          placeholder="EMAIL ADDRESS *"
+          placeholder="ENDEREÇO DE EMAIL *"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -74,7 +88,7 @@ export default function RegisterScreen() {
         />
 
         <TextInput
-          placeholder="PASSWORD *"
+          placeholder="SENHA *"
           secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
@@ -87,13 +101,13 @@ export default function RegisterScreen() {
         >
           <Eye size={18} strokeWidth={1.8} color={colors.black} />
           <Text style={styles.visibilityText}>
-            {showPassword ? "HIDE" : "SHOW"}
+            {showPassword ? "OCULTAR" : "EXIBIR"}
           </Text>
         </Pressable>
 
         <Text style={styles.passwordHintText}>
-          At least 8 characters with one uppercase, one lowercase and one
-          number.
+          Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
+          minúscula e um número.
         </Text>
 
         {formError ? (
@@ -101,7 +115,7 @@ export default function RegisterScreen() {
         ) : null}
 
         <Button
-          title={isSubmitting ? "Creating..." : "Create account"}
+          title={isSubmitting ? "Criando..." : "Criar conta"}
           variant="primary"
           icon={
             <ArrowRight

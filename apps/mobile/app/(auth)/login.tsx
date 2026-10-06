@@ -28,7 +28,7 @@ export default function LoginScreen() {
   const handleLoginPress = async () => {
     if (!canSubmit) {
       setFormError(
-        "Enter a valid email and a password with at least 8 characters."
+        "Informe um email válido e uma senha com pelo menos 8 caracteres."
       );
       return;
     }
@@ -55,7 +55,9 @@ export default function LoginScreen() {
       setIsFederatedError(
         error instanceof ApiError && error.code === "FEDERATED_USER_NO_PASSWORD"
       );
-      setFormError(apiErrorMessage(error, "Unable to sign in. Try again."));
+      setFormError(
+        apiErrorMessage(error, "Não foi possível entrar. Tente novamente.")
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -65,7 +67,7 @@ export default function LoginScreen() {
     <AuthScreenLayout>
       <View style={styles.formContainer}>
         <TextInput
-          placeholder="EMAIL ADDRESS *"
+          placeholder="ENDEREÇO DE EMAIL *"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -73,7 +75,7 @@ export default function LoginScreen() {
         />
 
         <TextInput
-          placeholder="PASSWORD *"
+          placeholder="SENHA *"
           secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
@@ -86,12 +88,12 @@ export default function LoginScreen() {
         >
           <Eye size={18} strokeWidth={1.8} color={colors.black} />
           <Text style={styles.visibilityText}>
-            {showPassword ? "HIDE" : "SHOW"}
+            {showPassword ? "OCULTAR" : "EXIBIR"}
           </Text>
         </Pressable>
 
         <Button
-          title={isSubmitting ? "Signing in..." : "Sign in"}
+          title={isSubmitting ? "Entrando..." : "Fazer login"}
           variant="primary"
           icon={
             <ArrowRight
@@ -108,8 +110,8 @@ export default function LoginScreen() {
         />
 
         <Text style={styles.termsText}>
-          By clicking sign in, you agree{"\n"}to the{" "}
-          <Text style={styles.termsLink}>ToyotaTech Terms and Conditions</Text>.
+          Ao clicar em fazer login, você concorda com os{" "}
+          <Text style={styles.termsLink}>Termos e Condições ToyotaTech</Text>.
         </Text>
 
         {formError ? (
@@ -120,14 +122,12 @@ export default function LoginScreen() {
           <Pressable
             onPress={() => {
               router.push({
-                pathname: "/(auth)/index",
+                pathname: "/",
                 params: { email: normalizedEmail },
               });
             }}
           >
-            <Text style={styles.forgotPasswordText}>
-              SIGN IN WITH GOOGLE INSTEAD
-            </Text>
+            <Text style={styles.forgotPasswordText}>ENTRAR COM GOOGLE</Text>
           </Pressable>
         ) : null}
 
@@ -140,7 +140,7 @@ export default function LoginScreen() {
           }}
         >
           <Text style={styles.forgotPasswordText}>
-            DO NOT HAVE AN ACCOUNT? CREATE ACCOUNT
+            NÃO TEM CONTA? CRIAR CONTA
           </Text>
         </Pressable>
       </View>

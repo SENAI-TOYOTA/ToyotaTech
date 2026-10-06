@@ -16,14 +16,46 @@ export class ApiError extends Error {
   }
 }
 
+const serverMessages: [RegExp, string][] = [
+  [
+    /Password did not conform with policy/i,
+    "A senha não atende aos requisitos: mínimo de 8 caracteres, com letra maiúscula, minúscula e número.",
+  ],
+  [
+    /An account with the given email already exists/i,
+    "Já existe uma conta com este email.",
+  ],
+  [
+    /User does not exist|Incorrect username or password/i,
+    "Email ou senha incorretos.",
+  ],
+  [/Invalid verification code/i, "Código de verificação inválido."],
+  [/Invalid email address format/i, "Formato de email inválido."],
+  [
+    /Password attempts exceeded/i,
+    "Muitas tentativas. Tente novamente mais tarde.",
+  ],
+  [/Limit exceeded/i, "Muitas requisições. Tente novamente mais tarde."],
+];
+
+function translateServerMessage(message: string): string {
+  for (const [pattern, translated] of serverMessages) {
+    if (pattern.test(message)) {
+      return translated;
+    }
+  }
+  return message;
+}
+
 export function apiErrorMessage(error: unknown, fallback: string): string {
   if (!(error instanceof ApiError)) {
     return fallback;
   }
+  const message = translateServerMessage(error.message);
   if (error.status === 429 && error.retryAfter !== undefined) {
-    return `${error.message} Try again in ${error.retryAfter}s.`;
+    return `${message} Tente novamente em ${error.retryAfter}s.`;
   }
-  return error.message;
+  return message;
 }
 
 function parseRetryAfter(

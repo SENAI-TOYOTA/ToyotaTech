@@ -3,16 +3,16 @@ export const PASSWORD_MIN_LENGTH = 8;
 
 export function validatePassword(password: string): string | null {
   if (password.length < PASSWORD_MIN_LENGTH) {
-    return `Password must have at least ${PASSWORD_MIN_LENGTH} characters.`;
+    return `A senha deve ter pelo menos ${PASSWORD_MIN_LENGTH} caracteres.`;
   }
   if (!/[A-Z]/.test(password)) {
-    return "Password must contain at least one uppercase letter.";
+    return "A senha deve ter pelo menos uma letra maiúscula.";
   }
   if (!/[a-z]/.test(password)) {
-    return "Password must contain at least one lowercase letter.";
+    return "A senha deve ter pelo menos uma letra minúscula.";
   }
   if (!/[0-9]/.test(password)) {
-    return "Password must contain at least one number.";
+    return "A senha deve ter pelo menos um número.";
   }
   return null;
 }
@@ -33,7 +33,7 @@ export function hasCompleteProfile(
 
 export function validateBirthDate(value: string): string | null {
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-    return "Enter a valid birth date.";
+    return "Informe uma data de nascimento válida.";
   }
 
   const [dayText, monthText, yearText] = value.split("/");
@@ -49,7 +49,7 @@ export function validateBirthDate(value: string): string | null {
     parsed.getFullYear() !== year ||
     year < 1900
   ) {
-    return "Enter a valid birth date.";
+    return "Informe uma data de nascimento válida.";
   }
 
   const today = new Date();
@@ -66,7 +66,7 @@ export function validateBirthDate(value: string): string | null {
   }
 
   if (age < MINIMUM_PROFILE_AGE) {
-    return `You must be at least ${MINIMUM_PROFILE_AGE} years old.`;
+    return `Você precisa ter pelo menos ${MINIMUM_PROFILE_AGE} anos.`;
   }
 
   return null;

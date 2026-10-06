@@ -51,7 +51,7 @@ describe("apiRequest on 429", () => {
     expect(error.status).toBe(429);
     expect(error.retryAfter).toBe(60);
     expect(apiErrorMessage(error, "fallback")).toBe(
-      "Too many requests. Try again in 60s."
+      "Too many requests. Tente novamente em 60s."
     );
   });
 
@@ -71,7 +71,7 @@ describe("apiRequest on 429", () => {
 
     expect(error.retryAfter).toBe(1);
     expect(apiErrorMessage(error, "fallback")).toBe(
-      "Too many requests. Try again in 1s."
+      "Too many requests. Tente novamente em 1s."
     );
   });
 

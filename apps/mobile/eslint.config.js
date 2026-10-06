@@ -44,6 +44,7 @@ module.exports = defineConfig([
       ".expo/**",
       "web-build/**",
       ".expo-shared/**",
+      "expo-env.d.ts",
     ],
   },
   {
@@ -65,24 +66,6 @@ module.exports = defineConfig([
           allow: ["warn", "error"],
         },
       ],
-      "no-restricted-syntax": [
-        "error",
-        {
-          selector:
-            "Literal[value=/[\\u00E1\\u00E0\\u00E2\\u00E3\\u00E9\\u00E8\\u00EA\\u00ED\\u00EF\\u00F3\\u00F4\\u00F5\\u00F6\\u00FA\\u00E7\\u00F1\\u00C1\\u00C0\\u00C2\\u00C3\\u00C9\\u00C8\\u00CA\\u00CD\\u00CF\\u00D3\\u00D4\\u00D5\\u00D6\\u00DA\\u00C7\\u00D1]/]",
-          message: "Use English only. Non-ASCII characters detected.",
-        },
-        {
-          selector:
-            "TemplateElement[value.raw=/[\\u00E1\\u00E0\\u00E2\\u00E3\\u00E9\\u00E8\\u00EA\\u00ED\\u00EF\\u00F3\\u00F4\\u00F5\\u00F6\\u00FA\\u00E7\\u00F1\\u00C1\\u00C0\\u00C2\\u00C3\\u00C9\\u00C8\\u00CA\\u00CD\\u00CF\\u00D3\\u00D4\\u00D5\\u00D6\\u00DA\\u00C7\\u00D1]/]",
-          message: "Use English only. Non-ASCII characters detected.",
-        },
-        {
-          selector:
-            "JSXText[value=/[\\u00E1\\u00E0\\u00E2\\u00E3\\u00E9\\u00E8\\u00EA\\u00ED\\u00EF\\u00F3\\u00F4\\u00F5\\u00F6\\u00FA\\u00E7\\u00F1\\u00C1\\u00C0\\u00C2\\u00C3\\u00C9\\u00C8\\u00CA\\u00CD\\u00CF\\u00D3\\u00D4\\u00D5\\u00D6\\u00DA\\u00C7\\u00D1]/]",
-          message: "Use English only. Non-ASCII characters detected.",
-        },
-      ],
       complexity: ["warn", 25],
       "react-hooks/refs": "off",
       "react-hooks/set-state-in-effect": "off",
@@ -102,8 +85,6 @@ module.exports = defineConfig([
   },
   {
     files: ["eslint.config.js", ".prettierrc.js"],
-    rules: {
-      "no-restricted-syntax": "off",
-    },
+    rules: {},
   },
 ]);

@@ -101,7 +101,7 @@ export default function LoginScreen() {
 
   const handleContinuePress = async () => {
     if (!canContinue) {
-      setFormError("Enter a valid email and accept the terms.");
+      setFormError("Informe um email válido e aceite os termos.");
       return;
     }
 
@@ -115,9 +115,7 @@ export default function LoginScreen() {
       const checkResult = await checkEmail(normalizedEmail);
 
       if (checkResult.isFederated) {
-        setFormError(
-          "This account was created with Google. Continue with Google."
-        );
+        setFormError("Esta conta foi criada com Google. Entre com Google.");
         return;
       }
 
@@ -130,7 +128,10 @@ export default function LoginScreen() {
       });
     } catch (error) {
       setFormError(
-        apiErrorMessage(error, "Unable to validate email. Try again.")
+        apiErrorMessage(
+          error,
+          "Não foi possível validar o email. Tente novamente."
+        )
       );
     } finally {
       setIsSubmitting(false);
@@ -143,11 +144,11 @@ export default function LoginScreen() {
         return;
       }
       if (!discovery || !cognitoClientId) {
-        setFormError("Google sign-in not configured.");
+        setFormError("Login com Google não configurado.");
         return;
       }
       if (!request?.codeVerifier) {
-        setFormError("Unable to complete Google sign-in.");
+        setFormError("Não foi possível concluir o login com Google.");
         return;
       }
       setIsGoogleLoading(true);
@@ -180,7 +181,7 @@ export default function LoginScreen() {
         });
       } catch (error) {
         console.error("Google sign-in failed:", error);
-        setFormError("Unable to complete Google sign-in.");
+        setFormError("Não foi possível concluir o login com Google.");
       } finally {
         setIsGoogleLoading(false);
       }
@@ -198,11 +199,11 @@ export default function LoginScreen() {
 
   const handleGooglePress = async () => {
     if (!cognitoDomain || !cognitoClientId) {
-      setFormError("Google sign-in not configured.");
+      setFormError("Login com Google não configurado.");
       return;
     }
     if (!discovery || !request) {
-      setFormError("Google sign-in not ready yet.");
+      setFormError("Login com Google ainda não está disponível.");
       return;
     }
     setFormError(null);
@@ -214,7 +215,7 @@ export default function LoginScreen() {
       }
     } catch (error) {
       console.error("Failed to open Google sign-in:", error);
-      setFormError("Unable to open Google sign-in.");
+      setFormError("Não foi possível abrir o login com Google.");
       setIsGoogleLoading(false);
     }
   };
@@ -226,7 +227,7 @@ export default function LoginScreen() {
       bottomContent={
         <View style={styles.bottomContentContainer}>
           <Button
-            title={isSubmitting ? "Verifying..." : "Continue"}
+            title={isSubmitting ? "Verificando..." : "Prosseguir"}
             variant="primary"
             icon={
               <ArrowRight
@@ -250,7 +251,7 @@ export default function LoginScreen() {
           onPress={isGoogleLoading ? undefined : handleGooglePress}
         />
         <TextInput
-          placeholder="EMAIL ADDRESS *"
+          placeholder="ENDEREÇO DE EMAIL *"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -264,18 +265,15 @@ export default function LoginScreen() {
             color={acceptedTerms ? colors.black : undefined}
           />
           <Text style={styles.termsText}>
-            By clicking continue, you{"\n"}agree to the{" "}
-            <Text style={styles.termsLink}>
-              ToyotaTech{"\n"}Terms and Conditions
-            </Text>
-            .
+            Ao clicar em prosseguir, você concorda com os{" "}
+            <Text style={styles.termsLink}>Termos e Condições ToyotaTech</Text>.
           </Text>
         </View>
         {formError ? (
           <Text style={styles.formErrorText}>{formError}</Text>
         ) : null}
         {isGoogleLoading ? (
-          <Text style={styles.formInfoText}>Connecting to Google...</Text>
+          <Text style={styles.formInfoText}>Conectando ao Google...</Text>
         ) : null}
       </View>
     </AuthScreenLayout>
