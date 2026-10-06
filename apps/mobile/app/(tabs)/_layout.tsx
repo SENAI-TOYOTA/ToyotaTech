@@ -1,7 +1,7 @@
 import { Tabs, useRouter } from "expo-router";
 import { CarFront, CircleDollarSign, Home, User } from "lucide-react-native";
 import React, { useEffect } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { type ColorValue, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -40,7 +40,7 @@ const TabIcon = React.memo(function TabIcon({
   Icon,
 }: {
   focused: boolean;
-  color: string;
+  color: ColorValue;
   Icon: typeof Home;
 }) {
   const scale = useSharedValue(1);
@@ -68,7 +68,11 @@ const TabIcon = React.memo(function TabIcon({
   return (
     <View style={styles.tabIconWrapper}>
       <Animated.View style={animatedIconStyle}>
-        <Icon size={iconSize} strokeWidth={iconStrokeWidth} color={color} />
+        <Icon
+          size={iconSize}
+          strokeWidth={iconStrokeWidth}
+          color={color as string}
+        />
       </Animated.View>
       <Animated.View style={[styles.tabIndicator, animatedIndicatorStyle]} />
     </View>
