@@ -329,6 +329,25 @@ Resources:
       ExplicitAuthFlows:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+        - mobile://
+        - http://localhost:8081
+      LogoutURLs:
+        - mobile://
+        - http://localhost:8081
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: toyotatech-mobile
 
   AuthFunctionCognitoPermission:
     Type: AWS::Lambda::Permission
