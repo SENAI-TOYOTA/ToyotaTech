@@ -37,6 +37,9 @@ const WEAK_PASSWORDS = new Set([
 ]);
 
 export function validatePassword(password: string): string | null {
+  if (password !== password.trim()) {
+    return "A senha não pode começar ou terminar com espaço.";
+  }
   if (
     password.length < PASSWORD_MIN_LENGTH ||
     password.length > PASSWORD_MAX_LENGTH

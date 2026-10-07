@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 from botocore.exceptions import ClientError
 
+from common.validation import PASSWORD_WHITESPACE_MESSAGE
+
 handler = importlib.import_module("services.auth.handler")
 flows = importlib.import_module("services.auth.flows")
 
@@ -1021,16 +1023,6 @@ def register_sign_up_password(password):
     return result["statusCode"], sent
 
 
-def test_register_password_with_trailing_space_accepted():
-    status_code, _ = register_sign_up_password("Abc1234 ")
-    assert status_code == 201
-
-
-def test_register_sends_password_to_cognito_unmodified():
-    _, sent = register_sign_up_password("Abc1234 ")
-    assert sent == "Abc1234 "
-
-
 def test_register_rejects_weak_password_that_meets_complexity():
     status_code, _ = register_sign_up_password("Admin@2024")
     assert status_code == 400
@@ -1041,16 +1033,36 @@ def test_register_rejects_blocklisted_password_case_insensitively():
     assert status_code == 400
 
 
-def test_register_rejects_password_valid_only_after_strip():
-    with patch("common.cognito_users.find_by_email", return_value=[]):
-        try:
-            flows.register({"email": "a@b.com", "password": " Ab123456"})
-            assert False
-        except Exception as error:
-            assert error.status_code == 400
+def test_register_rejects_trailing_space_in_password():
+    status_code, sent = register_sign_up_password("Abc1234 ")
+    assert status_code == 400
+    assert sent is None
 
 
-def test_set_password_preserves_spaces():
+def test_register_rejects_leading_space_in_password():
+    status_code, sent = register_sign_up_password(" Abc1234")
+    assert status_code == 400
+    assert sent is None
+
+
+def test_register_rejects_trailing_newline_in_password():
+    status_code, sent = register_sign_up_password("Abc12345\n")
+    assert status_code == 400
+    assert sent is None
+
+
+def test_register_reports_whitespace_before_length():
+    event = api_event(
+        "POST",
+        "/auth/register",
+        body={"email": "ws@example.com", "password": " Ab1 "},
+    )
+    result = handler.lambda_handler(event, None)
+    assert result["statusCode"] == 400
+    assert parse_response(result)["message"] == PASSWORD_WHITESPACE_MESSAGE
+
+
+def test_set_password_rejects_trailing_space():
     with patch("common.cognito.extract_token", return_value="token"):
         with patch(
             "services.auth.flows.get_user_by_access_token",
@@ -1064,5 +1076,29 @@ def test_set_password_preserves_spaces():
                     with patch(
                         "common.cognito.cognito_client.admin_set_user_password"
                     ) as set_password_call:
-                        flows.set_password({"body": '{"password": "Abc1234 "}'})
-    assert set_password_call.call_args.kwargs["Password"] == "Abc1234 "
+                        event = api_event(
+                            "POST",
+                            "/auth/set-password",
+                            body={"password": "Abc1234 "},
+                        )
+                        result = handler.lambda_handler(event, None)
+    assert result["statusCode"] == 400
+    assert set_password_call.call_args is None
+
+
+def test_set_password_preserves_inner_spaces():
+    with patch("common.cognito.extract_token", return_value="token"):
+        with patch(
+            "services.auth.flows.get_user_by_access_token",
+            return_value={
+                "Username": "user@example.com",
+                "UserAttributes": [{"Name": "email", "Value": "user@example.com"}],
+            },
+        ):
+            with patch("services.auth.flows.is_federated", return_value=False):
+                with patch("services.auth.flows.COGNITO_USER_POOL_ID", "pool"):
+                    with patch(
+                        "common.cognito.cognito_client.admin_set_user_password"
+                    ) as set_password_call:
+                        flows.set_password({"body": '{"password": "Abc 1234"}'})
+    assert set_password_call.call_args.kwargs["Password"] == "Abc 1234"

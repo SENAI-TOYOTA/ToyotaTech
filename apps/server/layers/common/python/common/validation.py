@@ -12,6 +12,8 @@ PASSWORD_POLICY_MESSAGE = (
     "com letra maiúscula, minúscula e número."
 )
 
+PASSWORD_WHITESPACE_MESSAGE = "A senha não pode começar ou terminar com espaço."
+
 PASSWORD_PATTERN = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$")
 
 WEAK_PASSWORDS = frozenset(
@@ -84,6 +86,8 @@ def is_valid_cpf(value: Any) -> bool:
 
 def validate_password_policy(value: Any) -> Optional[str]:
     password = "" if value is None else str(value)
+    if password != password.strip():
+        return PASSWORD_WHITESPACE_MESSAGE
     if len(password) < PASSWORD_MIN_LENGTH or len(password) > PASSWORD_MAX_LENGTH:
         return PASSWORD_POLICY_MESSAGE
     if not PASSWORD_PATTERN.match(password):

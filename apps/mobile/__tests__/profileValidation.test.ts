@@ -7,8 +7,26 @@ describe("validatePassword", () => {
     expect(validatePassword("P@ssw0rd2026")).toBeNull();
   });
 
-  it("accepts a password with trailing whitespace", () => {
-    expect(validatePassword("Abc1234 ")).toBeNull();
+  it("accepts a password with inner whitespace", () => {
+    expect(validatePassword("Abc 1234")).toBeNull();
+  });
+
+  it("rejects a password with trailing whitespace", () => {
+    expect(validatePassword("Abc1234 ")).not.toBeNull();
+  });
+
+  it("rejects a password with leading whitespace", () => {
+    expect(validatePassword(" Abc1234")).not.toBeNull();
+  });
+
+  it("rejects a password with a trailing newline", () => {
+    expect(validatePassword("Abc12345\n")).not.toBeNull();
+  });
+
+  it("reports whitespace before length", () => {
+    expect(validatePassword(" Ab1 ")).toBe(
+      "A senha não pode começar ou terminar com espaço."
+    );
   });
 
   it("rejects passwords shorter than the minimum", () => {
