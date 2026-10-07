@@ -32,6 +32,17 @@ interface StoredSession {
   expiresAt: number;
 }
 
+async function isSecureStoreAvailable(): Promise<boolean> {
+  if (isWeb) {
+    return true;
+  }
+  try {
+    return await SecureStore.isAvailableAsync();
+  } catch {
+    return false;
+  }
+}
+
 async function getStoredSession(): Promise<StoredSession | null> {
   const parseSession = (rawValue: string | null): StoredSession | null => {
     if (!rawValue) {
@@ -63,8 +74,15 @@ async function getStoredSession(): Promise<StoredSession | null> {
       globalThis.localStorage?.getItem(SESSION_STORAGE_KEY) ?? null
     );
   }
-  const raw = await SecureStore.getItemAsync(SESSION_STORAGE_KEY);
-  return parseSession(raw);
+  if (!(await isSecureStoreAvailable())) {
+    return null;
+  }
+  try {
+    const raw = await SecureStore.getItemAsync(SESSION_STORAGE_KEY);
+    return parseSession(raw);
+  } catch {
+    return null;
+  }
 }
 
 async function setStoredSession(session: StoredSession) {
@@ -73,7 +91,14 @@ async function setStoredSession(session: StoredSession) {
     globalThis.localStorage?.setItem(SESSION_STORAGE_KEY, raw);
     return;
   }
-  await SecureStore.setItemAsync(SESSION_STORAGE_KEY, raw);
+  if (!(await isSecureStoreAvailable())) {
+    return;
+  }
+  try {
+    await SecureStore.setItemAsync(SESSION_STORAGE_KEY, raw);
+  } catch {
+    return;
+  }
 }
 
 async function deleteStoredSession() {
@@ -81,7 +106,14 @@ async function deleteStoredSession() {
     globalThis.localStorage?.removeItem(SESSION_STORAGE_KEY);
     return;
   }
-  await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
+  if (!(await isSecureStoreAvailable())) {
+    return;
+  }
+  try {
+    await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
+  } catch {
+    return;
+  }
 }
 
 function isTokenFederated(idToken: string): boolean {

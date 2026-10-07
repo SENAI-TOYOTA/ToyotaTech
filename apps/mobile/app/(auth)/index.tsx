@@ -90,7 +90,13 @@ export default function LoginScreen() {
       clientId: cognitoClientId ?? "",
       redirectUri,
       responseType: AuthSession.ResponseType.Code,
-      scopes: ["openid", "email", "profile", "aws.cognito.signin.user.admin"],
+      scopes: [
+        "openid",
+        "email",
+        "profile",
+        "aws.cognito.signin.user.admin",
+        "offline_access",
+      ],
       usePKCE: true,
       extraParams: {
         identity_provider: "Google",
