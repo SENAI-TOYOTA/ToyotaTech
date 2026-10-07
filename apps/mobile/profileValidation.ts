@@ -30,6 +30,10 @@ const WEAK_PASSWORDS = new Set([
   "sunshine",
   "trustno1",
   "abc1234567",
+  "admin@2024",
+  "abc@1234",
+  "mudar@123",
+  "teste@123",
 ]);
 
 export function validatePassword(password: string): string | null {

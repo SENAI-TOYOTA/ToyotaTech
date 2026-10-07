@@ -997,3 +997,72 @@ def test_register_password_with_special_chars():
                     with patch("common.cognito.COGNITO_CLIENT_ID", "client"):
                         result = handler.lambda_handler(event, None)
     assert result["statusCode"] == 201
+
+
+def register_sign_up_password(password):
+    with patch("common.cognito_users.find_by_email", return_value=[]):
+        with patch(
+            "common.cognito.cognito_client.sign_up",
+            return_value={"UserConfirmed": False},
+        ) as sign_up:
+            with patch("services.auth.handler.COGNITO_USER_POOL_ID", "pool"):
+                with patch("services.auth.handler.COGNITO_CLIENT_ID", "client"):
+                    with patch("common.cognito.COGNITO_CLIENT_ID", "client"):
+                        event = api_event(
+                            "POST",
+                            "/auth/register",
+                            body={
+                                "email": "space@example.com",
+                                "password": password,
+                            },
+                        )
+                        result = handler.lambda_handler(event, None)
+    sent = sign_up.call_args.kwargs["Password"] if sign_up.call_args else None
+    return result["statusCode"], sent
+
+
+def test_register_password_with_trailing_space_accepted():
+    status_code, _ = register_sign_up_password("Abc1234 ")
+    assert status_code == 201
+
+
+def test_register_sends_password_to_cognito_unmodified():
+    _, sent = register_sign_up_password("Abc1234 ")
+    assert sent == "Abc1234 "
+
+
+def test_register_rejects_weak_password_that_meets_complexity():
+    status_code, _ = register_sign_up_password("Admin@2024")
+    assert status_code == 400
+
+
+def test_register_rejects_blocklisted_password_case_insensitively():
+    status_code, _ = register_sign_up_password("ADMIN@2024")
+    assert status_code == 400
+
+
+def test_register_rejects_password_valid_only_after_strip():
+    with patch("common.cognito_users.find_by_email", return_value=[]):
+        try:
+            flows.register({"email": "a@b.com", "password": " Ab123456"})
+            assert False
+        except Exception as error:
+            assert error.status_code == 400
+
+
+def test_set_password_preserves_spaces():
+    with patch("common.cognito.extract_token", return_value="token"):
+        with patch(
+            "services.auth.flows.get_user_by_access_token",
+            return_value={
+                "Username": "user@example.com",
+                "UserAttributes": [{"Name": "email", "Value": "user@example.com"}],
+            },
+        ):
+            with patch("services.auth.flows.is_federated", return_value=False):
+                with patch("services.auth.flows.COGNITO_USER_POOL_ID", "pool"):
+                    with patch(
+                        "common.cognito.cognito_client.admin_set_user_password"
+                    ) as set_password_call:
+                        flows.set_password({"body": '{"password": "Abc1234 "}'})
+    assert set_password_call.call_args.kwargs["Password"] == "Abc1234 "

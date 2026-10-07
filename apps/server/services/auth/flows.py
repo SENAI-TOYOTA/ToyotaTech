@@ -286,7 +286,7 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
     access_token = extract_token(event)
     require(bool(access_token), 401, "Token não informado.")
 
-    password = str(parse_body(event).get("password", "")).strip()
+    password = str(parse_body(event).get("password", ""))
     password_error = validate_password_policy(password)
     require(password_error is None, 400, password_error or PASSWORD_POLICY_MESSAGE)
 

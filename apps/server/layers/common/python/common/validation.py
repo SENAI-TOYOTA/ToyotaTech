@@ -43,6 +43,10 @@ WEAK_PASSWORDS = frozenset(
         "sunshine",
         "trustno1",
         "abc1234567",
+        "admin@2024",
+        "abc@1234",
+        "mudar@123",
+        "teste@123",
     }
 )
 
@@ -79,7 +83,7 @@ def is_valid_cpf(value: Any) -> bool:
 
 
 def validate_password_policy(value: Any) -> Optional[str]:
-    password = coerce_text(value)
+    password = "" if value is None else str(value)
     if len(password) < PASSWORD_MIN_LENGTH or len(password) > PASSWORD_MAX_LENGTH:
         return PASSWORD_POLICY_MESSAGE
     if not PASSWORD_PATTERN.match(password):
