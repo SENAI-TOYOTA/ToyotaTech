@@ -15,7 +15,13 @@ from common.cognito import (
 )
 from common.ddb import get_table
 from common.responses import ApiError, error_body, parse_body, require
-from common.validation import normalize_birth_date, normalize_cpf
+from common.validation import (
+    PASSWORD_POLICY_MESSAGE,
+    is_valid_cpf,
+    normalize_birth_date,
+    normalize_cpf,
+    validate_password_policy,
+)
 
 PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()
 
@@ -83,12 +89,13 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
 
     email = _email(body)
     password = body.get("password", "")
-    require(isinstance(password, str), 400, "A senha deve ter ao menos 8 caracteres.")
-    require(len(password) >= 8, 400, "A senha deve ter ao menos 8 caracteres.")
+    require(isinstance(password, str), 400, PASSWORD_POLICY_MESSAGE)
+    password_error = validate_password_policy(password)
+    require(password_error is None, 400, password_error or PASSWORD_POLICY_MESSAGE)
     if "cpf" in body:
         cpf_value = body.get("cpf")
         require(isinstance(cpf_value, str), 400, "CPF inválido.")
-        require(len(normalize_cpf(cpf_value)) == 11, 400, "CPF inválido.")
+        require(is_valid_cpf(cpf_value), 400, "CPF inválido.")
     name_value = body.get("name")
     name = ""
     if name_value is not None:
@@ -280,7 +287,8 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
     require(bool(access_token), 401, "Token não informado.")
 
     password = str(parse_body(event).get("password", "")).strip()
-    require(len(password) >= 8, 400, "A senha deve ter ao menos 8 caracteres.")
+    password_error = validate_password_policy(password)
+    require(password_error is None, 400, password_error or PASSWORD_POLICY_MESSAGE)
 
     from common.cognito import cognito_client
 

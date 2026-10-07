@@ -186,13 +186,13 @@ def test_profile_update_returns_profile_shape(contract):
             {
                 "fullName": "Maria Silva",
                 "birthDate": "01/02/1990",
-                "cpf": "12345678901",
+                "cpf": "52998224725",
             },
             token=token,
         )
     assert status == 200
     assert body["profile"]["fullName"] == "Maria Silva"
-    assert body["profile"]["cpf"] == "12345678901"
+    assert body["profile"]["cpf"] == "52998224725"
     assert set(body["profile"]) == {"fullName", "birthDate", "cpf"}
 
 
@@ -224,7 +224,7 @@ def complete_profile(token):
             {
                 "fullName": "Maria Silva",
                 "birthDate": "01/02/1990",
-                "cpf": "12345678901",
+                "cpf": "52998224725",
             },
             token=token,
         )

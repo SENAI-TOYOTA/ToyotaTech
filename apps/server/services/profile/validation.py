@@ -3,11 +3,13 @@ from common.validation import (
     calculate_age,
     coerce_text,
     is_complete,
+    is_valid_cpf,
     normalize_birth_date,
     normalize_cpf,
     normalize_name,
     parse_birth_date,
     validate_birth_date,
+    validate_password_policy,
 )
 
 __all__ = [
@@ -15,9 +17,11 @@ __all__ = [
     "calculate_age",
     "coerce_text",
     "is_complete",
+    "is_valid_cpf",
     "normalize_birth_date",
     "normalize_cpf",
     "normalize_name",
     "parse_birth_date",
     "validate_birth_date",
+    "validate_password_policy",
 ]

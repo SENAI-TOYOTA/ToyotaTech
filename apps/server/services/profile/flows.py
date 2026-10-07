@@ -64,9 +64,8 @@ def save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
 
     if "cpf" in body:
         require(isinstance(body.get("cpf"), str), 400, "CPF inválido.")
-        normalized_cpf = validation.normalize_cpf(body.get("cpf", ""))
-        require(len(normalized_cpf) == 11, 400, "CPF inválido.")
-        updates["cpf"] = normalized_cpf
+        require(validation.is_valid_cpf(body.get("cpf", "")), 400, "CPF inválido.")
+        updates["cpf"] = validation.normalize_cpf(body.get("cpf", ""))
 
     require(bool(updates), 400, "Nenhum campo de perfil informado.")
 

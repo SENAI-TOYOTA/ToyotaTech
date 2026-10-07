@@ -362,7 +362,8 @@ def test_register_weak_password_short():
                 result = handler.lambda_handler(event, None)
     assert result["statusCode"] == 400
     assert (
-        parse_response(result)["message"] == "A senha deve ter ao menos 8 caracteres."
+        parse_response(result)["message"]
+        == "A senha não atende aos requisitos: mínimo de 8 caracteres, com letra maiúscula, minúscula e número."
     )
 
 
@@ -432,11 +433,29 @@ def test_register_weak_password_list():
     assert result["statusCode"] == 400
 
 
-def test_register_weak_password_exactly_eight_passes():
+def test_register_weak_password_eight_digits_rejected():
     event = api_event(
         "POST",
         "/auth/register",
         body={"email": "ok@example.com", "password": "12345678"},
+    )
+    with patch("common.cognito_users.find_by_email", return_value=[]):
+        with patch(
+            "common.cognito.cognito_client.sign_up",
+            return_value={"UserConfirmed": False},
+        ):
+            with patch("services.auth.handler.COGNITO_USER_POOL_ID", "pool"):
+                with patch("services.auth.handler.COGNITO_CLIENT_ID", "client"):
+                    with patch("common.cognito.COGNITO_CLIENT_ID", "client"):
+                        result = handler.lambda_handler(event, None)
+    assert result["statusCode"] == 400
+
+
+def test_register_strong_password_accepted():
+    event = api_event(
+        "POST",
+        "/auth/register",
+        body={"email": "ok@example.com", "password": "Toyota2026"},
     )
     with patch("common.cognito_users.find_by_email", return_value=[]):
         with patch(

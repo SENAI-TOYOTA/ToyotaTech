@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { validateBirthDate } from "@/profileValidation";
+import { validateBirthDate, validateCpf } from "@/profileValidation";
 import { ApiError } from "@/services/api";
 import { resolveGarage } from "@/services/garage";
 import { fetchProfile, updateProfile } from "@/services/profile";
@@ -82,9 +82,12 @@ export function useProfileForm() {
       setFormError(birthDateError);
       return false;
     }
-    if (!isCpfLocked && normalizedCpf.length !== 11) {
-      setFormError("Informe um CPF válido.");
-      return false;
+    if (!isCpfLocked) {
+      const cpfError = validateCpf(normalizedCpf);
+      if (cpfError) {
+        setFormError(cpfError);
+        return false;
+      }
     }
     setIsSaving(true);
     setFormError(null);

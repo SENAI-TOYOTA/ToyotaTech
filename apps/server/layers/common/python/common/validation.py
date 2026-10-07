@@ -4,6 +4,47 @@ from datetime import date, datetime, timezone
 from typing import Any, Dict, Optional, Tuple
 
 MINIMUM_PROFILE_AGE = 18
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_MAX_LENGTH = 128
+
+PASSWORD_POLICY_MESSAGE = (
+    "A senha não atende aos requisitos: mínimo de 8 caracteres, "
+    "com letra maiúscula, minúscula e número."
+)
+
+PASSWORD_PATTERN = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$")
+
+WEAK_PASSWORDS = frozenset(
+    {
+        "12345678",
+        "123456789",
+        "1234567890",
+        "password",
+        "password1",
+        "passw0rd",
+        "senha123",
+        "senha1234",
+        "qwerty123",
+        "qwerty1234",
+        "abc12345",
+        "abc123456",
+        "iloveyou",
+        "admin123",
+        "letmein1",
+        "welcome1",
+        "toyota123",
+        "00000000",
+        "11111111",
+        "monkey123",
+        "dragon123",
+        "football",
+        "baseball",
+        "princess",
+        "sunshine",
+        "trustno1",
+        "abc1234567",
+    }
+)
 
 
 def coerce_text(value: Any) -> str:
@@ -15,7 +56,37 @@ def coerce_text(value: Any) -> str:
 
 
 def normalize_cpf(value: Any) -> str:
-    return re.sub(r"\D+", "", coerce_text(value))[:11]
+    return re.sub(r"\D+", "", coerce_text(value))
+
+
+def is_valid_cpf(value: Any) -> bool:
+    digits = normalize_cpf(value)
+    if len(digits) != 11:
+        return False
+    if digits == digits[0] * 11:
+        return False
+
+    first_sum = sum(int(digits[index]) * (10 - index) for index in range(9))
+    first_digit = (first_sum * 10) % 11
+    first_digit = 0 if first_digit == 10 else first_digit
+    if first_digit != int(digits[9]):
+        return False
+
+    second_sum = sum(int(digits[index]) * (11 - index) for index in range(10))
+    second_digit = (second_sum * 10) % 11
+    second_digit = 0 if second_digit == 10 else second_digit
+    return second_digit == int(digits[10])
+
+
+def validate_password_policy(value: Any) -> Optional[str]:
+    password = coerce_text(value)
+    if len(password) < PASSWORD_MIN_LENGTH or len(password) > PASSWORD_MAX_LENGTH:
+        return PASSWORD_POLICY_MESSAGE
+    if not PASSWORD_PATTERN.match(password):
+        return PASSWORD_POLICY_MESSAGE
+    if password.lower() in WEAK_PASSWORDS:
+        return PASSWORD_POLICY_MESSAGE
+    return None
 
 
 def normalize_name(value: Any) -> str:
