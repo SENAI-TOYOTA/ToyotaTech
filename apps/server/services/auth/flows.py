@@ -353,7 +353,14 @@ def refresh(body: Dict[str, Any]) -> Dict[str, Any]:
         code, _ = error_body(error)
         if code in ("LimitExceededException", "TooManyRequestsException"):
             raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
-        if code == "NotAuthorizedException":
+        if code in (
+            "NotAuthorizedException",
+            "InvalidParameterException",
+            "UserNotFoundException",
+            "ResourceNotFoundException",
+            "InvalidSignatureException",
+            "ExpiredTokenException",
+        ):
             raise ApiError(401, "Sessão inválida ou expirada.")
         raise
 
