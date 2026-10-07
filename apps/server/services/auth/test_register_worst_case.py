@@ -361,10 +361,11 @@ def test_register_weak_password_short():
             with patch("services.auth.handler.COGNITO_CLIENT_ID", "client"):
                 result = handler.lambda_handler(event, None)
     assert result["statusCode"] == 400
-    assert (
-        parse_response(result)["message"]
-        == "A senha não atende aos requisitos: mínimo de 8 caracteres, com letra maiúscula, minúscula e número."
+    expected_message = (
+        "A senha não atende aos requisitos: mínimo de 8 caracteres, "
+        "com letra maiúscula, minúscula e número."
     )
+    assert parse_response(result)["message"] == expected_message
 
 
 def test_register_weak_password_seven_chars():
