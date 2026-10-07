@@ -265,7 +265,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const setPassword = useCallback(
     async (password: string) => {
       if (!session?.accessToken) {
-        throw new Error("Invalid session. Sign in again.");
+        throw new Error("Sessão inválida. Entre novamente.");
       }
       await setPasswordService(session.accessToken, { password });
     },

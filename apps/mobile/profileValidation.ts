@@ -54,7 +54,7 @@ export function validateBirthDate(value: string): string | null {
 
   const today = new Date();
   if (parsed > today) {
-    return "Enter a valid birth date.";
+    return "Informe uma data de nascimento válida.";
   }
 
   let age = today.getFullYear() - year;

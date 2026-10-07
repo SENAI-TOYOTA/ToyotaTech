@@ -55,7 +55,7 @@ export function useProfileForm() {
         } else if (error instanceof ApiError) {
           setFormError(error.message);
         } else {
-          setFormError("Unable to load profile.");
+          setFormError("Não foi possível carregar o perfil.");
         }
       } finally {
         if (isActive) setIsLoadingProfile(false);
@@ -69,12 +69,12 @@ export function useProfileForm() {
 
   const saveProfile = async () => {
     if (!token) {
-      setFormError("Invalid session. Sign in again.");
+      setFormError("Sessão inválida. Entre novamente.");
       return false;
     }
     const normalizedCpf = normalizeCpf(cpf);
     if (!fullName.trim()) {
-      setFormError("Enter your full name.");
+      setFormError("Informe seu nome completo.");
       return false;
     }
     const birthDateError = validateBirthDate(birthDate.trim());
@@ -83,7 +83,7 @@ export function useProfileForm() {
       return false;
     }
     if (!isCpfLocked && normalizedCpf.length !== 11) {
-      setFormError("Enter a valid CPF.");
+      setFormError("Informe um CPF válido.");
       return false;
     }
     setIsSaving(true);
@@ -101,7 +101,7 @@ export function useProfileForm() {
       if (error instanceof ApiError) {
         setFormError(error.message);
       } else {
-        setFormError("Unable to save profile.");
+        setFormError("Não foi possível salvar o perfil.");
       }
       return false;
     } finally {

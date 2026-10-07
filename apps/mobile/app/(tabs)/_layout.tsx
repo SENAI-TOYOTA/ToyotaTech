@@ -97,7 +97,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Home",
+          title: "Início",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={Home} color={color} focused={focused} />
           ),
@@ -106,7 +106,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="financing"
         options={{
-          title: "Financing",
+          title: "Financiamento",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={CircleDollarSign} color={color} focused={focused} />
           ),
@@ -115,7 +115,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="vehicle-management"
         options={{
-          title: "Vehicle Management",
+          title: "Gestão do veículo",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={CarFront} color={color} focused={focused} />
           ),
@@ -124,7 +124,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: "Perfil",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={User} color={color} focused={focused} />
           ),

@@ -36,7 +36,7 @@ export default function TrackingScreen() {
         const data = await fetchTrackingStatus(token);
         setTrackingData(data);
       } catch (error) {
-        console.warn("Failed to fetch tracking data", error);
+        console.warn("Falha ao carregar os dados de rastreamento", error);
       } finally {
         setLoading(false);
       }

@@ -16,11 +16,11 @@ export default function VehicleFallback({
   chassi,
   variant = "hero",
 }: VehicleFallbackProps) {
-  const displayModel = model ?? "Your Toyota";
+  const displayModel = model ?? "Sua Toyota";
   const specs =
     version && color
       ? `${version} • ${color}`
-      : (version ?? color ?? "Vehicle data in preparation");
+      : (version ?? color ?? "Dados do veículo em preparação");
 
   return (
     <View style={variant === "hero" ? styles.hero : styles.card}>
@@ -35,7 +35,7 @@ export default function VehicleFallback({
         <Text style={styles.chassi}>Chassis {chassi}</Text>
       ) : null}
       <Text style={variant === "hero" ? styles.noteHero : styles.noteCard}>
-        Illustrative image unavailable
+        Imagem ilustrativa indisponível
       </Text>
     </View>
   );

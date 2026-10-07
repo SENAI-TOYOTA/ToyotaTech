@@ -116,7 +116,7 @@ export async function apiRequest<T>(
     });
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new ApiError("Request timeout exceeded.", 408);
+      throw new ApiError("Tempo limite da requisição excedido.", 408);
     }
     if (__DEV__) {
       console.error("[API] Request failed", { path, error });
@@ -139,14 +139,14 @@ export async function apiRequest<T>(
           body: raw,
         });
       }
-      parsed = { message: "Invalid API response." } as {
+      parsed = { message: "Resposta inválida da API." } as {
         message?: string;
       } & T;
     }
   }
 
   if (!response.ok) {
-    const message = (parsed as { message?: string }).message ?? "API error.";
+    const message = (parsed as { message?: string }).message ?? "Erro na API.";
     const retryAfter = parseRetryAfter(
       parsed as { retryAfter?: number },
       response.headers.get("Retry-After")
