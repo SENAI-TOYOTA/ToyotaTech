@@ -317,6 +317,13 @@ Resources:
       UserPoolName: ToyotatechUserPool
       AutoVerifiedAttributes:
         - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
       LambdaConfig:
         PreSignUp: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:toyotatech-auth
 
