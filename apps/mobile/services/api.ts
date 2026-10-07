@@ -19,7 +19,7 @@ export class ApiError extends Error {
 const serverMessages: [RegExp, string][] = [
   [
     /Password did not conform with policy/i,
-    "A senha não atende aos requisitos: mínimo de 8 caracteres, com letra maiúscula, minúscula e número.",
+    "A senha não atende aos requisitos: mínimo de 8 caracteres, com letra maiúscula, minúscula, número e símbolo.",
   ],
   [
     /An account with the given email already exists/i,

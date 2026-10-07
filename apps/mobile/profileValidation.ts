@@ -14,6 +14,9 @@ export function validatePassword(password: string): string | null {
   if (!/[0-9]/.test(password)) {
     return "A senha deve ter pelo menos um número.";
   }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return "A senha deve ter pelo menos um símbolo (ex: !@#).";
+  }
   return null;
 }
 

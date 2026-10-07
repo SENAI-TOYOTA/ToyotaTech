@@ -107,7 +107,7 @@ export default function RegisterScreen() {
 
         <Text style={styles.passwordHintText}>
           Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
-          minúscula e um número.
+          minúscula, um número e um símbolo (ex: !@#).
         </Text>
 
         {formError ? (
