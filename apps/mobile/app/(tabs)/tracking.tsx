@@ -56,9 +56,11 @@ export default function TrackingScreen() {
   if (!trackingData) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Failed to load vehicle status.</Text>
+        <Text style={styles.errorText}>
+          Não foi possível carregar o status do veículo.
+        </Text>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Go back</Text>
+          <Text style={styles.backButtonText}>Voltar</Text>
         </Pressable>
       </View>
     );
@@ -77,7 +79,7 @@ export default function TrackingScreen() {
         >
           <ArrowLeft size={24} color={colors.black} />
         </Pressable>
-        <Text style={styles.headerTitle}>Order Status</Text>
+        <Text style={styles.headerTitle}>Status do pedido</Text>
       </View>
 
       <ScrollView
@@ -112,7 +114,7 @@ export default function TrackingScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Tracking</Text>
+        <Text style={styles.sectionTitle}>Rastreamento</Text>
 
         <View style={styles.timelineContainer}>
           {trackingData.steps.map((step, index) => (

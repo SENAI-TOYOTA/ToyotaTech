@@ -54,7 +54,7 @@ export default function ProfileSetupScreen() {
         if (passwordError instanceof ApiError) {
           setFormError(passwordError.message);
         } else {
-          setFormError("Unable to set password. Try again.");
+          setFormError("Não foi possível definir a senha. Tente novamente.");
         }
         return;
       }
@@ -73,21 +73,21 @@ export default function ProfileSetupScreen() {
         contentContainerStyle={styles.contentContainer}
       >
         <ScreenSectionHeader
-          title="Complete your profile"
-          subtitle="Provide your data to continue"
+          title="Complete seu perfil"
+          subtitle="Informe seus dados para continuar"
           style={styles.sectionHeader}
         />
 
         <View style={styles.formContainer}>
           <TextInput
-            placeholder="Full name"
+            placeholder="Nome completo"
             value={fullName}
             onChangeText={setFullName}
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
           <TextInput
-            placeholder="Birth date (DD/MM/YYYY)"
+            placeholder="Data de nascimento (DD/MM/AAAA)"
             value={birthDate}
             onChangeText={(text) => setBirthDate(formatBirthDate(text))}
             keyboardType="numeric"
@@ -108,15 +108,15 @@ export default function ProfileSetupScreen() {
           {isFederatedUser ? (
             <View style={styles.passwordSection}>
               <Text style={styles.passwordSectionTitle}>
-                CREATE PASSWORD (OPTIONAL)
+                CRIAR SENHA (OPCIONAL)
               </Text>
               <Text style={styles.passwordSectionSubtitle}>
-                Set a password to sign in with email and password as well,
-                without using Google button.
+                Defina uma senha para entrar com email e senha também, sem usar
+                o botão do Google.
               </Text>
 
               <TextInput
-                placeholder="NEW PASSWORD"
+                placeholder="NOVA SENHA"
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPasswordValue}
@@ -129,18 +129,18 @@ export default function ProfileSetupScreen() {
               >
                 <Eye size={18} strokeWidth={1.8} color={colors.black} />
                 <Text style={styles.visibilityText}>
-                  {showPassword ? "HIDE" : "SHOW"}
+                  {showPassword ? "OCULTAR" : "EXIBIR"}
                 </Text>
               </Pressable>
 
               <Text style={styles.passwordHintText}>
-                At least 8 characters with one uppercase, one lowercase and one
-                number.
+                Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
+                minúscula e um número.
               </Text>
 
               {passwordSuccess ? (
                 <Text style={styles.passwordSuccessText}>
-                  Password set successfully!
+                  Senha definida com sucesso!
                 </Text>
               ) : null}
             </View>
@@ -154,7 +154,7 @@ export default function ProfileSetupScreen() {
 
       <View style={styles.saveButtonContainer}>
         <Button
-          title={isSaving ? "Saving..." : "Save and continue"}
+          title={isSaving ? "Salvando..." : "Salvar e continuar"}
           style={styles.saveButton}
           icon={
             <ArrowRight

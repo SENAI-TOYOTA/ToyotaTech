@@ -25,7 +25,7 @@ function TabsHeader() {
         <Pressable
           onPress={() => router.replace("/home")}
           accessibilityRole="button"
-          accessibilityLabel="Go to home"
+          accessibilityLabel="Ir para o início"
         >
           <Logo size={fontSize.xxl + spacing.xs} />
         </Pressable>

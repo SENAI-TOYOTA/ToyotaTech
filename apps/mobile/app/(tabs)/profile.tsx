@@ -39,8 +39,8 @@ export default function ProfileScreen() {
       >
         <Animated.View entering={FadeInDown.duration(600).springify()}>
           <ScreenSectionHeader
-            title="Profile"
-            subtitle="Your personal information"
+            title="Perfil"
+            subtitle="Suas informações pessoais"
             style={styles.sectionHeader}
           />
         </Animated.View>
@@ -50,14 +50,14 @@ export default function ProfileScreen() {
           style={styles.formContainer}
         >
           <TextInput
-            placeholder="Full name"
+            placeholder="Nome completo"
             value={fullName}
             onChangeText={setFullName}
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
           <TextInput
-            placeholder="Birth date (DD/MM/YYYY)"
+            placeholder="Data de nascimento (DD/MM/AAAA)"
             value={birthDate}
             onChangeText={(text) => setBirthDate(formatBirthDate(text))}
             keyboardType="numeric"
@@ -85,7 +85,7 @@ export default function ProfileScreen() {
             style={styles.inputText}
           />
           <TextInput
-            placeholder="Password"
+            placeholder="Senha"
             secureTextEntry
             value={password}
             editable={false}
@@ -101,7 +101,7 @@ export default function ProfileScreen() {
           style={styles.actionContainer}
         >
           <Button
-            title="Sign out"
+            title="Sair"
             variant="outline"
             style={styles.logoutButton}
             onPress={async () => {

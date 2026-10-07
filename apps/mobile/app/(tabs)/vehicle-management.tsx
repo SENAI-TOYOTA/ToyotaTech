@@ -32,8 +32,8 @@ export default function VehicleManagementScreen() {
       >
         <Animated.View entering={FadeInDown.duration(600).springify()}>
           <ScreenSectionHeader
-            title="Vehicle Management"
-            subtitle="Digital documents, reminders and more!"
+            title="Gestão do veículo"
+            subtitle="Documentos digitais, lembretes e mais!"
             style={styles.sectionHeader}
           />
         </Animated.View>
@@ -68,7 +68,9 @@ export default function VehicleManagementScreen() {
               );
             })
           ) : (
-            <Text style={styles.emptyStateText}>No linked documents.</Text>
+            <Text style={styles.emptyStateText}>
+              Nenhum documento vinculado.
+            </Text>
           )}
         </View>
 
@@ -76,9 +78,9 @@ export default function VehicleManagementScreen() {
           entering={FadeInDown.delay(700).duration(600).springify()}
           style={styles.recallCard}
         >
-          <Text style={styles.recallTitle}>Recall programs</Text>
+          <Text style={styles.recallTitle}>Programas de recall</Text>
           <Text style={styles.recallDescription}>
-            Notifications and mandatory repair scheduling.
+            Notificações e agendamentos de reparos obrigatórios.
           </Text>
           <View style={styles.recallList}>
             {recalls.length ? (
@@ -93,7 +95,9 @@ export default function VehicleManagementScreen() {
                 </View>
               ))
             ) : (
-              <Text style={styles.recallEmptyText}>No recalls registered.</Text>
+              <Text style={styles.recallEmptyText}>
+                Nenhum recall registrado.
+              </Text>
             )}
           </View>
         </Animated.View>

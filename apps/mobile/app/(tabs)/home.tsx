@@ -17,28 +17,29 @@ const newsImage = require("@/assets/images/corolla-news.png");
 const highlightCards = [
   { id: "corolla", title: "Corolla Altis", image: mainCarImage },
   { id: "yaris", title: "Yaris Cross", image: sideCarImage },
-  { id: "services", title: "Toyota Services", image: newsImage },
-  { id: "lifestyle", title: "Lifestyle", image: mainCarImage },
+  { id: "services", title: "Serviços Toyota", image: newsImage },
+  { id: "lifestyle", title: "Estilo de vida", image: mainCarImage },
 ];
 
 const toyotaTips = [
   {
     id: "tip-1",
-    title: "Hybrid Economy",
-    description: "Tips to maximize electric mode usage in your Corolla.",
-    category: "MAINTENANCE",
+    title: "Economia Híbrida",
+    description: "Dicas para maximizar o uso elétrico no seu Corolla.",
+    category: "MANUTENÇÃO",
   },
   {
     id: "tip-2",
     title: "Toyota Safety Sense",
-    description: "Learn how pre-collision radars work.",
-    category: "TECHNOLOGY",
+    description:
+      "Saiba como funcionam os radares de frenagem antes da colisão.",
+    category: "TECNOLOGIA",
   },
   {
     id: "tip-3",
-    title: "Genuine Accessories",
-    description: "Customize your Toyota with factory warranty and quality.",
-    category: "STYLE",
+    title: "Acessórios Originais",
+    description: "Customize sua Toyota com garantia e qualidade de fábrica.",
+    category: "ESTILO",
   },
 ];
 
@@ -46,10 +47,10 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { garage } = useGarage();
-  const displayName = user?.profile?.fullName || user?.name || "User";
-  const firstName = displayName.trim().split(/\s+/)[0] || "User";
+  const displayName = user?.profile?.fullName || user?.name || "Usuário";
+  const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
   const vehicle = garage?.vehicle;
-  const vehicleLabel = vehicle?.model ?? "Your Toyota";
+  const vehicleLabel = vehicle?.model ?? "Sua Toyota";
   const shouldUseVehicleImage = canUseCorollaAltisImage(vehicle?.model);
 
   return (
@@ -62,7 +63,7 @@ export default function HomeScreen() {
           entering={FadeInDown.duration(600).springify()}
           style={styles.welcomeText}
         >
-          Welcome, {firstName}!
+          Bem-vindo, {firstName}!
         </Animated.Text>
 
         <Animated.View
@@ -100,7 +101,7 @@ export default function HomeScreen() {
             style={styles.statusButton}
             onPress={() => router.push("/tracking")}
           >
-            <Text style={styles.statusButtonText}>Check Status</Text>
+            <Text style={styles.statusButtonText}>Verificar Status</Text>
             <ArrowRight size={24} strokeWidth={2.6} color={colors.white} />
           </InteractivePressable>
         </Animated.View>
@@ -109,7 +110,7 @@ export default function HomeScreen() {
           entering={FadeInDown.delay(400).duration(600)}
           style={styles.sectionTitle}
         >
-          Highlights for you
+          Novidades
         </Animated.Text>
         <Animated.ScrollView
           entering={FadeInRight.delay(500).duration(600)}
@@ -137,11 +138,11 @@ export default function HomeScreen() {
             entering={FadeInDown.delay(600).duration(600)}
             style={styles.sectionTitle}
           >
-            Guide and News
+            Guias e Notícias
           </Animated.Text>
           <Animated.View entering={FadeInDown.delay(600).duration(600)}>
             <InteractivePressable style={styles.newsHeaderButton}>
-              <Text style={styles.newsHeaderText}>View all</Text>
+              <Text style={styles.newsHeaderText}>Ver todos</Text>
               <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
             </InteractivePressable>
           </Animated.View>
@@ -169,7 +170,9 @@ export default function HomeScreen() {
           style={styles.footer}
         >
           <View style={styles.footerDivider} />
-          <Text style={styles.footerText}>Always the best for your Toyota</Text>
+          <Text style={styles.footerText}>
+            Sempre o melhor para a sua Toyota
+          </Text>
         </Animated.View>
       </ScrollView>
     </View>

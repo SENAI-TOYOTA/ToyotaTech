@@ -19,13 +19,13 @@ export default function NotificationsScreen() {
 
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.title}>Inbox</Text>
+          <Text style={styles.title}>Caixa de entrada</Text>
 
           <Pressable
             style={styles.closeButton}
             onPress={() => router.back()}
             accessibilityRole="button"
-            accessibilityLabel="Close inbox"
+            accessibilityLabel="Fechar caixa de entrada"
           >
             <X size={fontSize.xl} strokeWidth={2} color={colors.black} />
           </Pressable>
