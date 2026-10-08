@@ -1,15 +1,12 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
+import { StoredSession } from "./sessionStorage.types";
+
+export type { StoredSession };
+
 const SESSION_STORAGE_KEY = "toyotatech.auth.session";
 const isWeb = Platform.OS === "web";
-
-export interface StoredSession {
-  accessToken: string;
-  idToken: string;
-  refreshToken: string;
-  expiresAt: number;
-}
 
 function warnDev(message: string, error?: unknown) {
   if (__DEV__) {

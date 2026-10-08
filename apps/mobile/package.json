@@ -20,6 +20,9 @@
     "setupFiles": [
       "<rootDir>/jest.setup.ts"
     ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/$1"
+    },
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|expo/virtual/.*|react-navigation|@react-navigation/.*|native-base|react-native-svg))"
     ]

@@ -25,6 +25,13 @@ import {
   setStoredSession,
   StoredSession,
 } from "@/services/sessionStorage";
+import {
+  clearSession as clearSessionOps,
+  putSession,
+  registerSessionOps,
+  renewSession,
+  subscribe,
+} from "@/services/sessionStore";
 import { AuthUser, RegisterResponse } from "@/types/auth";
 
 function isTokenFederated(idToken: string): boolean {
@@ -93,38 +100,51 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const clearSession = useCallback(async () => {
-    await deleteStoredSession();
-    setSession(null);
+    await clearSessionOps();
     setUser(null);
   }, []);
 
-  const renewSession = useCallback(async (currentSession: StoredSession) => {
-    const refreshed = await refreshSession(
-      { refreshToken: currentSession.refreshToken },
-      { suppressErrorLog: true }
-    );
-    const renewed: StoredSession = {
-      accessToken: refreshed.accessToken,
-      idToken: refreshed.idToken,
-      refreshToken: currentSession.refreshToken,
-      expiresAt: refreshed.expiresAt,
+  useEffect(() => {
+    registerSessionOps({
+      renew: async (currentSession) => {
+        const refreshed = await refreshSession(
+          { refreshToken: currentSession.refreshToken },
+          { suppressErrorLog: true }
+        );
+        const renewed: StoredSession = {
+          accessToken: refreshed.accessToken,
+          idToken: refreshed.idToken,
+          refreshToken: currentSession.refreshToken,
+          expiresAt: refreshed.expiresAt,
+        };
+        await setStoredSession(renewed);
+        return renewed;
+      },
+      drop: async () => {
+        await deleteStoredSession();
+      },
+    });
+    const unsubscribe = subscribe((next) => {
+      setSession(next);
+    });
+    return () => {
+      registerSessionOps(null);
+      unsubscribe();
     };
-    await setStoredSession(renewed);
-    return renewed;
   }, []);
 
   const hydrateSession = useCallback(async () => {
     setIsLoadingSession(true);
     try {
       const storedSession = await getStoredSession();
+      putSession(storedSession);
       if (!storedSession) {
-        setSession(null);
         setUser(null);
         return;
       }
 
       const activeSession = isSessionExpired(storedSession)
-        ? await renewSession(storedSession)
+        ? await renewSession()
         : storedSession;
 
       const meResult = await fetchMe(activeSession.accessToken, {
@@ -136,13 +156,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         try {
-          const storedSession = await getStoredSession();
-          if (!storedSession) {
-            await clearSession();
-            return;
-          }
-
-          const refreshedSession = await renewSession(storedSession);
+          const refreshedSession = await renewSession();
           const meResult = await fetchMe(refreshedSession.accessToken, {
             suppressErrorLog: true,
           });
@@ -164,7 +178,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } finally {
       setIsLoadingSession(false);
     }
-  }, [bootstrapGarage, clearSession, renewSession]);
+  }, [bootstrapGarage, clearSession]);
 
   useEffect(() => {
     hydrateSession();
@@ -173,7 +187,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const applySession = useCallback(
     async (nextSession: StoredSession) => {
       await setStoredSession(nextSession);
-      setSession(nextSession);
+      putSession(nextSession);
       try {
         const meResult = await fetchMe(nextSession.accessToken);
         setUser(meResult.user);

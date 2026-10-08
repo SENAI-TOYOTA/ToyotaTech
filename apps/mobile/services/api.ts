@@ -1,3 +1,9 @@
+import {
+  clearSession,
+  getSession,
+  renewSession,
+} from "@/services/sessionStore";
+
 export class ApiError extends Error {
   status: number;
   retryAfter?: number;
@@ -81,6 +87,13 @@ function parseRetryAfter(
 
 const REQUEST_TIMEOUT_MS = 15000;
 
+type RequestOptions = {
+  method?: "GET" | "POST" | "PUT";
+  body?: unknown;
+  token?: string;
+  suppressErrorLog?: boolean;
+};
+
 function getApiUrl() {
   const baseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (!baseUrl) {
@@ -91,16 +104,28 @@ function getApiUrl() {
   return baseUrl.replace(/\/$/, "");
 }
 
-export async function apiRequest<T>(
+function shouldAttemptRenewal(
+  error: unknown,
+  token: string | undefined
+): boolean {
+  return Boolean(token) && error instanceof ApiError && error.status === 401;
+}
+
+function renewalRejectsSession(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.status >= 400 &&
+    error.status < 500 &&
+    error.status !== 408
+  );
+}
+
+async function performRequest<T>(
+  baseUrl: string,
   path: string,
-  options?: {
-    method?: "GET" | "POST" | "PUT";
-    body?: unknown;
-    token?: string;
-    suppressErrorLog?: boolean;
-  }
-) {
-  const baseUrl = getApiUrl();
+  options: RequestOptions | undefined,
+  token: string | undefined
+): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let response: Response;
@@ -109,7 +134,7 @@ export async function apiRequest<T>(
       method: options?.method ?? "GET",
       headers: {
         "Content-Type": "application/json",
-        ...(options?.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: options?.body ? JSON.stringify(options.body) : undefined,
       signal: controller.signal,
@@ -166,4 +191,57 @@ export async function apiRequest<T>(
   }
 
   return parsed as T;
+}
+
+export async function apiRequest<T>(
+  path: string,
+  options?: RequestOptions
+): Promise<T> {
+  const baseUrl = getApiUrl();
+  const sentToken = options?.token;
+  const quiet = { ...options, suppressErrorLog: true };
+
+  let attemptOptions = options;
+  if (sentToken) {
+    attemptOptions = quiet;
+  }
+
+  try {
+    return await performRequest<T>(baseUrl, path, attemptOptions, sentToken);
+  } catch (error) {
+    if (!shouldAttemptRenewal(error, sentToken)) {
+      throw error;
+    }
+
+    const session = getSession();
+    if (!session) {
+      throw error;
+    }
+
+    if (session.accessToken === sentToken) {
+      try {
+        await renewSession();
+      } catch (renewalError) {
+        if (renewalRejectsSession(renewalError)) {
+          if (__DEV__) {
+            console.error("[API] Clearing session after failed renewal", {
+              path,
+              status:
+                renewalError instanceof ApiError
+                  ? renewalError.status
+                  : undefined,
+            });
+          }
+          await clearSession();
+        }
+        throw error;
+      }
+    }
+
+    const renewed = getSession();
+    if (!renewed) {
+      throw error;
+    }
+    return await performRequest<T>(baseUrl, path, quiet, renewed.accessToken);
+  }
 }
