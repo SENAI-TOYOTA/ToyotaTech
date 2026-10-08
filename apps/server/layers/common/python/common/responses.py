@@ -72,18 +72,27 @@ def parse_body(event: Dict[str, Any]) -> Dict[str, Any]:
         raise ApiError(400, "Invalid request body.") from error
 
 
-def log_error(
-    message: str, *, event: Dict[str, Any] | None = None, error: Exception | None = None
+def _event_context(event: Dict[str, Any] | None) -> Dict[str, Any]:
+    if not event:
+        return {}
+    http_ctx = (event.get("requestContext") or {}).get("http") or {}
+    return {
+        "requestId": (event.get("requestContext") or {}).get("requestId"),
+        "method": http_ctx.get("method"),
+        "path": event.get("rawPath"),
+        "sourceIp": http_ctx.get("sourceIp"),
+    }
+
+
+def log_event(
+    message: str,
+    *,
+    event: Dict[str, Any] | None = None,
+    error: Exception | None = None,
+    **extra: Any,
 ) -> None:
-    context = {}
-    if event:
-        http_ctx = (event.get("requestContext") or {}).get("http") or {}
-        context = {
-            "requestId": (event.get("requestContext") or {}).get("requestId"),
-            "method": http_ctx.get("method"),
-            "path": event.get("rawPath"),
-            "sourceIp": http_ctx.get("sourceIp"),
-        }
+    context = _event_context(event)
+    context.update(extra)
     print(
         json.dumps(
             {
@@ -94,6 +103,12 @@ def log_error(
             ensure_ascii=False,
         )
     )
+
+
+def log_error(
+    message: str, *, event: Dict[str, Any] | None = None, error: Exception | None = None
+) -> None:
+    log_event(message, event=event, error=error)
 
 
 def require(

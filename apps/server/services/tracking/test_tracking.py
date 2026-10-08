@@ -328,3 +328,43 @@ def test_find_garage_by_chassi_ignora_entrada_vazia() -> None:
 
     assert garage_table.scan_calls == []
     assert garage_table.query_calls == []
+
+
+def test_ingest_aceito_registra_o_veiculo_no_log() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    with patch("store.get_table", get_table_mock):
+        with patch.object(handler, "log_event") as log:
+            result = handler.lambda_handler(
+                api_event("POST", "/garage/ingest", body={"chassi": "CHASSI_123"}),
+                None,
+            )
+
+    assert result["statusCode"] == 200
+    log.assert_called_once()
+    message, kwargs = log.call_args
+    assert message[0] == "Tracking ingest aceito."
+    assert kwargs["vehicleRef"] == "CHASSI_123"
+
+
+def test_ingest_rejeitado_registra_o_veiculo_no_log() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[])
+    wire_tables(tracking_table, garage_table)
+
+    with patch("store.get_table", get_table_mock):
+        with patch.object(handler, "log_event") as log:
+            result = handler.lambda_handler(
+                api_event(
+                    "POST", "/garage/ingest", body={"chassi": "CHASSI_INEXISTENTE"}
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 404
+    log.assert_called_once()
+    message, kwargs = log.call_args
+    assert message[0] == "Tracking ingest rejeitado."
+    assert kwargs["vehicleRef"] == "CHASSI_INEXISTENTE"

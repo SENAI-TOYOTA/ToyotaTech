@@ -9,6 +9,7 @@ from common.auth import authenticated_user
 from common.responses import (
     ApiError,
     log_error,
+    log_event,
     parse_body,
     require,
     response,
@@ -53,7 +54,16 @@ def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
 def receive_ingest(event: Dict[str, Any]) -> Dict[str, Any]:
     payload = ingest.coerce_iot_tracking_payload(parse_body(event))
     require(bool(payload), 400, "Payload de tracking inválido.")
-    return ingest.process_ingest(payload)
+    vehicle_ref = coerce_text(
+        payload.get("chassi") or payload.get("vehicleId") or payload.get("vin")
+    )
+    try:
+        result = ingest.process_ingest(payload)
+    except ApiError:
+        log_event("Tracking ingest rejeitado.", event=event, vehicleRef=vehicle_ref)
+        raise
+    log_event("Tracking ingest aceito.", event=event, vehicleRef=vehicle_ref)
+    return result
 
 
 ROUTES = {
