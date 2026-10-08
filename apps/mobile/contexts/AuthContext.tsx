@@ -1,4 +1,3 @@
-import * as SecureStore from "expo-secure-store";
 import {
   createContext,
   PropsWithChildren,
@@ -8,7 +7,6 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Platform } from "react-native";
 
 import { hasCompleteProfile } from "@/profileValidation";
 import { ApiError } from "@/services/api";
@@ -20,101 +18,14 @@ import {
   setPassword as setPasswordService,
 } from "@/services/auth";
 import { fetchGarageCurrent } from "@/services/garage";
+import {
+  deleteStoredSession,
+  getStoredSession,
+  isSessionExpired,
+  setStoredSession,
+  StoredSession,
+} from "@/services/sessionStorage";
 import { AuthUser, RegisterResponse } from "@/types/auth";
-
-const SESSION_STORAGE_KEY = "toyotatech.auth.session";
-const isWeb = Platform.OS === "web";
-
-interface StoredSession {
-  accessToken: string;
-  idToken: string;
-  refreshToken: string;
-  expiresAt: number;
-}
-
-async function isSecureStoreAvailable(): Promise<boolean> {
-  if (isWeb) {
-    return true;
-  }
-  try {
-    return await SecureStore.isAvailableAsync();
-  } catch {
-    return false;
-  }
-}
-
-async function getStoredSession(): Promise<StoredSession | null> {
-  const parseSession = (rawValue: string | null): StoredSession | null => {
-    if (!rawValue) {
-      return null;
-    }
-    try {
-      const parsed = JSON.parse(rawValue) as Partial<StoredSession>;
-      if (
-        typeof parsed.accessToken !== "string" ||
-        typeof parsed.idToken !== "string" ||
-        typeof parsed.refreshToken !== "string" ||
-        typeof parsed.expiresAt !== "number"
-      ) {
-        return null;
-      }
-      return {
-        accessToken: parsed.accessToken,
-        idToken: parsed.idToken,
-        refreshToken: parsed.refreshToken,
-        expiresAt: parsed.expiresAt,
-      };
-    } catch {
-      return null;
-    }
-  };
-
-  if (isWeb) {
-    return parseSession(
-      globalThis.localStorage?.getItem(SESSION_STORAGE_KEY) ?? null
-    );
-  }
-  if (!(await isSecureStoreAvailable())) {
-    return null;
-  }
-  try {
-    const raw = await SecureStore.getItemAsync(SESSION_STORAGE_KEY);
-    return parseSession(raw);
-  } catch {
-    return null;
-  }
-}
-
-async function setStoredSession(session: StoredSession) {
-  const raw = JSON.stringify(session);
-  if (isWeb) {
-    globalThis.localStorage?.setItem(SESSION_STORAGE_KEY, raw);
-    return;
-  }
-  if (!(await isSecureStoreAvailable())) {
-    return;
-  }
-  try {
-    await SecureStore.setItemAsync(SESSION_STORAGE_KEY, raw);
-  } catch {
-    return;
-  }
-}
-
-async function deleteStoredSession() {
-  if (isWeb) {
-    globalThis.localStorage?.removeItem(SESSION_STORAGE_KEY);
-    return;
-  }
-  if (!(await isSecureStoreAvailable())) {
-    return;
-  }
-  try {
-    await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
-  } catch {
-    return;
-  }
-}
 
 function isTokenFederated(idToken: string): boolean {
   try {
@@ -187,6 +98,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setUser(null);
   }, []);
 
+  const renewSession = useCallback(async (currentSession: StoredSession) => {
+    const refreshed = await refreshSession(
+      { refreshToken: currentSession.refreshToken },
+      { suppressErrorLog: true }
+    );
+    const renewed: StoredSession = {
+      accessToken: refreshed.accessToken,
+      idToken: refreshed.idToken,
+      refreshToken: currentSession.refreshToken,
+      expiresAt: refreshed.expiresAt,
+    };
+    await setStoredSession(renewed);
+    return renewed;
+  }, []);
+
   const hydrateSession = useCallback(async () => {
     setIsLoadingSession(true);
     try {
@@ -197,12 +123,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      const meResult = await fetchMe(storedSession.accessToken, {
+      const activeSession = isSessionExpired(storedSession)
+        ? await renewSession(storedSession)
+        : storedSession;
+
+      const meResult = await fetchMe(activeSession.accessToken, {
         suppressErrorLog: true,
       });
-      setSession(storedSession);
+      setSession(activeSession);
       setUser(meResult.user);
-      await bootstrapGarage(storedSession.accessToken, meResult.user);
+      await bootstrapGarage(activeSession.accessToken, meResult.user);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         try {
@@ -212,20 +142,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
             return;
           }
 
-          const refreshed = await refreshSession(
-            { refreshToken: storedSession.refreshToken },
-            { suppressErrorLog: true }
-          );
-          const refreshedSession: StoredSession = {
-            accessToken: refreshed.accessToken,
-            idToken: refreshed.idToken,
-            refreshToken: storedSession.refreshToken,
-            expiresAt: refreshed.expiresAt,
-          };
+          const refreshedSession = await renewSession(storedSession);
           const meResult = await fetchMe(refreshedSession.accessToken, {
             suppressErrorLog: true,
           });
-          await setStoredSession(refreshedSession);
           setSession(refreshedSession);
           setUser(meResult.user);
           await bootstrapGarage(refreshedSession.accessToken, meResult.user);
@@ -244,7 +164,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } finally {
       setIsLoadingSession(false);
     }
-  }, [bootstrapGarage, clearSession]);
+  }, [bootstrapGarage, clearSession, renewSession]);
 
   useEffect(() => {
     hydrateSession();
