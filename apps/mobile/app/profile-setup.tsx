@@ -9,7 +9,7 @@ import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileForm } from "@/hooks/useProfileForm";
 import { validatePassword } from "@/profileValidation";
-import { ApiError } from "@/services/api";
+import { apiErrorMessage } from "@/services/api";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 
 export default function ProfileSetupScreen() {
@@ -51,11 +51,12 @@ export default function ProfileSetupScreen() {
         await setPassword(password);
         setPasswordSuccess(true);
       } catch (passwordError) {
-        if (passwordError instanceof ApiError) {
-          setFormError(passwordError.message);
-        } else {
-          setFormError("Não foi possível definir a senha. Tente novamente.");
-        }
+        setFormError(
+          apiErrorMessage(
+            passwordError,
+            "Não foi possível definir a senha. Tente novamente."
+          )
+        );
         return;
       }
     }
