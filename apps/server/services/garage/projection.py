@@ -127,6 +127,7 @@ def project_garage(user: Dict[str, Any], purchase: Dict[str, Any]) -> Dict[str, 
     )
     if chassi:
         garage["vehicle"]["chassi"] = chassi
+        garage["chassi"] = chassi
     if isinstance(tracking, dict):
         garage["tracking"].update(
             {

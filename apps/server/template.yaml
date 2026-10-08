@@ -248,9 +248,18 @@ Resources:
       AttributeDefinitions:
         - AttributeName: userId
           AttributeType: S
+        - AttributeName: chassi
+          AttributeType: S
       KeySchema:
         - AttributeName: userId
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: chassi-index
+          KeySchema:
+            - AttributeName: chassi
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
 
   PurchasesTable:
     Type: AWS::DynamoDB::Table

@@ -174,7 +174,7 @@ def test_status_evento_mais_recente_da_tracking_table_ganha() -> None:
 def test_ingest_iot_sem_requestcontext_grava_na_tracking_table() -> None:
     tracking_table = FakeTable()
     garage = garage_item()
-    garage_table = FakeTable(scan_items=[garage])
+    garage_table = FakeTable(query_items=[garage])
     wire_tables(tracking_table, garage_table)
 
     with patch("store.get_table", get_table_mock):
@@ -195,14 +195,16 @@ def test_ingest_iot_sem_requestcontext_grava_na_tracking_table() -> None:
         "stage": "pintura",
         "status": "EM_ANDAMENTO",
     }
-    assert len(garage_table.scan_calls) == 1
+    assert garage_table.scan_calls == []
+    assert len(garage_table.query_calls) == 1
+    assert garage_table.query_calls[0]["IndexName"] == "chassi-index"
     assert garage_table.put_item_calls == []
 
 
 def test_ingest_rota_http_explicita_processa_payload() -> None:
     tracking_table = FakeTable()
     garage = garage_item()
-    garage_table = FakeTable(scan_items=[garage])
+    garage_table = FakeTable(query_items=[garage])
     wire_tables(tracking_table, garage_table)
 
     with patch("store.get_table", get_table_mock):
@@ -260,7 +262,7 @@ def test_ingest_sem_identificador_do_veiculo() -> None:
 
 def test_ingest_veiculo_nao_vinculado() -> None:
     tracking_table = FakeTable()
-    garage_table = FakeTable(scan_items=[])
+    garage_table = FakeTable(query_items=[])
     wire_tables(tracking_table, garage_table)
 
     with patch("store.get_table", get_table_mock):
@@ -272,3 +274,57 @@ def test_ingest_veiculo_nao_vinculado() -> None:
     assert result["statusCode"] == 404
     assert json.loads(result["body"])["message"] == "Veículo não vinculado."
     assert tracking_table.put_item_calls == []
+
+
+def test_find_garage_by_chassi_consulta_o_indice_e_nao_varre() -> None:
+    store = importlib.import_module("store")
+    garage = garage_item()
+    garage_table = FakeTable(query_items=[garage])
+    TABLES["GarageTable"] = garage_table
+
+    with patch("store.get_table", get_table_mock):
+        found = store.find_garage_by_chassi("CHASSI_123")
+
+    assert found == garage
+    assert garage_table.scan_calls == []
+    assert len(garage_table.query_calls) == 1
+    query = garage_table.query_calls[0]
+    assert query["IndexName"] == "chassi-index"
+    assert query["Limit"] == 1
+
+
+def test_find_garage_by_chassi_normaliza_espacos() -> None:
+    store = importlib.import_module("store")
+    garage = garage_item()
+    garage_table = FakeTable(query_items=[garage])
+    TABLES["GarageTable"] = garage_table
+
+    with patch("store.get_table", get_table_mock):
+        found = store.find_garage_by_chassi("  CHASSI_123  ")
+
+    assert found == garage
+    assert garage_table.scan_calls == []
+
+
+def test_find_garage_by_chassi_devolve_none_quando_nao_encontra() -> None:
+    store = importlib.import_module("store")
+    garage_table = FakeTable(query_items=[])
+    TABLES["GarageTable"] = garage_table
+
+    with patch("store.get_table", get_table_mock):
+        found = store.find_garage_by_chassi("CHASSI_INEXISTENTE")
+
+    assert found is None
+    assert garage_table.scan_calls == []
+
+
+def test_find_garage_by_chassi_ignora_entrada_vazia() -> None:
+    store = importlib.import_module("store")
+    garage_table = FakeTable()
+    TABLES["GarageTable"] = garage_table
+
+    with patch("store.get_table", get_table_mock):
+        assert store.find_garage_by_chassi("   ") is None
+
+    assert garage_table.scan_calls == []
+    assert garage_table.query_calls == []

@@ -169,6 +169,7 @@ def build_garage(
     ]
     return {
         "userId": str(user.get("sub", "")),
+        "chassi": chassi,
         "order": {
             "orderId": f"TT-{chassi[-5:]}",
             "status": "linked",

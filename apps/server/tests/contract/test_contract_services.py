@@ -106,7 +106,6 @@ def contract(monkeypatch):
         tables = (
             ("ProfileTable", "userId"),
             ("RateLimitTable", "pk"),
-            ("GarageTable", "userId"),
             ("TrackingTable", "vehicleId"),
         )
         for name, key in tables:
@@ -116,6 +115,22 @@ def contract(monkeypatch):
                 AttributeDefinitions=[{"AttributeName": key, "AttributeType": "S"}],
                 BillingMode="PAY_PER_REQUEST",
             )
+        dynamodb.create_table(
+            TableName="GarageTable",
+            KeySchema=[{"AttributeName": "userId", "KeyType": "HASH"}],
+            AttributeDefinitions=[
+                {"AttributeName": "userId", "AttributeType": "S"},
+                {"AttributeName": "chassi", "AttributeType": "S"},
+            ],
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "chassi-index",
+                    "KeySchema": [{"AttributeName": "chassi", "KeyType": "HASH"}],
+                    "Projection": {"ProjectionType": "ALL"},
+                }
+            ],
+            BillingMode="PAY_PER_REQUEST",
+        )
 
         cognito_module = importlib.import_module("common.cognito")
         cognito_users = importlib.import_module("common.cognito_users")
