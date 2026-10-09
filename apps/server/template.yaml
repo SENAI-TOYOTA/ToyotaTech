@@ -8,6 +8,11 @@ Parameters:
     Default: "*"
     Description: CORS allowed origin
 
+  IngestKeyParameterName:
+    Type: String
+    Default: /toyotatech/garage/ingest/key
+    Description: SSM SecureString com a chave compartilhada do ingest
+
 Globals:
   Function:
     Runtime: python3.12
@@ -173,6 +178,7 @@ Resources:
           COGNITO_CLIENT_ID: !Ref UserPoolClient
           TRACKING_TABLE_NAME: !Ref TrackingTable
           GARAGE_TABLE_NAME: !Ref GarageTable
+          INGEST_KEY_PARAMETER_NAME: !Ref IngestKeyParameterName
       Events:
         GetStatus:
           Type: HttpApi

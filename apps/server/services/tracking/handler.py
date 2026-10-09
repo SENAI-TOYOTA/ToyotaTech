@@ -6,6 +6,7 @@ import store
 from botocore.exceptions import ClientError
 
 from common.auth import authenticated_user
+from common.ingest_key import require_ingest_key
 from common.responses import (
     ApiError,
     log_error,
@@ -52,6 +53,7 @@ def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def receive_ingest(event: Dict[str, Any]) -> Dict[str, Any]:
+    require_ingest_key(event)
     payload = ingest.coerce_iot_tracking_payload(parse_body(event))
     require(bool(payload), 400, "Payload de tracking inválido.")
     vehicle_ref = coerce_text(
@@ -80,10 +82,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return response(500, {"message": config_error})
 
     try:
-        iot_payload = ingest.extract_iot_tracking_payload(event)
-        if iot_payload is not None:
-            return response(200, ingest.process_ingest(iot_payload))
-
         method = (event.get("requestContext", {}).get("http") or {}).get("method", "")
         path = event.get("rawPath", "")
 

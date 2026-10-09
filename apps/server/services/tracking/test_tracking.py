@@ -1,9 +1,22 @@
 import importlib
 import json
+from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
 from unittest.mock import patch
 
+from botocore.exceptions import ClientError
+from conftest import INGEST_KEY, FakeBoto3, FakeSsm
+
 handler = importlib.import_module("services.tracking.handler")
+ingest_key = importlib.import_module("common.ingest_key")
+
+
+@contextmanager
+def ssm(value: str = INGEST_KEY, error: Any = None):
+    fake = FakeSsm(value, error)
+    with patch.object(ingest_key, "boto3", FakeBoto3(fake)):
+        yield fake
+
 
 TABLES: Dict[str, Any] = {}
 
@@ -77,7 +90,11 @@ def garage_item() -> Dict[str, Any]:
 
 
 def api_event(
-    method: str, path: str, body: Any = None, token: Optional[str] = None
+    method: str,
+    path: str,
+    body: Any = None,
+    token: Optional[str] = None,
+    key: Optional[str] = None,
 ) -> Dict[str, Any]:
     event: Dict[str, Any] = {
         "rawPath": path,
@@ -87,6 +104,8 @@ def api_event(
         event["body"] = json.dumps(body)
     if token:
         event["headers"] = {"authorization": f"Bearer {token}"}
+    if key:
+        event["headers"] = {**(event.get("headers") or {}), "X-Ingest-Key": key}
     return event
 
 
@@ -171,34 +190,20 @@ def test_status_evento_mais_recente_da_tracking_table_ganha() -> None:
     assert body["tracking"]["steps"][4]["status"] == "current"
 
 
-def test_ingest_iot_sem_requestcontext_grava_na_tracking_table() -> None:
+def test_ingest_iot_sem_requestcontext_nao_ingere_mais() -> None:
     tracking_table = FakeTable()
-    garage = garage_item()
-    garage_table = FakeTable(query_items=[garage])
+    garage_table = FakeTable(query_items=[garage_item()])
     wire_tables(tracking_table, garage_table)
 
-    with patch("store.get_table", get_table_mock):
-        result = handler.lambda_handler(iot_event(), None)
+    with ssm() as fake:
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(iot_event(), None)
 
-    assert result["statusCode"] == 200
-    body = json.loads(result["body"])
-    assert body["tracking"]["currentStepIndex"] == 1
-
-    assert len(tracking_table.put_item_calls) == 1
-    item = tracking_table.put_item_calls[0]
-    assert item["vehicleId"] == "CHASSI_123"
-    assert isinstance(item["timestamp"], int)
-    assert isinstance(item["receivedAt"], int)
-    assert item["stage"] == "pintura"
-    assert item["payload"] == {
-        "chassi": "CHASSI_123",
-        "stage": "pintura",
-        "status": "EM_ANDAMENTO",
-    }
-    assert garage_table.scan_calls == []
-    assert len(garage_table.query_calls) == 1
-    assert garage_table.query_calls[0]["IndexName"] == "chassi-index"
+    assert result["statusCode"] == 404
+    assert json.loads(result["body"])["message"] == "Rota não encontrada."
+    assert tracking_table.put_item_calls == []
     assert garage_table.put_item_calls == []
+    assert fake.calls == []
 
 
 def test_ingest_rota_http_explicita_processa_payload() -> None:
@@ -207,15 +212,17 @@ def test_ingest_rota_http_explicita_processa_payload() -> None:
     garage_table = FakeTable(query_items=[garage])
     wire_tables(tracking_table, garage_table)
 
-    with patch("store.get_table", get_table_mock):
-        result = handler.lambda_handler(
-            api_event(
-                "POST",
-                "/garage/ingest",
-                body={"chassi": "CHASSI_123", "stage": "teste_de_qualidade"},
-            ),
-            None,
-        )
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_123", "stage": "teste_de_qualidade"},
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
 
     assert result["statusCode"] == 200
     body = json.loads(result["body"])
@@ -247,10 +254,14 @@ def test_ingest_sem_identificador_do_veiculo() -> None:
     tracking_table = FakeTable()
     wire_tables(tracking_table, FakeTable())
 
-    with patch("store.get_table", get_table_mock):
-        result = handler.lambda_handler(
-            api_event("POST", "/garage/ingest", body={"stage": "pintura"}), None
-        )
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST", "/garage/ingest", body={"stage": "pintura"}, key=INGEST_KEY
+                ),
+                None,
+            )
 
     assert result["statusCode"] == 400
     assert (
@@ -265,11 +276,17 @@ def test_ingest_veiculo_nao_vinculado() -> None:
     garage_table = FakeTable(query_items=[])
     wire_tables(tracking_table, garage_table)
 
-    with patch("store.get_table", get_table_mock):
-        result = handler.lambda_handler(
-            api_event("POST", "/garage/ingest", body={"chassi": "CHASSI_INEXISTENTE"}),
-            None,
-        )
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_INEXISTENTE"},
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
 
     assert result["statusCode"] == 404
     assert json.loads(result["body"])["message"] == "Veículo não vinculado."
@@ -335,12 +352,18 @@ def test_ingest_aceito_registra_o_veiculo_no_log() -> None:
     garage_table = FakeTable(query_items=[garage_item()])
     wire_tables(tracking_table, garage_table)
 
-    with patch("store.get_table", get_table_mock):
+    with ssm():
         with patch.object(handler, "log_event") as log:
-            result = handler.lambda_handler(
-                api_event("POST", "/garage/ingest", body={"chassi": "CHASSI_123"}),
-                None,
-            )
+            with patch("store.get_table", get_table_mock):
+                result = handler.lambda_handler(
+                    api_event(
+                        "POST",
+                        "/garage/ingest",
+                        body={"chassi": "CHASSI_123"},
+                        key=INGEST_KEY,
+                    ),
+                    None,
+                )
 
     assert result["statusCode"] == 200
     log.assert_called_once()
@@ -354,17 +377,246 @@ def test_ingest_rejeitado_registra_o_veiculo_no_log() -> None:
     garage_table = FakeTable(query_items=[])
     wire_tables(tracking_table, garage_table)
 
-    with patch("store.get_table", get_table_mock):
+    with ssm():
         with patch.object(handler, "log_event") as log:
-            result = handler.lambda_handler(
-                api_event(
-                    "POST", "/garage/ingest", body={"chassi": "CHASSI_INEXISTENTE"}
-                ),
-                None,
-            )
+            with patch("store.get_table", get_table_mock):
+                result = handler.lambda_handler(
+                    api_event(
+                        "POST",
+                        "/garage/ingest",
+                        body={"chassi": "CHASSI_INEXISTENTE"},
+                        key=INGEST_KEY,
+                    ),
+                    None,
+                )
 
     assert result["statusCode"] == 404
     log.assert_called_once()
     message, kwargs = log.call_args
     assert message[0] == "Tracking ingest rejeitado."
     assert kwargs["vehicleRef"] == "CHASSI_INEXISTENTE"
+
+
+def test_ingest_sem_chave_retorna_401_e_nao_grava() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event("POST", "/garage/ingest", body={"chassi": "CHASSI_123"}),
+                None,
+            )
+
+    assert result["statusCode"] == 401
+    assert json.loads(result["body"])["message"] == "Chave de ingest inválida."
+    assert tracking_table.put_item_calls == []
+    assert garage_table.put_item_calls == []
+
+
+def test_ingest_com_chave_errada_retorna_401_e_nao_grava() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_123"},
+                    key=f"{INGEST_KEY}-errada",
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 401
+    assert tracking_table.put_item_calls == []
+
+
+def test_ingest_com_chave_correta_grava() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_123"},
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 200
+    assert len(tracking_table.put_item_calls) == 1
+
+
+def test_ingest_aceita_header_em_caixa_qualquer() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    event = api_event("POST", "/garage/ingest", body={"chassi": "CHASSI_123"})
+    event["headers"] = {"x-InGeSt-KeY": INGEST_KEY}
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(event, None)
+
+    assert result["statusCode"] == 200
+
+
+def test_ingest_le_o_parametro_com_decrypt_e_uma_vez_por_execucao() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    with ssm() as fake:
+        with patch("store.get_table", get_table_mock):
+            for _ in range(3):
+                handler.lambda_handler(
+                    api_event(
+                        "POST",
+                        "/garage/ingest",
+                        body={"chassi": "CHASSI_123"},
+                        key=INGEST_KEY,
+                    ),
+                    None,
+                )
+
+    assert len(fake.calls) == 1
+    assert fake.calls[0]["Name"] == "/toyotatech/garage/ingest/key"
+    assert fake.calls[0]["WithDecryption"] is True
+    assert len(tracking_table.put_item_calls) == 3
+
+
+def test_ingest_falha_fechada_quando_o_ssm_recusa() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    denied = ClientError(
+        {"Error": {"Code": "AccessDeniedException", "Message": "denied"}},
+        "GetParameter",
+    )
+
+    with ssm(error=denied):
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_123"},
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 500
+    assert (
+        json.loads(result["body"])["message"] == "Chave de ingest indisponível no SSM."
+    )
+    assert tracking_table.put_item_calls == []
+    assert garage_table.put_item_calls == []
+
+
+def test_ingest_falha_fechada_quando_o_parametro_nao_existe() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    missing = ClientError(
+        {"Error": {"Code": "ParameterNotFound", "Message": "not found"}},
+        "GetParameter",
+    )
+
+    with ssm(error=missing):
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_123"},
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 500
+    assert tracking_table.put_item_calls == []
+
+
+def test_ingest_falha_fechada_quando_a_chave_vem_vazia() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    with ssm(value="   "):
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_123"},
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 500
+    assert json.loads(result["body"])["message"] == "Chave de ingest vazia no SSM."
+    assert tracking_table.put_item_calls == []
+
+
+def test_ingest_falha_fechada_sem_parametro_configurado() -> None:
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    with ssm() as fake:
+        with patch.object(ingest_key, "INGEST_KEY_PARAMETER_NAME", ""):
+            with patch("store.get_table", get_table_mock):
+                result = handler.lambda_handler(
+                    api_event(
+                        "POST",
+                        "/garage/ingest",
+                        body={"chassi": "CHASSI_123"},
+                        key=INGEST_KEY,
+                    ),
+                    None,
+                )
+
+    assert result["statusCode"] == 500
+    assert (
+        json.loads(result["body"])["message"]
+        == "Parâmetro da chave de ingest não configurado."
+    )
+    assert fake.calls == []
+    assert tracking_table.put_item_calls == []
+
+
+def test_status_nao_exige_a_chave_de_ingest() -> None:
+    tracking_table = FakeTable(query_items=[])
+    garage_table = FakeTable(items=[garage_item()])
+    wire_tables(tracking_table, garage_table)
+
+    with ssm() as fake:
+        with (
+            patch("store.get_table", get_table_mock),
+            patch(
+                "common.auth.get_user_by_access_token",
+                return_value=cognito_user(),
+            ),
+        ):
+            result = handler.lambda_handler(
+                api_event("GET", "/garage/status", token="token"), None
+            )
+
+    assert result["statusCode"] == 200
+    assert fake.calls == []

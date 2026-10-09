@@ -19,6 +19,8 @@ docker compose up --build
 
 Opcional: defina `INGEST_URL` com a URL do endpoint `POST /garage/ingest` da AWS para o simulador mandar os eventos de linha para a Lambda.
 
+O endpoint exige a chave compartilhada no header `X-Ingest-Key`. Defina também `INGEST_KEY` com o mesmo valor do parâmetro SSM `SecureString` do projeto. Sem `INGEST_KEY` o simulador não envia nada e avisa no log — enviar sem a chave só produziria 401.
+
 ## Interfaces Web
 
 | Serviço | URL |
