@@ -357,6 +357,7 @@ Resources:
         - openid
         - email
         - profile
+        - aws.cognito.signin.user.admin
       AllowedOAuthFlowsUserPoolClient: true
       CallbackURLs:
         - mobile://
