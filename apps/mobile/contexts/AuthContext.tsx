@@ -20,10 +20,13 @@ import {
 import { fetchGarageCurrent } from "@/services/garage";
 import {
   deleteStoredSession,
+  getSessionPersistence,
   getStoredSession,
   isSessionExpired,
+  SessionPersistence,
   setStoredSession,
   StoredSession,
+  subscribeSessionPersistence,
 } from "@/services/sessionStorage";
 import {
   clearSession as clearSessionOps,
@@ -64,6 +67,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoadingSession: boolean;
   isFederatedUser: boolean;
+  sessionPersistence: SessionPersistence;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (
     email: string,
@@ -82,6 +86,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<StoredSession | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [sessionPersistence, setSessionPersistence] =
+    useState<SessionPersistence>(getSessionPersistence);
 
   const bootstrapGarage = useCallback(
     async (accessToken: string, nextUser: AuthUser | null) => {
@@ -127,9 +133,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const unsubscribe = subscribe((next) => {
       setSession(next);
     });
+    const unsubscribePersistence = subscribeSessionPersistence((next) => {
+      setSessionPersistence(next);
+    });
     return () => {
       registerSessionOps(null);
       unsubscribe();
+      unsubscribePersistence();
     };
   }, []);
 
@@ -270,6 +280,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isAuthenticated: Boolean(session && user),
       isLoadingSession,
       isFederatedUser,
+      sessionPersistence,
       signIn,
       signUp,
       signInWithTokens,
@@ -282,6 +293,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isLoadingSession,
       refreshUser,
       session,
+      sessionPersistence,
       setPassword,
       signIn,
       signInWithTokens,

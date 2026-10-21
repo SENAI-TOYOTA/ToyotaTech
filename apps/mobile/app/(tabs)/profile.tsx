@@ -12,7 +12,7 @@ import { colors, fonts, fontSize, spacing } from "@/theme";
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { signOut, user, token } = useAuth();
+  const { signOut, user, token, sessionPersistence } = useAuth();
   const {
     fullName,
     setFullName,
@@ -94,6 +94,12 @@ export default function ProfileScreen() {
           />
           {formError ? (
             <Text style={styles.formErrorText}>{formError}</Text>
+          ) : null}
+          {sessionPersistence !== "persistent" ? (
+            <Text style={styles.formErrorText}>
+              Não foi possível salvar sua sessão neste dispositivo. Você
+              precisará entrar novamente ao reabrir o app.
+            </Text>
           ) : null}
         </Animated.View>
         <Animated.View
