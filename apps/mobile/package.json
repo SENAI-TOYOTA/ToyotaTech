@@ -29,7 +29,6 @@
   },
   "dependencies": {
     "@expo-google-fonts/afacad": "^0.4.1",
-    "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
@@ -38,7 +37,6 @@
     "expo-checkbox": "~57.0.0",
     "expo-constants": "~57.0.21",
     "expo-font": "~57.0.4",
-    "expo-haptics": "~57.0.3",
     "expo-image": "~57.0.5",
     "expo-linking": "~57.0.12",
     "expo-router": "~57.0.25",
