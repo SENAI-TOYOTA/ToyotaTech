@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from unittest.mock import patch
 
 from botocore.exceptions import ClientError
+
 from conftest import INGEST_KEY, FakeBoto3, FakeSsm
 
 handler = importlib.import_module("services.tracking.handler")
