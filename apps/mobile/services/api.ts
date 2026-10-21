@@ -98,7 +98,7 @@ function getApiUrl() {
   const baseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (!baseUrl) {
     throw new Error(
-      "EXPO_PUBLIC_API_URL not configured. Run deploy at aws/scripts/deploy.ps1."
+      "EXPO_PUBLIC_API_URL not configured. See .env.example and the deploy guide in the wiki."
     );
   }
   return baseUrl.replace(/\/$/, "");
