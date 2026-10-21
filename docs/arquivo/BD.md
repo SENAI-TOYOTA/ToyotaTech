@@ -5,7 +5,7 @@
 
 ### Definição das entidades, atributos e relacionamentos por meio de uma modelagem conceitual completa com diagrama ER.
 
-![DER](der.png).
+![DER](../diagramas/der.png).
 ##
 
 ### Aplicação da normalização até a Terceira Forma Normal (3FN), com justificativa técnica das escolhas e eliminação de anomalias.
