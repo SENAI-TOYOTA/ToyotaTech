@@ -194,3 +194,52 @@ def test_profile_put_nao_altera_cpf_vinculado(dynamodb, service_loader):
     )
     stored = dynamodb.Table("ProfileTable").get_item(Key={"userId": USER["sub"]})
     assert stored["Item"]["cpf"] == CPF
+
+
+def test_profile_put_nome_vazio_retorna_400(dynamodb, service_loader):
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        with patch.object(modules["flows"], "authenticated_user", return_value=USER):
+            result = modules["handler"].lambda_handler(
+                api_event("PUT", "/profile", body={"fullName": "   "}, token="token"),
+                None,
+            )
+
+    assert result["statusCode"] == 400
+    assert response_body(result)["message"] == "Informe nome e sobrenome."
+
+
+def test_profile_put_nome_com_uma_palavra_retorna_400(dynamodb, service_loader):
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        with patch.object(modules["flows"], "authenticated_user", return_value=USER):
+            result = modules["handler"].lambda_handler(
+                api_event("PUT", "/profile", body={"fullName": "Maria"}, token="token"),
+                None,
+            )
+
+    assert result["statusCode"] == 400
+    assert response_body(result)["message"] == "Informe nome e sobrenome."
+
+
+def test_profile_put_nao_sobrescreve_cpf_alterado_em_corrida(dynamodb, service_loader):
+    seed_profile(dynamodb)
+    dynamodb.Table("ProfileTable").update_item(
+        Key={"userId": USER["sub"]},
+        UpdateExpression="SET cpf = :cpf",
+        ExpressionAttributeValues={":cpf": OTHER_CPF},
+    )
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        with patch.object(modules["flows"], "authenticated_user", return_value=USER):
+            with patch.object(
+                modules["flows"],
+                "_get_profile",
+                return_value={"fullName": "Maria Silva", "birthDate": "", "cpf": CPF},
+            ):
+                result = modules["handler"].lambda_handler(
+                    api_event("PUT", "/profile", body={"fullName": "Maria Souza"}),
+                    None,
+                )
+
+    assert result["statusCode"] == 409
+    stored = dynamodb.Table("ProfileTable").get_item(Key={"userId": USER["sub"]})
+    assert stored["Item"]["cpf"] == OTHER_CPF
+    assert stored["Item"]["fullName"] == "Maria Silva"

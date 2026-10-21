@@ -1,9 +1,10 @@
 import re
 import unicodedata
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, Optional, Tuple
 
 MINIMUM_PROFILE_AGE = 18
+BRAZIL_TIMEZONE = timezone(timedelta(hours=-3), "America/Sao_Paulo")
 PASSWORD_MIN_LENGTH = 8
 PASSWORD_MAX_LENGTH = 128
 
@@ -140,7 +141,7 @@ def validate_birth_date(value: Any) -> Tuple[Optional[str], Optional[str]]:
     parsed = parse_birth_date(normalized)
     if not parsed or parsed.year < 1900:
         return None, "Informe uma data de nascimento válida."
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(BRAZIL_TIMEZONE).date()
     if parsed > today:
         return None, "Informe uma data de nascimento válida."
     if calculate_age(parsed, today) < MINIMUM_PROFILE_AGE:
