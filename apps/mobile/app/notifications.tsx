@@ -1,9 +1,13 @@
 import { Stack, useRouter } from "expo-router";
-import { X } from "lucide-react-native";
+import { BellOff, X } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { colors, fontSize, fonts, spacing } from "@/theme";
+import Card from "@/components/ui/Card";
+import EmptyState from "@/components/ui/EmptyState";
+import Screen from "@/components/ui/Screen";
+import { t } from "@/i18n";
+import { colors, fonts, fontSize, layout, radius, spacing } from "@/theme";
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -18,18 +22,42 @@ export default function NotificationsScreen() {
       />
 
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Inbox</Text>
+        <View style={styles.headerBar}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.title} accessibilityRole="header">
+                {t("Inbox")}
+              </Text>
+              <Text style={styles.subtitle}>
+                {t("Updates about your order and vehicle")}
+              </Text>
+            </View>
 
-          <Pressable
-            style={styles.closeButton}
-            onPress={() => router.back()}
-            accessibilityRole="button"
-            accessibilityLabel="Close inbox"
-          >
-            <X size={fontSize.xl} strokeWidth={2} color={colors.black} />
-          </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.closeButton,
+                pressed && styles.closeButtonPressed,
+              ]}
+              onPress={() =>
+                router.canGoBack() ? router.back() : router.replace("/home")
+              }
+              accessibilityRole="button"
+              accessibilityLabel={t("Close inbox")}
+            >
+              <X size={20} strokeWidth={2} color={colors.textPrimary} />
+            </Pressable>
+          </View>
         </View>
+
+        <Screen maxWidth={640}>
+          <Card>
+            <EmptyState
+              icon={BellOff}
+              title="You are all caught up"
+              description="New messages about your order, financing and documents will appear here."
+            />
+          </Card>
+        </Screen>
       </SafeAreaView>
     </>
   );
@@ -40,29 +68,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    width: "100%",
-    flexDirection: "row",
+  headerBar: {
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacing.lg + 3,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  header: {
+    width: "100%",
+    maxWidth: 640,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: layout.gutter,
+    paddingVertical: spacing.md - 2,
+  },
   title: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.bold,
     fontSize: fontSize.xl,
-    color: colors.black,
+    color: colors.textPrimary,
+  },
+  subtitle: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
   },
   closeButton: {
-    width: spacing.xl + spacing.sm,
-    height: spacing.xl + spacing.sm,
+    width: 40,
+    height: 40,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: (spacing.xl + spacing.sm) / 2,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
+  },
+  closeButtonPressed: {
+    backgroundColor: colors.surfaceMuted,
   },
 });

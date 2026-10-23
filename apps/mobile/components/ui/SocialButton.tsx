@@ -1,50 +1,89 @@
-import { colors } from "@/theme";
+import { useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   ImageSourcePropType,
+  Pressable,
+  StyleProp,
   StyleSheet,
-  TouchableOpacity,
+  Text,
   ViewStyle,
 } from "react-native";
 
+import { t } from "@/i18n";
+import { colors, fonts, fontSize, radius, spacing } from "@/theme";
+
 interface SocialButtonProps {
   icon: ImageSourcePropType;
-  style?: ViewStyle;
-  size?: number;
+  label: string;
+  style?: StyleProp<ViewStyle>;
+  loading?: boolean;
   onPress?: () => void;
 }
 
 export default function SocialButton({
   icon,
+  label,
   style,
-  size = 32,
+  loading = false,
   onPress,
 }: SocialButtonProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const isDisabled = !onPress || loading;
+
   return (
-    <TouchableOpacity
-      style={[styles.container, style]}
-      activeOpacity={0.7}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t(label)}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      disabled={isDisabled}
       onPress={onPress}
-      disabled={!onPress}
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={({ pressed }) => [
+        styles.container,
+        isHovered && styles.hovered,
+        pressed && styles.pressed,
+        style,
+      ]}
     >
-      <Image
-        source={icon}
-        style={{ width: size, height: size }}
-        resizeMode="contain"
-      />
-    </TouchableOpacity>
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.textPrimary} />
+      ) : (
+        <Image source={icon} style={styles.icon} resizeMode="contain" />
+      )}
+      <Text style={styles.label}>{t(label)}</Text>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: 60,
-    height: 60,
-    borderRadius: 2,
-    borderWidth: 1,
-    borderColor: colors.black,
+    width: "100%",
+    minHeight: 52,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.white,
+    gap: spacing.sm + 2,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.lg,
+  },
+  hovered: {
+    backgroundColor: colors.surfaceMuted,
+  },
+  pressed: {
+    backgroundColor: colors.grayLight,
+  },
+  icon: {
+    width: 20,
+    height: 20,
+  },
+  label: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.md + 1,
+    color: colors.textPrimary,
   },
 });

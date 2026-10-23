@@ -1,255 +1,203 @@
-import { colors, fonts, fontSize, spacing } from "@/theme";
-import { useRef } from "react";
+import { useState } from "react";
 import {
-  Animated,
-  Easing,
+  ActivityIndicator,
+  GestureResponderEvent,
+  Pressable,
+  StyleProp,
   StyleSheet,
   Text,
   TextStyle,
-  TouchableOpacity,
-  TouchableOpacityProps,
-  useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
 
-type ButtonVariant = "primary" | "outline" | "ghost";
+import { t } from "@/i18n";
+import { colors, fonts, fontSize, radius, spacing } from "@/theme";
+
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "ghost"
+  | "danger"
+  | "inverse";
+type ButtonSize = "md" | "lg";
 
 interface ButtonProps {
   title: string;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   icon?: React.ReactNode;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
-  onPress?: TouchableOpacityProps["onPress"];
+  iconPosition?: "left" | "right";
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
+  onPress?: (event: GestureResponderEvent) => void;
   disabled?: boolean;
+  loading?: boolean;
+  accessibilityLabel?: string;
 }
+
+const surfaces: Record<
+  ButtonVariant,
+  { base: ViewStyle; hover: ViewStyle; pressed: ViewStyle; text: TextStyle }
+> = {
+  primary: {
+    base: { backgroundColor: colors.primary, borderColor: colors.primary },
+    hover: { backgroundColor: colors.primaryPressed },
+    pressed: { backgroundColor: colors.primaryPressed },
+    text: { color: colors.white },
+  },
+  secondary: {
+    base: { backgroundColor: colors.ink, borderColor: colors.ink },
+    hover: { backgroundColor: colors.inkSoft },
+    pressed: { backgroundColor: colors.inkSoft },
+    text: { color: colors.white },
+  },
+  outline: {
+    base: { backgroundColor: colors.surface, borderColor: colors.borderStrong },
+    hover: { backgroundColor: colors.surfaceMuted },
+    pressed: { backgroundColor: colors.grayLight },
+    text: { color: colors.textPrimary },
+  },
+  ghost: {
+    base: { backgroundColor: "transparent", borderColor: "transparent" },
+    hover: { backgroundColor: colors.surfaceMuted },
+    pressed: { backgroundColor: colors.grayLight },
+    text: { color: colors.textPrimary },
+  },
+  danger: {
+    base: { backgroundColor: colors.surface, borderColor: colors.borderStrong },
+    hover: { backgroundColor: colors.primarySoft },
+    pressed: { backgroundColor: colors.primarySoft },
+    text: { color: colors.primary },
+  },
+  inverse: {
+    base: {
+      backgroundColor: "rgba(255, 255, 255, 0.06)",
+      borderColor: "rgba(255, 255, 255, 0.32)",
+    },
+    hover: { backgroundColor: "rgba(255, 255, 255, 0.12)" },
+    pressed: { backgroundColor: "rgba(255, 255, 255, 0.16)" },
+    text: { color: colors.white },
+  },
+};
 
 export default function Button({
   title,
   variant = "primary",
+  size = "lg",
   icon,
+  iconPosition = "right",
   style,
   textStyle,
   onPress,
   disabled = false,
+  loading = false,
+  accessibilityLabel,
 }: ButtonProps) {
-  const { width } = useWindowDimensions();
-  const isCompactScreen = width <= 390;
-  const pressProgress = useRef(new Animated.Value(0)).current;
-  const AnimatedTouchableOpacity =
-    Animated.createAnimatedComponent(TouchableOpacity);
-
-  const animatePress = (toValue: number) => {
-    Animated.timing(pressProgress, {
-      toValue,
-      duration: 120,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const getDisabledSurfaceStyle = (variant: ButtonVariant) => {
-    switch (variant) {
-      case "primary":
-        return styles.disabledSurfacePrimary;
-      case "outline":
-        return styles.disabledSurfaceOutline;
-      case "ghost":
-        return styles.disabledSurfaceGhost;
-    }
-  };
-
-  if (variant === "primary") {
-    return (
-      <View
-        style={[
-          style,
-          { marginLeft: 6, marginBottom: 6 },
-          styles.wrapperShadow,
-        ]}
-      >
-        <View
-          style={[styles.shadowLayer, disabled && styles.shadowLayerDisabled]}
-        />
-        <AnimatedTouchableOpacity
-          style={[
-            styles.base,
-            variantStyles[variant],
-            disabled && getDisabledSurfaceStyle(variant),
-            {
-              transform: [
-                {
-                  translateX: pressProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -6],
-                  }),
-                },
-                {
-                  translateY: pressProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 6],
-                  }),
-                },
-              ],
-            },
-          ]}
-          activeOpacity={1}
-          onPressIn={() => {
-            if (!disabled) {
-              animatePress(1);
-            }
-          }}
-          onPressOut={() => {
-            if (!disabled) {
-              animatePress(0);
-            }
-          }}
-          onPress={disabled ? undefined : onPress}
-        >
-          <View
-            style={[
-              styles.contentWrapper,
-              isCompactScreen && styles.contentWrapperCompact,
-            ]}
-          >
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.text,
-                variantTextStyles[variant],
-                isCompactScreen && styles.textCompact,
-                textStyle,
-                disabled && styles.disabledText,
-              ]}
-            >
-              {title}
-            </Text>
-            {icon && <View style={{ flexShrink: 0 }}>{icon}</View>}
-          </View>
-        </AnimatedTouchableOpacity>
-      </View>
-    );
-  }
+  const [isHovered, setIsHovered] = useState(false);
+  const surface = surfaces[variant];
+  const isInactive = disabled || loading;
+  const spinnerColor =
+    variant === "primary" || variant === "secondary" || variant === "inverse"
+      ? colors.white
+      : colors.textPrimary;
 
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t(accessibilityLabel ?? title)}
+      accessibilityState={{ disabled: isInactive, busy: loading }}
+      disabled={isInactive}
+      onPress={onPress}
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={({ pressed }) => [
         styles.base,
-        variantStyles[variant],
-        disabled && getDisabledSurfaceStyle(variant),
+        size === "lg" ? styles.sizeLg : styles.sizeMd,
+        surface.base,
+        isHovered && !isInactive && surface.hover,
+        pressed && !isInactive && surface.pressed,
+        pressed && !isInactive && styles.pressed,
+        disabled && !loading && styles.disabled,
         style,
       ]}
-      activeOpacity={1}
-      onPress={disabled ? undefined : onPress}
     >
       <View
         style={[
-          styles.contentWrapper,
-          isCompactScreen && styles.contentWrapperCompact,
+          styles.content,
+          iconPosition === "left" && styles.contentReversed,
         ]}
       >
+        {loading ? (
+          <ActivityIndicator size="small" color={spinnerColor} />
+        ) : null}
         <Text
           numberOfLines={1}
           style={[
             styles.text,
-            variantTextStyles[variant],
-            isCompactScreen && styles.textCompact,
+            size === "lg" ? styles.textLg : styles.textMd,
+            surface.text,
+            disabled && !loading && styles.disabledText,
             textStyle,
-            disabled && styles.disabledText,
           ]}
         >
-          {title}
+          {t(title)}
         </Text>
-        {icon && <View style={{ flexShrink: 0 }}>{icon}</View>}
+        {icon && !loading ? <View style={styles.icon}>{icon}</View> : null}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    paddingVertical: 8,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 2,
     width: "100%",
-  },
-  contentWrapper: {
-    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.lg,
-    minWidth: 0,
+    paddingHorizontal: spacing.lg,
   },
-  contentWrapperCompact: {
-    gap: spacing.md,
+  sizeLg: {
+    minHeight: 54,
   },
-  text: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xxl,
-    flexShrink: 1,
+  sizeMd: {
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
   },
-  textCompact: {
-    fontSize: 28,
+  pressed: {
+    transform: [{ scale: 0.985 }],
   },
-  shadowLayer: {
-    position: "absolute",
-    top: 6,
-    left: -6,
-    right: 6,
-    bottom: -6,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.black,
-    borderRadius: 2,
-  },
-  shadowLayerDisabled: {
-    borderColor: colors.grayLight,
-  },
-  wrapperShadow: {
-    boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.1)",
-    elevation: 4,
-  },
-  disabledSurfacePrimary: {
+  disabled: {
     backgroundColor: colors.grayLight,
     borderColor: colors.grayLight,
   },
-  disabledSurfaceOutline: {
-    backgroundColor: "transparent",
-    borderColor: colors.gray,
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    minWidth: 0,
   },
-  disabledSurfaceGhost: {
-    backgroundColor: "transparent",
+  contentReversed: {
+    flexDirection: "row-reverse",
+  },
+  text: {
+    fontFamily: fonts.semiBold,
+    flexShrink: 1,
+    letterSpacing: 0.2,
+  },
+  textLg: {
+    fontSize: fontSize.lg - 2,
+  },
+  textMd: {
+    fontSize: fontSize.md,
   },
   disabledText: {
-    color: colors.gray,
+    color: colors.textMuted,
+  },
+  icon: {
+    flexShrink: 0,
   },
 });
-
-const variantStyles: Record<ButtonVariant, ViewStyle> = {
-  primary: {
-    backgroundColor: colors.primary,
-    borderWidth: 1,
-    borderColor: colors.black,
-  },
-  outline: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  ghost: {
-    backgroundColor: "transparent",
-  },
-};
-
-const variantTextStyles: Record<ButtonVariant, TextStyle> = {
-  primary: {
-    color: colors.white,
-  },
-  outline: {
-    color: colors.textPrimary,
-  },
-  ghost: {
-    color: colors.textPrimary,
-  },
-};

@@ -1,11 +1,14 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowRight, Eye } from "lucide-react-native";
+import { ArrowRight } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
+import FormMessage from "@/components/ui/FormMessage";
+import PasswordInput from "@/components/ui/PasswordInput";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
+import { t } from "@/i18n";
 import { ApiError } from "@/services/api";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
@@ -16,7 +19,6 @@ export default function LoginScreen() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState(emailFromParams ?? "");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -61,130 +63,107 @@ export default function LoginScreen() {
   };
 
   return (
-    <AuthScreenLayout>
-      <View style={styles.formContainer}>
+    <AuthScreenLayout
+      showBack
+      title="Sign in"
+      subtitle="Enter your password to access your ToyotaTech account."
+    >
+      <View style={styles.form}>
         <TextInput
-          placeholder="EMAIL ADDRESS *"
+          label="Email address"
+          placeholder="name@example.com"
           autoCapitalize="none"
+          autoComplete="email"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
         />
 
-        <TextInput
-          placeholder="PASSWORD *"
-          secureTextEntry={!showPassword}
+        <PasswordInput
+          label="Password"
+          placeholder="Your password"
+          autoComplete="current-password"
           value={password}
           onChangeText={setPassword}
-          containerStyle={styles.passwordInputContainer}
-          style={styles.passwordInputText}
+          onSubmitEditing={handleLoginPress}
+          returnKeyType="go"
         />
-        <Pressable
-          style={styles.visibilityRow}
-          onPress={() => setShowPassword((current) => !current)}
-        >
-          <Eye size={18} strokeWidth={1.8} color={colors.black} />
-          <Text style={styles.visibilityText}>
-            {showPassword ? "HIDE" : "SHOW"}
-          </Text>
-        </Pressable>
+
+        <FormMessage message={formError} />
 
         <Button
           title={isSubmitting ? "Signing in..." : "Sign in"}
-          variant="primary"
-          icon={
-            <ArrowRight
-              size={36}
-              strokeWidth={3}
-              color={colors.white}
-              strokeLinecap="butt"
-              strokeLinejoin="round"
-            />
-          }
-          style={styles.loginButton}
+          loading={isSubmitting}
+          icon={<ArrowRight size={20} strokeWidth={2.4} color={colors.white} />}
+          style={styles.submit}
           onPress={handleLoginPress}
           disabled={!canSubmit}
         />
 
         <Text style={styles.termsText}>
-          By clicking sign in, you agree{"\n"}to the{" "}
-          <Text style={styles.termsLink}>ToyotaTech Terms and Conditions</Text>.
+          {t("By signing in, you agree to the")}{" "}
+          <Text style={styles.termsLink}>
+            {t("ToyotaTech Terms and Conditions")}
+          </Text>
+          .
         </Text>
 
-        {formError ? (
-          <Text style={styles.formErrorText}>{formError}</Text>
-        ) : null}
-
-        <Pressable
-          onPress={() => {
-            router.push({
-              pathname: "/(auth)/register",
-              params: { email: normalizedEmail },
-            });
-          }}
-        >
-          <Text style={styles.forgotPasswordText}>
-            DO NOT HAVE AN ACCOUNT? CREATE ACCOUNT
-          </Text>
-        </Pressable>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchText}>{t("New to ToyotaTech?")}</Text>
+          <Pressable
+            accessibilityRole="link"
+            hitSlop={6}
+            onPress={() => {
+              router.push({
+                pathname: "/(auth)/register",
+                params: { email: normalizedEmail },
+              });
+            }}
+          >
+            <Text style={styles.switchLink}>{t("Create account")}</Text>
+          </Pressable>
+        </View>
       </View>
     </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  formContainer: {
-    width: "100%",
-    marginTop: 116,
+  form: {
+    gap: spacing.md + 4,
   },
-  visibilityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-end",
-    gap: 6,
+  submit: {
     marginTop: spacing.xs,
   },
-  visibilityText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 13,
-    color: colors.black,
-  },
-  passwordInputContainer: {
-    width: "100%",
-    height: 50,
-    paddingVertical: 0,
-    paddingHorizontal: 12,
-    marginTop: spacing.md,
-  },
-  passwordInputText: {
-    fontFamily: fonts.regular,
-    fontSize: 18,
-  },
-  loginButton: {
-    width: "100%",
-    marginTop: 16,
-  },
   termsText: {
-    marginTop: 22,
     fontFamily: fonts.regular,
-    fontSize: fontSize.md,
-    lineHeight: 26,
-    color: colors.textPrimary,
+    fontSize: fontSize.sm,
+    lineHeight: 20,
+    color: colors.textSecondary,
+    textAlign: "center",
   },
   termsLink: {
+    fontFamily: fonts.semiBold,
+    color: colors.textPrimary,
     textDecorationLine: "underline",
   },
-  forgotPasswordText: {
-    marginTop: 38,
+  switchRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  switchText: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  switchLink: {
     fontFamily: fonts.semiBold,
     fontSize: fontSize.md,
-    textDecorationLine: "underline",
-    color: colors.textPrimary,
-  },
-  formErrorText: {
-    marginTop: spacing.md,
-    fontFamily: fonts.medium,
-    fontSize: fontSize.sm,
     color: colors.primary,
   },
 });

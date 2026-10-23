@@ -1,13 +1,15 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowRight } from "lucide-react-native";
+import { ArrowRight, MailCheck } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 
 import Button from "@/components/ui/Button";
+import FormMessage from "@/components/ui/FormMessage";
+import { t } from "@/i18n";
 import { ApiError } from "@/services/api";
 import { resendVerification, verifyEmail } from "@/services/auth";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { colors, fonts, fontSize, radius, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
 const CODE_LENGTH = 6;
@@ -76,144 +78,121 @@ export default function VerifyEmailScreen() {
   };
 
   return (
-    <AuthScreenLayout contentSectionStyle={styles.contentSection}>
-      <Text style={styles.title}>VERIFY YOUR EMAIL</Text>
-      <Text style={styles.subtitle}>
-        Do not forget to check your spam folder!
-      </Text>
-
-      <View style={styles.formContainer}>
-        <View style={styles.emailRow}>
-          <Text style={styles.emailLabel}>Email sent to:</Text>
-          <Text style={styles.emailValue}>{email || "your email"}</Text>
+    <AuthScreenLayout
+      showBack
+      title="Verify your email"
+      subtitle="Enter the 6-digit code we just sent you. Remember to check your spam folder."
+    >
+      <View style={styles.form}>
+        <View style={styles.emailCard}>
+          <View style={styles.emailIcon}>
+            <MailCheck size={20} strokeWidth={1.8} color={colors.primary} />
+          </View>
+          <View style={styles.emailText}>
+            <Text style={styles.emailLabel}>{t("Code sent to")}</Text>
+            <Text style={styles.emailValue} numberOfLines={1}>
+              {email || t("your email")}
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.codeInputsRow}>
-          <OtpInput
-            ref={otpRef}
-            numberOfDigits={CODE_LENGTH}
-            focusColor={colors.primary}
-            focusStickBlinkingDuration={500}
-            onTextChange={(text) => setVerificationCode(text)}
-            theme={{
-              containerStyle: styles.otpContainer,
-              pinCodeContainerStyle: styles.pinCodeContainer,
-              pinCodeTextStyle: styles.pinCodeText,
-              focusedPinCodeContainerStyle: styles.activePinCodeContainer,
-            }}
-          />
-        </View>
+        <OtpInput
+          ref={otpRef}
+          numberOfDigits={CODE_LENGTH}
+          focusColor={colors.ink}
+          focusStickBlinkingDuration={500}
+          onTextChange={(text) => setVerificationCode(text)}
+          onFilled={(text) => setVerificationCode(text)}
+          theme={{
+            containerStyle: styles.otpContainer,
+            pinCodeContainerStyle: styles.pinCodeContainer,
+            pinCodeTextStyle: styles.pinCodeText,
+            focusedPinCodeContainerStyle: styles.activePinCodeContainer,
+            filledPinCodeContainerStyle: styles.filledPinCodeContainer,
+          }}
+        />
+
+        <FormMessage message={feedback} tone="success" />
+        <FormMessage message={formError} />
 
         <Button
-          title={isSubmitting ? "Verifying..." : "Verify"}
-          variant="primary"
-          icon={
-            <ArrowRight
-              size={36}
-              strokeWidth={3}
-              color={colors.white}
-              strokeLinecap="butt"
-              strokeLinejoin="round"
-            />
-          }
-          style={styles.verifyButton}
+          title={isSubmitting ? "Verifying..." : "Verify email"}
+          loading={isSubmitting}
+          icon={<ArrowRight size={20} strokeWidth={2.4} color={colors.white} />}
           onPress={handleVerifyPress}
-          disabled={isSubmitting || isResending}
+          disabled={isResending || verificationCode.length !== CODE_LENGTH}
         />
         <Button
           title={isResending ? "Resending..." : "Resend code"}
-          variant="outline"
-          style={styles.resendButton}
+          variant="ghost"
+          size="md"
+          loading={isResending}
           onPress={handleResendPress}
-          disabled={isSubmitting || isResending}
+          disabled={isSubmitting}
         />
-        {feedback ? <Text style={styles.feedbackText}>{feedback}</Text> : null}
-        {formError ? (
-          <Text style={styles.formErrorText}>{formError}</Text>
-        ) : null}
       </View>
     </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  contentSection: {
-    marginTop: 58,
+  form: {
+    gap: spacing.md + 4,
   },
-  title: {
-    fontFamily: fonts.semiBold,
-    fontSize: 28,
-    color: colors.black,
-  },
-  subtitle: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.regular,
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-  },
-  formContainer: {
-    marginTop: 74,
-    width: "100%",
-  },
-  emailRow: {
+  emailCard: {
     flexDirection: "row",
     alignItems: "center",
+    gap: spacing.md - 4,
+    padding: spacing.md - 2,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  emailIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emailText: {
+    flex: 1,
+    minWidth: 0,
   },
   emailLabel: {
     fontFamily: fonts.regular,
-    fontSize: fontSize.xs,
+    fontSize: fontSize.sm,
     color: colors.textSecondary,
   },
   emailValue: {
-    marginLeft: 2,
-    fontFamily: fonts.regular,
-    fontSize: fontSize.xs,
-    color: colors.black,
-  },
-  codeInputsRow: {
-    marginTop: spacing.md,
-    width: "100%",
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.md + 1,
+    color: colors.textPrimary,
   },
   otpContainer: {
     width: "100%",
-    flexDirection: "row",
-    justifyContent: "space-between",
+    gap: spacing.sm,
   },
   pinCodeContainer: {
-    width: 46,
-    height: 54,
+    flex: 1,
+    height: 58,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
-    backgroundColor: colors.white,
+    borderColor: colors.borderStrong,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
   },
   activePinCodeContainer: {
-    borderColor: colors.primary,
+    borderColor: colors.ink,
     borderWidth: 2,
   },
+  filledPinCodeContainer: {
+    borderColor: colors.ink,
+  },
   pinCodeText: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.bold,
     fontSize: fontSize.xl,
-    color: colors.black,
-  },
-  verifyButton: {
-    width: "100%",
-    marginTop: spacing.xl,
-  },
-  resendButton: {
-    width: "100%",
-    marginTop: spacing.sm,
-  },
-  feedbackText: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.medium,
-    fontSize: fontSize.sm,
     color: colors.textPrimary,
-  },
-  formErrorText: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.medium,
-    fontSize: fontSize.sm,
-    color: colors.primary,
   },
 });

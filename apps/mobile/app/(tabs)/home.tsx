@@ -1,356 +1,455 @@
-import { useRouter } from "expo-router";
-import { ArrowRight } from "lucide-react-native";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
+import { Href, useRouter } from "expo-router";
+import {
+  ArrowUpRight,
+  CalendarCheck,
+  FileText,
+  LifeBuoy,
+  LucideIcon,
+  MapPinned,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react-native";
+import { useState } from "react";
+import {
+  Image,
+  ImageSourcePropType,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
-import InteractivePressable from "@/components/ui/InteractivePressable";
-import VehicleFallback from "@/components/ui/VehicleFallback";
+import VehicleHero from "@/components/home/VehicleHero";
+import Badge, { BadgeTone } from "@/components/ui/Badge";
+import Screen, { useIsWide } from "@/components/ui/Screen";
+import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGarage } from "@/hooks/useGarage";
-import { colors, fonts, spacing } from "@/theme";
-import { canUseCorollaAltisImage } from "@/utils/vehicle";
+import { t } from "@/i18n";
+import { colors, fonts, fontSize, radius, shadows, spacing } from "@/theme";
 
 const mainCarImage = require("@/assets/images/corolla-main.png");
 const sideCarImage = require("@/assets/images/corolla-side.png");
 const newsImage = require("@/assets/images/corolla-news.png");
 
-const highlightCards = [
-  { id: "corolla", title: "Corolla Altis", image: mainCarImage },
-  { id: "yaris", title: "Yaris Cross", image: sideCarImage },
-  { id: "services", title: "Toyota Services", image: newsImage },
-  { id: "lifestyle", title: "Lifestyle", image: mainCarImage },
+const quickActions: {
+  id: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  route: Href;
+}[] = [
+  {
+    id: "tracking",
+    title: "Order status",
+    description: "Follow each delivery step",
+    icon: MapPinned,
+    route: "/tracking",
+  },
+  {
+    id: "financing",
+    title: "Financing",
+    description: "Installments and invoices",
+    icon: Wallet,
+    route: "/financing",
+  },
+  {
+    id: "schedule",
+    title: "Book a service",
+    description: "Maintenance at a dealership",
+    icon: CalendarCheck,
+    route: "/schedule-service",
+  },
+  {
+    id: "documents",
+    title: "Documents",
+    description: "Paperwork and recalls",
+    icon: FileText,
+    route: "/vehicle-management",
+  },
+  {
+    id: "warranty",
+    title: "Warranty",
+    description: "Coverage and validity",
+    icon: ShieldCheck,
+    route: "/warranty",
+  },
+  {
+    id: "roadside",
+    title: "Roadside 24h",
+    description: "Help anywhere, anytime",
+    icon: LifeBuoy,
+    route: "/roadside",
+  },
 ];
 
-const toyotaTips = [
+const highlightCards: {
+  id: string;
+  title: string;
+  caption: string;
+  image: ImageSourcePropType;
+  route: Href;
+}[] = [
+  {
+    id: "news",
+    title: "How your Toyota is made",
+    caption: "News and videos",
+    image: newsImage,
+    route: "/news",
+  },
+  {
+    id: "store",
+    title: "Toyota Store",
+    caption: "Genuine accessories",
+    image: sideCarImage,
+    route: "/store",
+  },
+  {
+    id: "rewards",
+    title: "Toyota Rewards",
+    caption: "Points and badges",
+    image: mainCarImage,
+    route: "/rewards",
+  },
+  {
+    id: "services",
+    title: "Toyota Services",
+    caption: "Care for your car",
+    image: newsImage,
+    route: "/services",
+  },
+];
+
+const toyotaTips: {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  tone: BadgeTone;
+}[] = [
   {
     id: "tip-1",
     title: "Hybrid Economy",
     description: "Tips to maximize electric mode usage in your Corolla.",
-    category: "MAINTENANCE",
+    category: "Maintenance",
+    tone: "success",
   },
   {
     id: "tip-2",
     title: "Toyota Safety Sense",
     description: "Learn how pre-collision radars work.",
-    category: "TECHNOLOGY",
+    category: "Technology",
+    tone: "info",
   },
   {
     id: "tip-3",
     title: "Genuine Accessories",
     description: "Customize your Toyota with factory warranty and quality.",
-    category: "STYLE",
+    category: "Style",
+    tone: "primary",
   },
 ];
 
-export default function HomeScreen() {
-  const router = useRouter();
-  const { user } = useAuth();
-  const { garage } = useGarage();
-  const displayName = user?.profile?.fullName || user?.name || "User";
-  const firstName = displayName.trim().split(/\s+/)[0] || "User";
-  const vehicle = garage?.vehicle;
-  const vehicleLabel = vehicle?.model ?? "Your Toyota";
-  const shouldUseVehicleImage = canUseCorollaAltisImage(vehicle?.model);
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) {
+    return "Good morning";
+  }
+  if (hour < 18) {
+    return "Good afternoon";
+  }
+  return "Good evening";
+}
+
+function QuickActionCard({
+  title,
+  description,
+  icon: Icon,
+  onPress,
+}: {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  onPress: () => void;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t(title)}
+      onPress={onPress}
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={({ pressed }) => [
+        styles.actionCard,
+        isHovered && styles.actionCardHovered,
+        pressed && styles.actionCardPressed,
+      ]}
+    >
+      <View style={styles.actionTop}>
+        <View style={styles.actionIcon}>
+          <Icon size={20} strokeWidth={1.9} color={colors.primary} />
+        </View>
+        <ArrowUpRight
+          size={18}
+          strokeWidth={1.8}
+          color={isHovered ? colors.textPrimary : colors.textMuted}
+        />
+      </View>
+      <Text style={styles.actionTitle}>{t(title)}</Text>
+      <Text style={styles.actionDescription}>{t(description)}</Text>
+    </Pressable>
+  );
+}
+
+export default function HomeScreen() {
+  const router = useRouter();
+  const isWide = useIsWide();
+  const { user } = useAuth();
+  const { garage, isLoading } = useGarage();
+  const displayName = user?.profile?.fullName || user?.name || "";
+  const firstName = displayName.trim().split(/\s+/)[0] || t("there");
+
+  return (
+    <Screen>
+      <Animated.View entering={FadeInDown.duration(400)}>
+        <ScreenSectionHeader
+          eyebrow={t(getGreeting()).toUpperCase()}
+          title={t("Welcome back, {name}", { name: firstName })}
+          subtitle="Everything about your Toyota in one place."
+        />
+      </Animated.View>
+
+      <Animated.View entering={FadeInDown.delay(80).duration(400)}>
+        <VehicleHero garage={garage} isLoading={isLoading} />
+      </Animated.View>
+
+      <Animated.View
+        entering={FadeInDown.delay(160).duration(400)}
+        style={styles.actionsGrid}
       >
-        <Animated.Text
-          entering={FadeInDown.duration(600).springify()}
-          style={styles.welcomeText}
-        >
-          Welcome, {firstName}!
-        </Animated.Text>
+        {quickActions.map((action) => (
+          <QuickActionCard
+            key={action.id}
+            title={action.title}
+            description={action.description}
+            icon={action.icon}
+            onPress={() => router.navigate(action.route)}
+          />
+        ))}
+      </Animated.View>
 
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(600).springify()}
-          style={styles.showcaseContainer}
-        >
-          {shouldUseVehicleImage ? (
-            <>
-              <Image
-                source={mainCarImage}
-                style={styles.mainImage}
-                resizeMode="cover"
-              />
-              <View style={styles.carLabel}>
-                <Text style={styles.carLabelText}>{vehicleLabel}</Text>
-              </View>
-            </>
-          ) : (
-            <VehicleFallback
-              model={vehicle?.model}
-              version={vehicle?.version}
-              color={vehicle?.color}
-              chassi={vehicle?.chassi}
-              variant="hero"
-            />
-          )}
-        </Animated.View>
-
-        <Animated.View
-          entering={FadeInDown.delay(300).duration(600).springify()}
-          style={styles.statusButtonWrapper}
-        >
-          <View style={styles.statusButtonShadow} />
-          <InteractivePressable
-            style={styles.statusButton}
-            onPress={() => router.push("/tracking")}
-          >
-            <Text style={styles.statusButtonText}>Check Status</Text>
-            <ArrowRight size={24} strokeWidth={2.6} color={colors.white} />
-          </InteractivePressable>
-        </Animated.View>
-
-        <Animated.Text
-          entering={FadeInDown.delay(400).duration(600)}
-          style={styles.sectionTitle}
-        >
-          Highlights for you
-        </Animated.Text>
-        <Animated.ScrollView
-          entering={FadeInRight.delay(500).duration(600)}
+      <Animated.View
+        entering={FadeInDown.delay(240).duration(400)}
+        style={styles.section}
+      >
+        <Text style={styles.sectionTitle}>{t("Highlights for you")}</Text>
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.highlightContent}
           style={styles.highlightScroll}
         >
           {highlightCards.map((card) => (
-            <InteractivePressable key={card.id} style={styles.highlightCard}>
+            <Pressable
+              key={card.id}
+              accessibilityRole="link"
+              onPress={() => router.push(card.route)}
+              style={[styles.highlightCard, isWide && styles.highlightWide]}
+            >
               <Image
                 source={card.image}
                 style={styles.highlightImage}
                 resizeMode="cover"
               />
+              <View style={styles.highlightShade} />
               <View style={styles.highlightLabel}>
-                <Text style={styles.highlightLabelText}>{card.title}</Text>
+                <Text style={styles.highlightCaption}>{t(card.caption)}</Text>
+                <Text style={styles.highlightTitle}>{t(card.title)}</Text>
               </View>
-            </InteractivePressable>
+            </Pressable>
           ))}
-        </Animated.ScrollView>
+        </ScrollView>
+      </Animated.View>
 
-        <View style={styles.newsHeaderRow}>
-          <Animated.Text
-            entering={FadeInDown.delay(600).duration(600)}
-            style={styles.sectionTitle}
-          >
-            Guide and News
-          </Animated.Text>
-          <Animated.View entering={FadeInDown.delay(600).duration(600)}>
-            <InteractivePressable style={styles.newsHeaderButton}>
-              <Text style={styles.newsHeaderText}>View all</Text>
-              <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
-            </InteractivePressable>
-          </Animated.View>
-        </View>
-
-        <View style={styles.newsList}>
-          {toyotaTips.map((tip, index) => (
-            <Animated.View
-              key={tip.id}
-              entering={FadeInDown.delay(700 + index * 100).duration(600)}
-            >
-              <InteractivePressable style={styles.newsCard}>
-                <Text style={styles.newsMeta}>{tip.category}</Text>
-                <Text style={styles.newsTitle}>{tip.title}</Text>
-                <Text style={styles.newsDescription} numberOfLines={2}>
-                  {tip.description}
-                </Text>
-              </InteractivePressable>
-            </Animated.View>
+      <Animated.View
+        entering={FadeInDown.delay(320).duration(400)}
+        style={styles.section}
+      >
+        <Text style={styles.sectionTitle}>{t("Guides and news")}</Text>
+        <View style={styles.tipsGrid}>
+          {toyotaTips.map((tip) => (
+            <View key={tip.id} style={styles.tipCard}>
+              <Badge label={tip.category} tone={tip.tone} />
+              <Text style={styles.tipTitle}>{t(tip.title)}</Text>
+              <Text style={styles.tipDescription}>{t(tip.description)}</Text>
+            </View>
           ))}
         </View>
+      </Animated.View>
 
-        <Animated.View
-          entering={FadeInDown.delay(1000).duration(600)}
-          style={styles.footer}
-        >
-          <View style={styles.footerDivider} />
-          <Text style={styles.footerText}>Always the best for your Toyota</Text>
-        </Animated.View>
-      </ScrollView>
-    </View>
+      <View style={styles.footer}>
+        <View style={styles.footerDivider} />
+        <Text style={styles.footerText}>
+          {t("Always the best for your Toyota")}
+        </Text>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  contentContainer: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg + 3,
-    paddingBottom: spacing.xl,
-  },
-  welcomeText: {
-    marginTop: spacing.xl + spacing.sm,
-    fontFamily: fonts.semiBold,
-    fontSize: 28,
-    color: colors.black,
-  },
-  showcaseContainer: {
-    marginTop: spacing.sm,
-    height: 300,
-    overflow: "hidden",
-  },
-  mainImage: {
-    width: "100%",
-    height: "100%",
-  },
-  carLabel: {
-    position: "absolute",
-    left: 15,
-    bottom: 25,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  carLabelText: {
-    fontFamily: fonts.regular,
-    fontSize: 18,
-    color: colors.black,
-  },
-  statusButtonWrapper: {
-    width: 251,
-    height: 42,
-    marginTop: spacing.lg - 5,
-    marginLeft: 6,
-  },
-  statusButtonShadow: {
-    position: "absolute",
-    top: 4,
-    left: 6,
-    right: -6,
-    bottom: -4,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-  },
-  statusButton: {
-    height: 40,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 14,
+  actionsGrid: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: spacing.md - 4,
   },
-  statusButtonText: {
+  actionCard: {
+    flexGrow: 1,
+    flexBasis: 150,
+    minHeight: 132,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    ...shadows.card,
+  },
+  actionCardHovered: {
+    borderColor: colors.borderStrong,
+    transform: [{ translateY: -2 }],
+  },
+  actionCardPressed: {
+    backgroundColor: colors.surfaceMuted,
+  },
+  actionTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  actionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionTitle: {
+    marginTop: spacing.md - 2,
     fontFamily: fonts.semiBold,
-    fontSize: 24,
-    color: colors.white,
+    fontSize: fontSize.md + 1,
+    color: colors.textPrimary,
+  },
+  actionDescription: {
+    marginTop: 2,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    lineHeight: 19,
+    color: colors.textSecondary,
+  },
+  section: {
+    gap: spacing.md - 2,
   },
   sectionTitle: {
-    marginTop: spacing.xl + spacing.sm,
-    fontFamily: fonts.semiBold,
-    fontSize: 22,
-    color: colors.black,
+    fontFamily: fonts.bold,
+    fontSize: fontSize.lg + 2,
+    color: colors.textPrimary,
   },
   highlightScroll: {
-    marginTop: spacing.sm,
+    marginHorizontal: -4,
   },
   highlightContent: {
-    gap: spacing.md,
-    paddingRight: spacing.xl,
+    gap: spacing.md - 4,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
   },
   highlightCard: {
-    width: 180,
-    aspectRatio: 1,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
+    width: 220,
+    height: 150,
+    borderRadius: radius.lg,
     overflow: "hidden",
+    backgroundColor: colors.ink,
+  },
+  highlightWide: {
+    width: 262,
+    height: 176,
   },
   highlightImage: {
     width: "100%",
     height: "100%",
   },
+  highlightShade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "55%",
+    backgroundColor: "rgba(16, 20, 24, 0.55)",
+  },
   highlightLabel: {
     position: "absolute",
-    left: spacing.sm,
-    bottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    left: spacing.md - 2,
+    right: spacing.md - 2,
+    bottom: spacing.md - 4,
   },
-  highlightLabelText: {
-    fontFamily: fonts.regular,
-    fontSize: 16,
-    color: colors.black,
+  highlightCaption: {
+    fontFamily: fonts.medium,
+    fontSize: fontSize.xs,
+    letterSpacing: 0.6,
+    color: colors.textInverseMuted,
+    textTransform: "uppercase",
   },
-  newsHeaderRow: {
-    marginTop: spacing.xl + spacing.xs,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  newsHeaderButton: {
-    height: 28,
-    borderWidth: 1,
-    borderColor: colors.black,
-    paddingHorizontal: spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  newsHeaderText: {
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    color: colors.black,
-  },
-  newsList: {
-    marginTop: spacing.sm,
-    gap: spacing.sm,
-  },
-  newsCard: {
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.sm,
-  },
-  newsMeta: {
-    fontFamily: fonts.bold,
-    fontSize: 10,
-    color: colors.primary,
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  newsTitle: {
+  highlightTitle: {
     fontFamily: fonts.semiBold,
-    fontSize: 18,
-    color: colors.black,
+    fontSize: fontSize.lg,
+    color: colors.white,
   },
-  newsDescription: {
+  tipsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.md - 4,
+  },
+  tipCard: {
+    flexGrow: 1,
+    flexBasis: 260,
+    padding: spacing.lg - 4,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    ...shadows.card,
+  },
+  tipTitle: {
+    marginTop: spacing.md - 4,
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.lg - 2,
+    color: colors.textPrimary,
+  },
+  tipDescription: {
     marginTop: 4,
     fontFamily: fonts.regular,
-    fontSize: 14,
+    fontSize: fontSize.sm + 1,
+    lineHeight: 21,
     color: colors.textSecondary,
-    lineHeight: 18,
   },
   footer: {
-    marginTop: spacing.xl,
+    marginTop: spacing.sm,
     alignItems: "center",
     gap: spacing.sm,
-    paddingBottom: spacing.md,
   },
   footerDivider: {
-    width: 60,
-    height: 2,
-    backgroundColor: colors.black,
+    width: 40,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
   },
   footerText: {
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
   },
 });

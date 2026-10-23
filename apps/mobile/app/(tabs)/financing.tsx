@@ -1,254 +1,368 @@
-import { ArrowRight } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ArrowRight,
+  Building2,
+  CalendarClock,
+  Receipt,
+  Wallet,
+} from "lucide-react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import InteractivePressable from "@/components/ui/InteractivePressable";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import EmptyState from "@/components/ui/EmptyState";
+import ProgressBar from "@/components/ui/ProgressBar";
+import Screen, { useIsWide } from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import { useGarage } from "@/hooks/useGarage";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { t } from "@/i18n";
+import { colors, fonts, fontSize, radius, spacing } from "@/theme";
+import { GarageData, GarageFinancing } from "@/types/garage";
 
-export default function FinancingScreen() {
-  const { garage, isLoading, error } = useGarage();
-
-  const financing = garage?.financing;
-  const vehicleTitle = garage
-    ? `${garage.vehicle.model} ${garage.vehicle.year}`
-    : "";
-  const paidInstallments = financing
-    ? `${financing.paidInstallments} / ${financing.totalInstallments}`
-    : "";
-  const boletoAvailable = financing?.boletoAvailable ?? false;
-
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Wallet;
+  label: string;
+  value: string;
+}) {
   return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        <Animated.View entering={FadeInDown.duration(600).springify()}>
-          <ScreenSectionHeader
-            title="Financing"
-            subtitle="Track your financing"
-            style={styles.sectionHeader}
-          />
-        </Animated.View>
-
-        {garage && financing ? (
-          <Animated.View
-            entering={FadeInDown.delay(200).duration(600).springify()}
-            style={styles.financeCard}
-          >
-            <Text style={styles.carTitle}>{vehicleTitle}</Text>
-
-            <View style={styles.installmentRow}>
-              <Text style={styles.installmentLabel}>Installments paid:</Text>
-              <View style={styles.installmentBadgeWrapper}>
-                <View style={styles.installmentBadgeShadow} />
-                <View style={styles.installmentBadge}>
-                  <Text style={styles.installmentText}>{paidInstallments}</Text>
-                </View>
-              </View>
-            </View>
-
-            <Text style={styles.bankInfo}>
-              Financial institution:{" "}
-              <Text style={styles.bankName}>{financing.bank}</Text>
-            </Text>
-            {financing.contractNumber ? (
-              <Text style={styles.contractInfo}>
-                Contract: {financing.contractNumber}
-              </Text>
-            ) : null}
-            <Text style={styles.invoiceDescription}>
-              Installment {financing.installmentAmount} | Due{" "}
-              {financing.nextDueDate}
-            </Text>
-          </Animated.View>
-        ) : (
-          <Animated.View
-            entering={FadeInDown.delay(200).duration(600).springify()}
-            style={styles.emptyCard}
-          >
-            <Text style={styles.emptyText}>
-              {isLoading
-                ? "Loading financing..."
-                : (error ?? "Financing not linked yet.")}
-            </Text>
-          </Animated.View>
-        )}
-
-        {garage && financing ? (
-          <Animated.View
-            entering={FadeInDown.delay(400).duration(600).springify()}
-            style={styles.invoiceCard}
-          >
-            <Text style={styles.invoiceTitle}>Second copy of invoice</Text>
-            <Text style={styles.invoiceDescription}>
-              Download your invoices easily
-            </Text>
-
-            <View style={styles.invoiceButtonWrapper}>
-              <View style={styles.invoiceButtonShadow} />
-              <InteractivePressable
-                style={styles.invoiceButton}
-                disabled={!boletoAvailable}
-              >
-                <Text style={styles.invoiceButtonText}>Access invoice</Text>
-                <ArrowRight size={28} strokeWidth={2.4} color={colors.white} />
-              </InteractivePressable>
-            </View>
-          </Animated.View>
-        ) : null}
-      </ScrollView>
+    <View style={styles.stat}>
+      <View style={styles.statIcon}>
+        <Icon size={18} strokeWidth={1.9} color={colors.textPrimary} />
+      </View>
+      <Text style={styles.statLabel}>{t(label)}</Text>
+      <Text style={styles.statValue} numberOfLines={1}>
+        {value}
+      </Text>
     </View>
   );
 }
 
+function FinancingOverview({
+  garage,
+  financing,
+}: {
+  garage: GarageData;
+  financing: GarageFinancing;
+}) {
+  const total = Math.max(financing.totalInstallments, 0);
+  const paid = Math.min(Math.max(financing.paidInstallments, 0), total);
+  const remaining = total - paid;
+  const progress = total ? paid / total : 0;
+  const isSettled = total > 0 && remaining === 0;
+
+  return (
+    <Card>
+      <View style={styles.overviewHeader}>
+        <View style={styles.overviewTitle}>
+          <Text style={styles.eyebrow}>{t("FINANCED VEHICLE")}</Text>
+          <Text style={styles.vehicleTitle}>
+            {garage.vehicle.model} {garage.vehicle.year}
+          </Text>
+        </View>
+        <Badge
+          label={financing.status ?? (isSettled ? "Settled" : "Active")}
+          tone={isSettled ? "success" : "info"}
+        />
+      </View>
+
+      <View style={styles.progressBlock}>
+        <View style={styles.progressNumbers}>
+          <Text style={styles.progressValue}>
+            {paid}
+            <Text style={styles.progressTotal}> / {total}</Text>
+          </Text>
+          <Text style={styles.progressPercent}>
+            {t("{percent}% paid", { percent: Math.round(progress * 100) })}
+          </Text>
+        </View>
+        <ProgressBar
+          value={progress}
+          tone={isSettled ? "success" : "primary"}
+          style={styles.progressBar}
+        />
+        <Text style={styles.progressCaption}>
+          {isSettled
+            ? t("All installments have been paid.")
+            : t(
+                remaining === 1
+                  ? "{count} installment remaining"
+                  : "{count} installments remaining",
+                { count: remaining }
+              )}
+        </Text>
+      </View>
+
+      <View style={styles.statsGrid}>
+        <Stat
+          icon={Wallet}
+          label="Installment"
+          value={financing.installmentAmount}
+        />
+        <Stat
+          icon={CalendarClock}
+          label="Next due date"
+          value={financing.nextDueDate}
+        />
+        <Stat icon={Building2} label="Institution" value={financing.bank} />
+      </View>
+
+      {financing.contractNumber ? (
+        <Text style={styles.contract}>
+          {t("Contract")}{" "}
+          <Text style={styles.contractValue}>{financing.contractNumber}</Text>
+        </Text>
+      ) : null}
+    </Card>
+  );
+}
+
+function InvoiceCard({ available }: { available: boolean }) {
+  return (
+    <Card style={styles.invoiceCard}>
+      <View style={styles.invoiceIcon}>
+        <Receipt size={22} strokeWidth={1.8} color={colors.primary} />
+      </View>
+      <Text style={styles.invoiceTitle}>{t("Second copy of invoice")}</Text>
+      <Text style={styles.invoiceText}>
+        {available
+          ? t("Download your invoices easily whenever you need them.")
+          : t(
+              "No invoice is available right now. We will let you know when the next one is ready."
+            )}
+      </Text>
+      <Badge
+        label={available ? "Invoice available" : "Nothing to pay now"}
+        tone={available ? "success" : "neutral"}
+        style={styles.invoiceBadge}
+      />
+      <Button
+        title="Access invoice"
+        icon={<ArrowRight size={20} strokeWidth={2.4} color={colors.white} />}
+        disabled={!available}
+        style={styles.invoiceButton}
+      />
+    </Card>
+  );
+}
+
+export default function FinancingScreen() {
+  const isWide = useIsWide();
+  const { garage, isLoading, error } = useGarage();
+  const financing = garage?.financing;
+
+  return (
+    <Screen>
+      <Animated.View entering={FadeInDown.duration(400)}>
+        <ScreenSectionHeader
+          eyebrow="FINANCING"
+          title="Your financing"
+          subtitle="Track installments, due dates and invoices."
+        />
+      </Animated.View>
+
+      {garage && financing ? (
+        <Animated.View
+          entering={FadeInDown.delay(80).duration(400)}
+          style={[styles.columns, isWide && styles.columnsWide]}
+        >
+          <View style={isWide ? styles.mainColumn : undefined}>
+            <FinancingOverview garage={garage} financing={financing} />
+          </View>
+          <View style={[styles.sideColumn, isWide && styles.sideColumnWide]}>
+            <InvoiceCard available={financing.boletoAvailable} />
+          </View>
+        </Animated.View>
+      ) : (
+        <Card>
+          {isLoading ? (
+            <View style={styles.loading}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={styles.loadingText}>
+                {t("Loading financing...")}
+              </Text>
+            </View>
+          ) : (
+            <EmptyState
+              icon={Wallet}
+              title={error ? "Unable to load financing" : "No financing linked"}
+              description={
+                error
+                  ? "Please try again in a few moments."
+                  : "When a financing contract is linked to your purchase, it will appear here."
+              }
+            />
+          )}
+        </Card>
+      )}
+    </Screen>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
+  columns: {
+    gap: spacing.lg - 4,
+  },
+  columnsWide: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  mainColumn: {
     flex: 1,
-    backgroundColor: colors.background,
   },
-  contentContainer: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg + 3,
-    paddingBottom: spacing.xxl + spacing.xxl,
+  sideColumn: {
+    width: "100%",
   },
-  sectionHeader: {
+  sideColumnWide: {
+    width: 360,
+  },
+  overviewHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  overviewTitle: {
+    flex: 1,
+  },
+  eyebrow: {
+    fontFamily: fonts.bold,
+    fontSize: fontSize.xs,
+    letterSpacing: 1.4,
+    color: colors.textMuted,
+  },
+  vehicleTitle: {
+    marginTop: 2,
+    fontFamily: fonts.bold,
+    fontSize: fontSize.xl,
+    color: colors.textPrimary,
+  },
+  progressBlock: {
     marginTop: spacing.lg,
   },
-  financeCard: {
-    marginTop: spacing.xl + spacing.md - 1,
-    borderWidth: 1,
-    borderColor: colors.black,
-    minHeight: 160,
-    paddingHorizontal: spacing.sm + 5,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md - 2,
+  progressNumbers: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
   },
-  carTitle: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xl + spacing.xs,
+  progressValue: {
+    fontFamily: fonts.bold,
+    fontSize: fontSize.display + 4,
+    lineHeight: 46,
     color: colors.textPrimary,
   },
-  installmentRow: {
-    marginTop: spacing.md - 1,
-    flexDirection: "row",
-    alignItems: "center",
+  progressTotal: {
+    fontFamily: fonts.medium,
+    fontSize: fontSize.xl,
+    color: colors.textMuted,
   },
-  installmentLabel: {
+  progressPercent: {
+    marginBottom: 6,
     fontFamily: fonts.semiBold,
     fontSize: fontSize.md,
-    color: colors.textPrimary,
-    width: 108,
+    color: colors.textSecondary,
   },
-  installmentBadgeWrapper: {
-    width: 100,
-    height: 39,
-    marginLeft: spacing.md + 1,
+  progressBar: {
+    marginTop: spacing.sm,
+    height: 10,
   },
-  installmentBadgeShadow: {
-    position: "absolute",
-    top: 3,
-    left: 3,
-    right: -3,
-    bottom: -3,
+  progressCaption: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm + 1,
+    color: colors.textSecondary,
+  },
+  statsGrid: {
+    marginTop: spacing.lg,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm + 2,
+  },
+  stat: {
+    flexGrow: 1,
+    flexBasis: 120,
+    padding: spacing.md - 2,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
+  },
+  statIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: "transparent",
-  },
-  installmentBadge: {
-    width: "100%",
-    height: "100%",
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.primary,
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  installmentText: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xl,
-    color: colors.white,
+  statLabel: {
+    marginTop: spacing.sm + 2,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.xs,
+    letterSpacing: 0.6,
+    color: colors.textMuted,
+    textTransform: "uppercase",
   },
-  bankInfo: {
-    marginTop: spacing.md + 1,
+  statValue: {
+    marginTop: 2,
     fontFamily: fonts.semiBold,
-    fontSize: fontSize.md,
+    fontSize: fontSize.lg - 2,
     color: colors.textPrimary,
   },
-  bankName: {
-    color: colors.primary,
-  },
-  contractInfo: {
-    marginTop: spacing.xs - 2,
+  contract: {
+    marginTop: spacing.md,
     fontFamily: fonts.regular,
     fontSize: fontSize.sm,
     color: colors.textSecondary,
   },
-  emptyCard: {
-    marginTop: spacing.xl + spacing.md - 1,
-    borderWidth: 1,
-    borderColor: colors.black,
-    minHeight: 96,
-    paddingHorizontal: spacing.sm + 5,
-    paddingVertical: spacing.md,
-    justifyContent: "center",
-  },
-  emptyText: {
-    fontFamily: fonts.regular,
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-  },
-  invoiceCard: {
-    marginTop: spacing.xl + spacing.xs + 1,
-    borderWidth: 1,
-    borderColor: colors.black,
-    minHeight: 142,
-    paddingHorizontal: spacing.sm + 5,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm + 4,
-  },
-  invoiceTitle: {
+  contractValue: {
     fontFamily: fonts.semiBold,
-    fontSize: fontSize.xl + spacing.xs,
     color: colors.textPrimary,
   },
-  invoiceDescription: {
-    marginTop: spacing.xs - 2,
+  invoiceCard: {
+    gap: 0,
+  },
+  invoiceIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  invoiceTitle: {
+    marginTop: spacing.md - 2,
+    fontFamily: fonts.bold,
+    fontSize: fontSize.lg,
+    color: colors.textPrimary,
+  },
+  invoiceText: {
+    marginTop: 4,
     fontFamily: fonts.regular,
-    fontSize: fontSize.md,
+    fontSize: fontSize.sm + 1,
+    lineHeight: 21,
     color: colors.textSecondary,
   },
-  invoiceButtonWrapper: {
-    width: 219,
-    height: 40,
-    marginTop: spacing.md - 1,
-    marginLeft: 1,
-  },
-  invoiceButtonShadow: {
-    position: "absolute",
-    top: 4,
-    left: 6,
-    right: -6,
-    bottom: -4,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: "transparent",
+  invoiceBadge: {
+    marginTop: spacing.md - 4,
   },
   invoiceButton: {
-    height: 40,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm + 1,
+    marginTop: spacing.lg - 4,
+  },
+  loading: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    gap: spacing.sm + 2,
+    paddingVertical: spacing.lg,
   },
-  invoiceButtonText: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xl,
-    color: colors.white,
+  loadingText: {
+    fontFamily: fonts.medium,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
   },
 });
