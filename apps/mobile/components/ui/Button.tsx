@@ -1,17 +1,17 @@
+import { colors, fonts, fontSize, spacing } from "@/theme";
+import { useRef } from "react";
 import {
   Animated,
   Easing,
+  StyleSheet,
   Text,
+  TextStyle,
   TouchableOpacity,
   TouchableOpacityProps,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  View,
   useWindowDimensions,
+  View,
+  ViewStyle,
 } from "react-native";
-import { useRef } from "react";
-import { colors, fonts, fontSize, spacing } from "@/theme";
 
 type ButtonVariant = "primary" | "outline" | "ghost";
 
@@ -62,8 +62,16 @@ export default function Button({
 
   if (variant === "primary") {
     return (
-      <View style={[style, { marginLeft: 6, marginBottom: 6 }, styles.wrapperShadow]}>
-        <View style={[styles.shadowLayer, disabled && styles.shadowLayerDisabled]} />
+      <View
+        style={[
+          style,
+          { marginLeft: 6, marginBottom: 6 },
+          styles.wrapperShadow,
+        ]}
+      >
+        <View
+          style={[styles.shadowLayer, disabled && styles.shadowLayerDisabled]}
+        />
         <AnimatedTouchableOpacity
           style={[
             styles.base,

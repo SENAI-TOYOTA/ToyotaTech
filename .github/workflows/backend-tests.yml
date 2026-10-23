@@ -1,0 +1,41 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/server
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/server/requirements-test.txt
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - name: Install test dependencies
+        run: pip install -r requirements-test.txt
+
+      - name: Install mobile dependencies
+        working-directory: apps/mobile
+        run: npm ci
+
+      - name: Pytest
+        run: python -m pytest . -q

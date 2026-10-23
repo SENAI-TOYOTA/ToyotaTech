@@ -1,17 +1,18 @@
-import { useEffect } from "react";
-import { Stack, useRouter, useSegments } from "expo-router";
 import {
-  useFonts,
   Afacad_400Regular,
   Afacad_500Medium,
   Afacad_600SemiBold,
   Afacad_700Bold,
+  useFonts,
 } from "@expo-google-fonts/afacad";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
+import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { hasCompleteProfile } from "@/profileValidation";
 import { colors } from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -22,11 +23,9 @@ function AppNavigator() {
   const segments = useSegments();
   const { isAuthenticated, isLoadingSession, user } = useAuth();
 
-  const isInAuthGroup = segments[0] === "(auth)";
+  const isInAuthGroup = (segments[0] ?? "(auth)") === "(auth)";
   const isInProfileSetup = segments[0] === "profile-setup";
-  const needsProfile =
-    Boolean(isAuthenticated) &&
-    (!user?.profile?.fullName || !user?.profile?.birthDate || !user?.profile?.cpf);
+  const needsProfile = Boolean(isAuthenticated) && !hasCompleteProfile(user);
 
   useEffect(() => {
     if (isLoadingSession) {
@@ -51,7 +50,14 @@ function AppNavigator() {
         router.replace("/home");
       }
     }
-  }, [isAuthenticated, isInAuthGroup, isInProfileSetup, isLoadingSession, needsProfile, router]);
+  }, [
+    isAuthenticated,
+    isInAuthGroup,
+    isInProfileSetup,
+    isLoadingSession,
+    needsProfile,
+    router,
+  ]);
 
   if (isLoadingSession) {
     return (

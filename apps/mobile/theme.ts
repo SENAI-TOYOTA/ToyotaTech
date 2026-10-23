@@ -35,4 +35,3 @@ export const fontSize = {
   xxl: 32,
   logo: 50,
 };
-

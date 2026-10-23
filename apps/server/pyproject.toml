@@ -1,0 +1,29 @@
+[tool.pytest.ini_options]
+testpaths = ["services", "tests"]
+python_files = ["test_*.py"]
+addopts = "-ra"
+norecursedirs = [".git", ".aws-sam", "__pycache__", ".venv", "venv", ".pytest_cache"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = [".git", "__pycache__", ".venv", "venv", ".pytest_cache", ".aws-sam"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "C90", "ERA"]
+ignore = []
+fixable = ["A", "B", "C", "D", "E", "F", "I", "W", "UP", "RUF"]
+unfixable = []
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 88
+
+[tool.ruff.lint.isort]
+known-first-party = ["common", "services"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

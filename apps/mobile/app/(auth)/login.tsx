@@ -1,13 +1,13 @@
-import { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Platform, Pressable } from "react-native";
-import { ArrowRight, Eye } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { ArrowRight, Eye } from "lucide-react-native";
+import { useMemo, useState } from "react";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
+import { ApiError, apiErrorMessage } from "@/services/api";
 import { colors, fonts, fontSize, spacing } from "@/theme";
-import { ApiError } from "@/services/api";
 import { AuthScreenLayout } from "./_layout";
 
 export default function LoginScreen() {
@@ -19,17 +19,22 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isFederatedError, setIsFederatedError] = useState(false);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
-  const canSubmit = normalizedEmail.includes("@") && password.length >= 8 && !isSubmitting;
+  const canSubmit =
+    normalizedEmail.includes("@") && password.length >= 8 && !isSubmitting;
 
   const handleLoginPress = async () => {
     if (!canSubmit) {
-      setFormError("Informe e-mail valido e senha com ao menos 8 caracteres.");
+      setFormError(
+        "Informe um email válido e uma senha com pelo menos 8 caracteres."
+      );
       return;
     }
 
     setFormError(null);
+    setIsFederatedError(false);
     if (Platform.OS === "web" && typeof document !== "undefined") {
       (document.activeElement as HTMLElement | null)?.blur();
     }
@@ -39,19 +44,20 @@ export default function LoginScreen() {
       await signIn(normalizedEmail, password);
       router.replace("/home");
     } catch (error) {
-      console.error("[Login] Erro ao fazer login:", error);
-      if (error instanceof ApiError) {
-        if (error.status === 403) {
-          router.push({
-            pathname: "/(auth)/verify-email",
-            params: { email: normalizedEmail },
-          });
-          return;
-        }
-        setFormError(error.message);
-      } else {
-        setFormError("Nao foi possivel fazer login. Tente novamente.");
+      console.error("[Login] Sign-in failed:", error);
+      if (error instanceof ApiError && error.status === 403) {
+        router.push({
+          pathname: "/(auth)/verify-email",
+          params: { email: normalizedEmail },
+        });
+        return;
       }
+      setIsFederatedError(
+        error instanceof ApiError && error.code === "FEDERATED_USER_NO_PASSWORD"
+      );
+      setFormError(
+        apiErrorMessage(error, "Não foi possível entrar. Tente novamente.")
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -81,7 +87,9 @@ export default function LoginScreen() {
           onPress={() => setShowPassword((current) => !current)}
         >
           <Eye size={18} strokeWidth={1.8} color={colors.black} />
-          <Text style={styles.visibilityText}>{showPassword ? "OCULTAR" : "EXIBIR"}</Text>
+          <Text style={styles.visibilityText}>
+            {showPassword ? "OCULTAR" : "EXIBIR"}
+          </Text>
         </Pressable>
 
         <Button
@@ -102,11 +110,26 @@ export default function LoginScreen() {
         />
 
         <Text style={styles.termsText}>
-          Ao clicar em fazer login, você concorda{"\n"}com os{" "}
+          Ao clicar em fazer login, você concorda com os{" "}
           <Text style={styles.termsLink}>Termos e Condições ToyotaTech</Text>.
         </Text>
 
-        {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+        {formError ? (
+          <Text style={styles.formErrorText}>{formError}</Text>
+        ) : null}
+
+        {isFederatedError ? (
+          <Pressable
+            onPress={() => {
+              router.push({
+                pathname: "/",
+                params: { email: normalizedEmail },
+              });
+            }}
+          >
+            <Text style={styles.forgotPasswordText}>ENTRAR COM GOOGLE</Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           onPress={() => {
@@ -116,7 +139,9 @@ export default function LoginScreen() {
             });
           }}
         >
-          <Text style={styles.forgotPasswordText}>NÃO TEM CONTA? CRIAR CONTA</Text>
+          <Text style={styles.forgotPasswordText}>
+            NÃO TEM CONTA? CRIAR CONTA
+          </Text>
         </Pressable>
       </View>
     </AuthScreenLayout>

@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
-import { useRouter } from "expo-router";
-import { ArrowRight } from "lucide-react-native";
-import { Checkbox } from "expo-checkbox";
 import * as AuthSession from "expo-auth-session";
+import { Checkbox } from "expo-checkbox";
 import Constants, { ExecutionEnvironment } from "expo-constants";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ArrowRight } from "lucide-react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Platform, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
-import TextInput from "@/components/ui/TextInput";
 import SocialButton from "@/components/ui/SocialButton";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
+import { apiErrorMessage } from "@/services/api";
 import { checkEmail } from "@/services/auth";
-import { ApiError } from "@/services/api";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
 const googleIcon = require("@/assets/images/google-icon.png");
@@ -32,11 +32,11 @@ function useCognitoDiscovery(issuer?: string) {
   return discovery;
 }
 
-
 export default function LoginScreen() {
   const router = useRouter();
+  const { email: emailFromParams } = useLocalSearchParams<{ email?: string }>();
   const { signInWithTokens } = useAuth();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailFromParams ?? "");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -44,12 +44,17 @@ export default function LoginScreen() {
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const canContinue =
-    normalizedEmail.includes("@") && acceptedTerms && !isSubmitting && !isGoogleLoading;
+    normalizedEmail.includes("@") &&
+    acceptedTerms &&
+    !isSubmitting &&
+    !isGoogleLoading;
   const domainFromEnv = process.env.EXPO_PUBLIC_COGNITO_DOMAIN?.trim();
   const domainFromConfig =
     Constants.expoConfig?.extra?.cognitoDomain ??
-    (Constants.manifest as { extra?: { cognitoDomain?: string } } | null)?.extra?.cognitoDomain;
-  const defaultDomain = "https://toyotatech-mobile.auth.us-east-1.amazoncognito.com";
+    (Constants.manifest as { extra?: { cognitoDomain?: string } } | null)?.extra
+      ?.cognitoDomain;
+  const defaultDomain =
+    "https://toyotatech-mobile.auth.us-east-1.amazoncognito.com";
   const cognitoDomain = (domainFromEnv || domainFromConfig || defaultDomain)
     .trim()
     .replace(/\/$/, "");
@@ -59,7 +64,8 @@ export default function LoginScreen() {
       return AuthSession.makeRedirectUri();
     }
 
-    const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+    const isExpoGo =
+      Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
     if (isExpoGo) {
       return AuthSession.makeRedirectUri({
         scheme: "exp",
@@ -73,9 +79,10 @@ export default function LoginScreen() {
   }, []);
   const discovery = useCognitoDiscovery(cognitoDomain || undefined);
 
-  // Debug: log the redirect URI so we can verify it matches the Cognito App Client callbacks
   useEffect(() => {
-    console.log("[Auth] redirectUri gerado:", redirectUri);
+    if (__DEV__) {
+      console.warn("[Auth] generated redirectUri:", redirectUri);
+    }
   }, [redirectUri]);
 
   const [request, response, promptAsync] = AuthSession.useAuthRequest(
@@ -85,7 +92,6 @@ export default function LoginScreen() {
       responseType: AuthSession.ResponseType.Code,
       scopes: ["openid", "email", "profile", "aws.cognito.signin.user.admin"],
       usePKCE: true,
-      // Pula a Hosted UI do Cognito e vai direto ao Google
       extraParams: {
         identity_provider: "Google",
       },
@@ -95,7 +101,7 @@ export default function LoginScreen() {
 
   const handleContinuePress = async () => {
     if (!canContinue) {
-      setFormError("Preencha e-mail valido e aceite os termos.");
+      setFormError("Informe um email válido e aceite os termos.");
       return;
     }
 
@@ -108,16 +114,25 @@ export default function LoginScreen() {
     try {
       const checkResult = await checkEmail(normalizedEmail);
 
+      if (checkResult.isFederated) {
+        setFormError("Esta conta foi criada com Google. Entre com Google.");
+        return;
+      }
+
       router.push({
-        pathname: checkResult.nextRoute === "/login" ? "/(auth)/login" : "/(auth)/register",
+        pathname:
+          checkResult.nextRoute === "/login"
+            ? "/(auth)/login"
+            : "/(auth)/register",
         params: { email: normalizedEmail },
       });
     } catch (error) {
-      if (error instanceof ApiError) {
-        setFormError(error.message);
-      } else {
-        setFormError("Nao foi possivel validar o e-mail. Tente novamente.");
-      }
+      setFormError(
+        apiErrorMessage(
+          error,
+          "Não foi possível validar o email. Tente novamente."
+        )
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -129,11 +144,11 @@ export default function LoginScreen() {
         return;
       }
       if (!discovery || !cognitoClientId) {
-        setFormError("Login Google nao configurado.");
+        setFormError("Login com Google não configurado.");
         return;
       }
       if (!request?.codeVerifier) {
-        setFormError("Nao foi possivel completar o login Google.");
+        setFormError("Não foi possível concluir o login com Google.");
         return;
       }
       setIsGoogleLoading(true);
@@ -149,10 +164,15 @@ export default function LoginScreen() {
           },
           discovery
         );
-        if (!tokenResponse.accessToken || !tokenResponse.idToken || !tokenResponse.refreshToken) {
-          throw new Error("Tokens incompletos");
+        if (
+          !tokenResponse.accessToken ||
+          !tokenResponse.idToken ||
+          !tokenResponse.refreshToken
+        ) {
+          throw new Error("Incomplete tokens");
         }
-        const expiresAt = Math.floor(Date.now() / 1000) + (tokenResponse.expiresIn ?? 3600);
+        const expiresAt =
+          Math.floor(Date.now() / 1000) + (tokenResponse.expiresIn ?? 3600);
         await signInWithTokens({
           accessToken: tokenResponse.accessToken,
           idToken: tokenResponse.idToken,
@@ -160,23 +180,30 @@ export default function LoginScreen() {
           expiresAt,
         });
       } catch (error) {
-        console.error("Falha no login Google:", error);
-        setFormError("Nao foi possivel completar o login Google.");
+        console.error("Google sign-in failed:", error);
+        setFormError("Não foi possível concluir o login com Google.");
       } finally {
         setIsGoogleLoading(false);
       }
     };
 
     void finalizeGoogleSignIn();
-  }, [cognitoClientId, discovery, redirectUri, request?.codeVerifier, response, signInWithTokens]);
+  }, [
+    cognitoClientId,
+    discovery,
+    redirectUri,
+    request?.codeVerifier,
+    response,
+    signInWithTokens,
+  ]);
 
   const handleGooglePress = async () => {
     if (!cognitoDomain || !cognitoClientId) {
-      setFormError("Login Google nao configurado.");
+      setFormError("Login com Google não configurado.");
       return;
     }
     if (!discovery || !request) {
-      setFormError("Login Google ainda nao esta pronto.");
+      setFormError("Login com Google ainda não está disponível.");
       return;
     }
     setFormError(null);
@@ -187,8 +214,8 @@ export default function LoginScreen() {
         setIsGoogleLoading(false);
       }
     } catch (error) {
-      console.error("Falha ao abrir login Google:", error);
-      setFormError("Nao foi possivel abrir o login Google.");
+      console.error("Failed to open Google sign-in:", error);
+      setFormError("Não foi possível abrir o login com Google.");
       setIsGoogleLoading(false);
     }
   };
@@ -202,7 +229,15 @@ export default function LoginScreen() {
           <Button
             title={isSubmitting ? "Verificando..." : "Prosseguir"}
             variant="primary"
-            icon={<ArrowRight size={36} strokeWidth={3} color={colors.white} strokeLinecap="butt" strokeLinejoin="round" />}
+            icon={
+              <ArrowRight
+                size={36}
+                strokeWidth={3}
+                color={colors.white}
+                strokeLinecap="butt"
+                strokeLinejoin="round"
+              />
+            }
             style={styles.continueButton}
             onPress={handleContinuePress}
             disabled={!canContinue}
@@ -211,7 +246,10 @@ export default function LoginScreen() {
       }
     >
       <View style={styles.formSection}>
-        <SocialButton icon={googleIcon} onPress={isGoogleLoading ? undefined : handleGooglePress} />
+        <SocialButton
+          icon={googleIcon}
+          onPress={isGoogleLoading ? undefined : handleGooglePress}
+        />
         <TextInput
           placeholder="ENDEREÇO DE EMAIL *"
           autoCapitalize="none"
@@ -227,14 +265,13 @@ export default function LoginScreen() {
             color={acceptedTerms ? colors.black : undefined}
           />
           <Text style={styles.termsText}>
-            Ao clicar em prosseguir, você{"\n"}concorda com os{" "}
-            <Text style={styles.termsLink}>
-              Termos e{"\n"}Condições ToyotaTech
-            </Text>
-            .
+            Ao clicar em prosseguir, você concorda com os{" "}
+            <Text style={styles.termsLink}>Termos e Condições ToyotaTech</Text>.
           </Text>
         </View>
-        {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+        {formError ? (
+          <Text style={styles.formErrorText}>{formError}</Text>
+        ) : null}
         {isGoogleLoading ? (
           <Text style={styles.formInfoText}>Conectando ao Google...</Text>
         ) : null}

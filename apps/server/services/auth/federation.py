@@ -3,7 +3,7 @@ from typing import Any, Dict
 from botocore.exceptions import ClientError
 
 from common.cognito import is_federated, link_provider, log_error
-from common.cognito_users import find_by_email, find_local_by_email
+from common.cognito_users import find_by_email
 from common.responses import error_body
 
 
@@ -13,7 +13,11 @@ def pre_sign_up(event: Dict[str, Any]) -> Dict[str, Any]:
     event_response = event.setdefault("response", {})
     email = str((request.get("userAttributes") or {}).get("email", "")).strip().lower()
 
-    if not email or "@" not in email or trigger_source not in ("PreSignUp_SignUp", "PreSignUp_ExternalProvider"):
+    if (
+        not email
+        or "@" not in email
+        or trigger_source not in ("PreSignUp_SignUp", "PreSignUp_ExternalProvider")
+    ):
         return event
 
     users = find_by_email(email)
@@ -29,14 +33,18 @@ def pre_sign_up(event: Dict[str, Any]) -> Dict[str, Any]:
         return event
 
     try:
-        link_provider(local["Username"], provider_identity["providerName"], provider_identity["providerUserId"])
+        link_provider(
+            local["Username"],
+            provider_identity["providerName"],
+            provider_identity["providerUserId"],
+        )
         event_response["autoConfirmUser"] = True
         event_response["autoVerifyEmail"] = True
     except ClientError as error:
         code, _ = error_body(error)
         if code == "ResourceConflictException":
             return event
-        log_error("Falha ao vincular provedor no PreSignUp.", event=event, error=error)
+        log_error("Failed to link provider on PreSignUp.", event=event, error=error)
         raise
 
     return event

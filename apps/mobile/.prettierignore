@@ -1,0 +1,7 @@
+node_modules
+dist
+.expo
+web-build
+.expo-shared
+*.tsbuildinfo
+package-lock.json

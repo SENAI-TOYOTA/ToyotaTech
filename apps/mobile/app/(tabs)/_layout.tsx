@@ -1,7 +1,7 @@
 import { Tabs, useRouter } from "expo-router";
 import { CarFront, CircleDollarSign, Home, User } from "lucide-react-native";
 import React, { useEffect } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { type ColorValue, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -25,7 +25,7 @@ function TabsHeader() {
         <Pressable
           onPress={() => router.replace("/home")}
           accessibilityRole="button"
-          accessibilityLabel="Ir para a home"
+          accessibilityLabel="Ir para o início"
         >
           <Logo size={fontSize.xxl + spacing.xs} />
         </Pressable>
@@ -40,41 +40,44 @@ const TabIcon = React.memo(function TabIcon({
   Icon,
 }: {
   focused: boolean;
-  color: string;
+  color: ColorValue;
   Icon: typeof Home;
 }) {
-    const scale = useSharedValue(1);
-    const indicatorOpacity = useSharedValue(0);
-    const indicatorScale = useSharedValue(0.5);
+  const scale = useSharedValue(1);
+  const indicatorOpacity = useSharedValue(0);
+  const indicatorScale = useSharedValue(0.5);
 
-    useEffect(() => {
-      scale.value = withSpring(focused ? 1.15 : 1, {
-        damping: 15,
-        stiffness: 150,
-      });
-      indicatorOpacity.value = withTiming(focused ? 1 : 0, { duration: 250 });
-      indicatorScale.value = withSpring(focused ? 1 : 0.5);
-    }, [focused, scale, indicatorOpacity, indicatorScale]);
+  useEffect(() => {
+    scale.value = withSpring(focused ? 1.15 : 1, {
+      damping: 15,
+      stiffness: 150,
+    });
+    indicatorOpacity.value = withTiming(focused ? 1 : 0, { duration: 250 });
+    indicatorScale.value = withSpring(focused ? 1 : 0.5);
+  }, [focused, scale, indicatorOpacity, indicatorScale]);
 
-    const animatedIconStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: scale.value }],
-    }));
+  const animatedIconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
-    const animatedIndicatorStyle = useAnimatedStyle(() => ({
-      opacity: indicatorOpacity.value,
-      transform: [{ scaleX: indicatorScale.value }],
-    }));
+  const animatedIndicatorStyle = useAnimatedStyle(() => ({
+    opacity: indicatorOpacity.value,
+    transform: [{ scaleX: indicatorScale.value }],
+  }));
 
-    return (
-      <View style={styles.tabIconWrapper}>
-        <Animated.View style={animatedIconStyle}>
-          <Icon size={iconSize} strokeWidth={iconStrokeWidth} color={color} />
-        </Animated.View>
-        <Animated.View style={[styles.tabIndicator, animatedIndicatorStyle]} />
-      </View>
-    );
-  }
-);
+  return (
+    <View style={styles.tabIconWrapper}>
+      <Animated.View style={animatedIconStyle}>
+        <Icon
+          size={iconSize}
+          strokeWidth={iconStrokeWidth}
+          color={color as string}
+        />
+      </Animated.View>
+      <Animated.View style={[styles.tabIndicator, animatedIndicatorStyle]} />
+    </View>
+  );
+});
 
 export default function TabsLayout() {
   return (
@@ -94,7 +97,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Home",
+          title: "Início",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={Home} color={color} focused={focused} />
           ),

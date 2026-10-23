@@ -7,97 +7,52 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Platform } from "react-native";
-import * as SecureStore from "expo-secure-store";
 
+import { hasCompleteProfile } from "@/profileValidation";
 import { ApiError } from "@/services/api";
-import { fetchMe, login, refreshSession, register, setPassword as setPasswordService } from "@/services/auth";
+import {
+  fetchMe,
+  login,
+  refreshSession,
+  register,
+  setPassword as setPasswordService,
+} from "@/services/auth";
 import { fetchGarageCurrent } from "@/services/garage";
+import {
+  deleteStoredSession,
+  getSessionPersistence,
+  getStoredSession,
+  isSessionExpired,
+  SessionPersistence,
+  setStoredSession,
+  StoredSession,
+  subscribeSessionPersistence,
+} from "@/services/sessionStorage";
+import {
+  clearSession as clearSessionOps,
+  putSession,
+  registerSessionOps,
+  renewSession,
+  subscribe,
+} from "@/services/sessionStore";
 import { AuthUser, RegisterResponse } from "@/types/auth";
 
-const SESSION_STORAGE_KEY = "toyotatech.auth.session";
-const isWeb = Platform.OS === "web";
-
-interface StoredSession {
-  accessToken: string;
-  idToken: string;
-  refreshToken: string;
-  expiresAt: number;
-}
-
-async function getStoredSession(): Promise<StoredSession | null> {
-  const parseSession = (rawValue: string | null): StoredSession | null => {
-    if (!rawValue) {
-      return null;
-    }
-    try {
-      const parsed = JSON.parse(rawValue) as Partial<StoredSession>;
-      if (
-        typeof parsed.accessToken !== "string" ||
-        typeof parsed.idToken !== "string" ||
-        typeof parsed.refreshToken !== "string" ||
-        typeof parsed.expiresAt !== "number"
-      ) {
-        return null;
-      }
-      return {
-        accessToken: parsed.accessToken,
-        idToken: parsed.idToken,
-        refreshToken: parsed.refreshToken,
-        expiresAt: parsed.expiresAt,
-      };
-    } catch {
-      return null;
-    }
-  };
-
-  if (isWeb) {
-    return parseSession(globalThis.localStorage?.getItem(SESSION_STORAGE_KEY) ?? null);
-  }
-  const raw = await SecureStore.getItemAsync(SESSION_STORAGE_KEY);
-  return parseSession(raw);
-}
-
-async function setStoredSession(session: StoredSession) {
-  const raw = JSON.stringify(session);
-  if (isWeb) {
-    globalThis.localStorage?.setItem(SESSION_STORAGE_KEY, raw);
-    return;
-  }
-  await SecureStore.setItemAsync(SESSION_STORAGE_KEY, raw);
-}
-
-async function deleteStoredSession() {
-  if (isWeb) {
-    globalThis.localStorage?.removeItem(SESSION_STORAGE_KEY);
-    return;
-  }
-  await SecureStore.deleteItemAsync(SESSION_STORAGE_KEY);
-}
-
-/**
- * Verifica se o idToken indica que o usuário foi autenticado via provedor
- * externo (Google). O Cognito inclui no campo `cognito:username` do token
- * o prefixo "Google_" para usuários federados, e o campo `identities` com
- * o provedor. Decodificamos o payload do JWT (sem verificar assinatura, pois
- * isso é responsabilidade do servidor) apenas para leitura local de UX.
- */
 function isTokenFederated(idToken: string): boolean {
   try {
     const parts = idToken.split(".");
     if (parts.length !== 3) return false;
-    // Adiciona padding necessário para base64
     const payload = parts[1];
     const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
     const decoded = JSON.parse(atob(padded)) as Record<string, unknown>;
 
-    // Cognito marca usuários SSO com o provedor no campo `identities`
     if (Array.isArray(decoded.identities) && decoded.identities.length > 0) {
       return true;
     }
-    // Fallback: username começa com "Google_"
     const username = decoded["cognito:username"];
-    if (typeof username === "string" && username.toLowerCase().startsWith("google_")) {
+    if (
+      typeof username === "string" &&
+      username.toLowerCase().startsWith("google_")
+    ) {
       return true;
     }
     return false;
@@ -106,18 +61,19 @@ function isTokenFederated(idToken: string): boolean {
   }
 }
 
-function hasCompleteProfile(user: AuthUser | null) {
-  return Boolean(user?.profile?.fullName && user.profile.birthDate && user.profile.cpf);
-}
-
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
   isLoadingSession: boolean;
   isFederatedUser: boolean;
+  sessionPersistence: SessionPersistence;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name?: string) => Promise<RegisterResponse>;
+  signUp: (
+    email: string,
+    password: string,
+    name?: string
+  ) => Promise<RegisterResponse>;
   signInWithTokens: (session: StoredSession) => Promise<void>;
   setPassword: (password: string) => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -130,72 +86,103 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<StoredSession | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [sessionPersistence, setSessionPersistence] =
+    useState<SessionPersistence>(getSessionPersistence);
 
-  const bootstrapGarage = useCallback(async (accessToken: string, nextUser: AuthUser | null) => {
-    if (!hasCompleteProfile(nextUser)) {
-      return;
-    }
-    try {
-      await fetchGarageCurrent(accessToken);
-    } catch (error) {
-      if (__DEV__) {
-        console.warn("[GARAGE] Falha ao inicializar garagem", error);
+  const bootstrapGarage = useCallback(
+    async (accessToken: string, nextUser: AuthUser | null) => {
+      if (!hasCompleteProfile(nextUser)) {
+        return;
       }
-    }
-  }, []);
+      try {
+        await fetchGarageCurrent(accessToken);
+      } catch (error) {
+        if (__DEV__) {
+          console.warn("[GARAGE] Failed to initialize garage", error);
+        }
+      }
+    },
+    []
+  );
 
   const clearSession = useCallback(async () => {
-    await deleteStoredSession();
-    setSession(null);
+    await clearSessionOps();
     setUser(null);
+  }, []);
+
+  useEffect(() => {
+    registerSessionOps({
+      renew: async (currentSession) => {
+        const refreshed = await refreshSession(
+          { refreshToken: currentSession.refreshToken },
+          { suppressErrorLog: true }
+        );
+        const renewed: StoredSession = {
+          accessToken: refreshed.accessToken,
+          idToken: refreshed.idToken,
+          refreshToken: currentSession.refreshToken,
+          expiresAt: refreshed.expiresAt,
+        };
+        await setStoredSession(renewed);
+        return renewed;
+      },
+      drop: async () => {
+        await deleteStoredSession();
+      },
+    });
+    const unsubscribe = subscribe((next) => {
+      setSession(next);
+    });
+    const unsubscribePersistence = subscribeSessionPersistence((next) => {
+      setSessionPersistence(next);
+    });
+    return () => {
+      registerSessionOps(null);
+      unsubscribe();
+      unsubscribePersistence();
+    };
   }, []);
 
   const hydrateSession = useCallback(async () => {
     setIsLoadingSession(true);
     try {
       const storedSession = await getStoredSession();
+      putSession(storedSession);
       if (!storedSession) {
-        setSession(null);
         setUser(null);
         return;
       }
 
-      const meResult = await fetchMe(storedSession.accessToken, { suppressErrorLog: true });
-      setSession(storedSession);
+      const activeSession = isSessionExpired(storedSession)
+        ? await renewSession()
+        : storedSession;
+
+      const meResult = await fetchMe(activeSession.accessToken, {
+        suppressErrorLog: true,
+      });
+      setSession(activeSession);
       setUser(meResult.user);
-      await bootstrapGarage(storedSession.accessToken, meResult.user);
+      await bootstrapGarage(activeSession.accessToken, meResult.user);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         try {
-          const storedSession = await getStoredSession();
-          if (!storedSession) {
-            await clearSession();
-            return;
-          }
-
-          const refreshed = await refreshSession(
-            { refreshToken: storedSession.refreshToken },
-            { suppressErrorLog: true }
-          );
-          const refreshedSession: StoredSession = {
-            accessToken: refreshed.accessToken,
-            idToken: refreshed.idToken,
-            refreshToken: storedSession.refreshToken,
-            expiresAt: refreshed.expiresAt,
-          };
-          const meResult = await fetchMe(refreshedSession.accessToken, { suppressErrorLog: true });
-          await setStoredSession(refreshedSession);
+          const refreshedSession = await renewSession();
+          const meResult = await fetchMe(refreshedSession.accessToken, {
+            suppressErrorLog: true,
+          });
           setSession(refreshedSession);
           setUser(meResult.user);
           await bootstrapGarage(refreshedSession.accessToken, meResult.user);
-        } catch (refreshError) {
+        } catch {
           if (__DEV__) {
-            console.info("[Auth] Sessao armazenada expirada. Limpando login local.");
+            console.warn(
+              "[Auth] Stored session expired. Clearing local login."
+            );
           }
           await clearSession();
         }
       } else {
-        console.error("Falha ao restaurar sessao:", error);
+        console.error("Failed to restore session:", error);
         await clearSession();
       }
     } finally {
@@ -210,7 +197,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const applySession = useCallback(
     async (nextSession: StoredSession) => {
       await setStoredSession(nextSession);
-      setSession(nextSession);
+      putSession(nextSession);
       try {
         const meResult = await fetchMe(nextSession.accessToken);
         setUser(meResult.user);
@@ -237,9 +224,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [applySession]
   );
 
-  const signUp = useCallback(async (email: string, password: string, name?: string) => {
-    return register({ email, password, name });
-  }, []);
+  const signUp = useCallback(
+    async (email: string, password: string, name?: string) => {
+      return register({ email, password, name });
+    },
+    []
+  );
 
   const signInWithTokens = useCallback(
     async (nextSession: StoredSession) => {
@@ -251,7 +241,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const setPassword = useCallback(
     async (password: string) => {
       if (!session?.accessToken) {
-        throw new Error("Sessao invalida. Faca login novamente.");
+        throw new Error("Sessão inválida. Entre novamente.");
       }
       await setPasswordService(session.accessToken, { password });
     },
@@ -290,6 +280,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isAuthenticated: Boolean(session && user),
       isLoadingSession,
       isFederatedUser,
+      sessionPersistence,
       signIn,
       signUp,
       signInWithTokens,
@@ -297,7 +288,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
       refreshUser,
       signOut,
     }),
-    [isFederatedUser, isLoadingSession, refreshUser, session, setPassword, signIn, signInWithTokens, signOut, signUp, user]
+    [
+      isFederatedUser,
+      isLoadingSession,
+      refreshUser,
+      session,
+      sessionPersistence,
+      setPassword,
+      signIn,
+      signInWithTokens,
+      signOut,
+      signUp,
+      user,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -306,7 +309,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth deve ser usado dentro de AuthProvider.");
+    throw new Error("useAuth must be used within AuthProvider.");
   }
   return context;
 }

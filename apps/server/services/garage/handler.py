@@ -1,12 +1,11 @@
 import json
 from typing import Any, Dict
 
+import flows
 from botocore.exceptions import ClientError
 
 from common.cognito import COGNITO_CLIENT_ID
 from common.responses import ApiError, log_error, response
-
-from . import flows
 
 ROUTES = {
     "GET /garage/current": flows.current,
@@ -37,8 +36,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     except ApiError as error:
         return response(error.status_code, {"message": error.message, **error.extra})
     except ClientError as error:
-        log_error("Erro DynamoDB.", event=event, error=error)
+        log_error("DynamoDB error.", event=event, error=error)
         return response(500, {"message": "Erro interno."})
     except (ValueError, TypeError, json.JSONDecodeError) as error:
-        log_error("Erro interno.", event=event, error=error)
+        log_error("Internal error.", event=event, error=error)
         return response(500, {"message": "Erro interno."})

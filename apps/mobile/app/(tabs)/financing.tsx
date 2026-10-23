@@ -1,94 +1,19 @@
 import { ArrowRight } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
-import { useAuth } from "@/contexts/AuthContext";
-import { fetchGarageCurrent } from "@/services/garage";
+import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, fontSize, spacing } from "@/theme";
-import { GarageData } from "@/types/garage";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-function InteractivePressable({
-  children,
-  style,
-  onPress,
-  ...props
-}: React.ComponentProps<typeof Pressable>) {
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
-  };
-
-  return (
-    <AnimatedPressable
-      {...props}
-      style={[style, animatedStyle]}
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-    >
-      {children}
-    </AnimatedPressable>
-  );
-}
 
 export default function FinancingScreen() {
-  const { token } = useAuth();
-  const [garage, setGarage] = useState<GarageData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const loadGarage = async () => {
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const result = await fetchGarageCurrent(token);
-        if (active) {
-          setGarage(result.garage);
-          setLoadError(null);
-        }
-      } catch (error) {
-        console.error("Failed to fetch financing data", error);
-        if (active) {
-          setLoadError("Nao foi possivel carregar o financiamento.");
-        }
-      } finally {
-        if (active) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadGarage();
-    return () => {
-      active = false;
-    };
-  }, [token]);
+  const { garage, isLoading, error } = useGarage();
 
   const financing = garage?.financing;
-  const vehicleTitle = garage ? `${garage.vehicle.model} ${garage.vehicle.year}` : "";
+  const vehicleTitle = garage
+    ? `${garage.vehicle.model} ${garage.vehicle.year}`
+    : "";
   const paidInstallments = financing
     ? `${financing.paidInstallments} / ${financing.totalInstallments}`
     : "";
@@ -126,13 +51,17 @@ export default function FinancingScreen() {
             </View>
 
             <Text style={styles.bankInfo}>
-              Instituição financeira: <Text style={styles.bankName}>{financing.bank}</Text>
+              Financial institution:{" "}
+              <Text style={styles.bankName}>{financing.bank}</Text>
             </Text>
             {financing.contractNumber ? (
-              <Text style={styles.contractInfo}>Contrato: {financing.contractNumber}</Text>
+              <Text style={styles.contractInfo}>
+                Contract: {financing.contractNumber}
+              </Text>
             ) : null}
             <Text style={styles.invoiceDescription}>
-              Parcela {financing.installmentAmount} | Vencimento {financing.nextDueDate}
+              Installment {financing.installmentAmount} | Due{" "}
+              {financing.nextDueDate}
             </Text>
           </Animated.View>
         ) : (
@@ -141,7 +70,9 @@ export default function FinancingScreen() {
             style={styles.emptyCard}
           >
             <Text style={styles.emptyText}>
-              {isLoading ? "Carregando financiamento..." : loadError ?? "Financiamento ainda nao vinculado."}
+              {isLoading
+                ? "Carregando financiamento..."
+                : (error ?? "Financiamento ainda não vinculado.")}
             </Text>
           </Animated.View>
         )}
@@ -158,7 +89,10 @@ export default function FinancingScreen() {
 
             <View style={styles.invoiceButtonWrapper}>
               <View style={styles.invoiceButtonShadow} />
-              <InteractivePressable style={styles.invoiceButton} disabled={!boletoAvailable}>
+              <InteractivePressable
+                style={styles.invoiceButton}
+                disabled={!boletoAvailable}
+              >
                 <Text style={styles.invoiceButtonText}>Acessar boleto</Text>
                 <ArrowRight size={28} strokeWidth={2.4} color={colors.white} />
               </InteractivePressable>

@@ -1,5 +1,11 @@
-import { TouchableOpacity, StyleSheet, Image, ImageSourcePropType, ViewStyle } from "react-native";
 import { colors } from "@/theme";
+import {
+  Image,
+  ImageSourcePropType,
+  StyleSheet,
+  TouchableOpacity,
+  ViewStyle,
+} from "react-native";
 
 interface SocialButtonProps {
   icon: ImageSourcePropType;

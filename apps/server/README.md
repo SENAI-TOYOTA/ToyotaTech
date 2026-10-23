@@ -11,12 +11,12 @@ apps/server/
 │   ├── profile/     # GET|PUT /profile, GET /me
 │   ├── garage/      # GET|POST /garage/*
 │   └── tracking/    # GET /garage/status, POST /garage/ingest
-├── shared/          # código comum entre as Lambdas
-│   ├── response.py  # respostas HTTP padrão, CORS, log de erro
-│   ├── cognito.py   # cliente Cognito, extração de token, atributos
-│   └── dynamodb.py  # resource DynamoDB, helper get_table
-└── legacy/
-    └── auth_handler.py  # monolito original (referência até migração completa)
+├── layers/common/python/common/  # código comum entre as Lambdas (Layer)
+│   ├── responses.py      # respostas HTTP padrão, CORS, log de erro
+│   ├── cognito.py        # cliente Cognito, extração de token, atributos
+│   ├── cognito_users.py  # busca e vínculo de usuários Cognito
+│   └── ddb.py            # resource DynamoDB, helper get_table
+└── template.yaml         # SAM: 4 Lambdas + HttpApi + 4 DynamoDB + Cognito
 ```
 
-Cada pasta em `services/` vira uma Lambda independente. O `shared/` é empacotado junto no build de cada uma.
+Cada pasta em `services/` vira uma Lambda independente. O `layers/common` é empacotado como Layer.

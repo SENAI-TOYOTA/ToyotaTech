@@ -8,7 +8,10 @@ export async function fetchProfile(token: string) {
   });
 }
 
-export async function updateProfile(token: string, payload: UpdateProfilePayload) {
+export async function updateProfile(
+  token: string,
+  payload: UpdateProfilePayload
+) {
   return apiRequest<ProfileResponse>("/profile", {
     method: "PUT",
     body: payload,

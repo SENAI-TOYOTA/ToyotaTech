@@ -1,34 +1,131 @@
+import {
+  clearSession,
+  getSession,
+  renewSession,
+} from "@/services/sessionStore";
+
 export class ApiError extends Error {
   status: number;
+  retryAfter?: number;
+  code?: string;
 
-  constructor(message: string, status: number) {
+  constructor(
+    message: string,
+    status: number,
+    retryAfter?: number,
+    code?: string
+  ) {
     super(message);
     this.status = status;
+    this.retryAfter = retryAfter;
+    this.code = code;
   }
 }
 
+const serverMessages: [RegExp, string][] = [
+  [
+    /Password did not conform with policy/i,
+    "A senha não atende aos requisitos: mínimo de 8 caracteres, com letra maiúscula, minúscula e número.",
+  ],
+  [
+    /An account with the given email already exists/i,
+    "Já existe uma conta com este email.",
+  ],
+  [
+    /User does not exist|Incorrect username or password/i,
+    "Email ou senha incorretos.",
+  ],
+  [/Invalid verification code/i, "Código de verificação inválido."],
+  [/Invalid email address format/i, "Formato de email inválido."],
+  [
+    /Password attempts exceeded/i,
+    "Muitas tentativas. Tente novamente mais tarde.",
+  ],
+  [/Limit exceeded/i, "Muitas requisições. Tente novamente mais tarde."],
+];
+
+function translateServerMessage(message: string): string {
+  for (const [pattern, translated] of serverMessages) {
+    if (pattern.test(message)) {
+      return translated;
+    }
+  }
+  return message;
+}
+
+export function apiErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof ApiError)) {
+    return fallback;
+  }
+  const message = translateServerMessage(error.message);
+  if (error.status === 429 && error.retryAfter !== undefined) {
+    return `${message} Tente novamente em ${error.retryAfter}s.`;
+  }
+  return message;
+}
+
+function parseRetryAfter(
+  body: { retryAfter?: number },
+  header: string | null
+): number | undefined {
+  const fromBody = body.retryAfter;
+  if (
+    typeof fromBody === "number" &&
+    Number.isFinite(fromBody) &&
+    fromBody >= 0
+  ) {
+    return fromBody;
+  }
+  if (!header) {
+    return undefined;
+  }
+  const fromHeader = Number(header);
+  return Number.isFinite(fromHeader) && fromHeader >= 0
+    ? fromHeader
+    : undefined;
+}
+
 const REQUEST_TIMEOUT_MS = 15000;
+
+type RequestOptions = {
+  method?: "GET" | "POST" | "PUT";
+  body?: unknown;
+  token?: string;
+  suppressErrorLog?: boolean;
+};
 
 function getApiUrl() {
   const baseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (!baseUrl) {
     throw new Error(
-      "EXPO_PUBLIC_API_URL nao configurada. Execute o deploy em aws/scripts/deploy.ps1."
+      "EXPO_PUBLIC_API_URL not configured. See .env.example and the deploy guide in the wiki."
     );
   }
   return baseUrl.replace(/\/$/, "");
 }
 
-export async function apiRequest<T>(
+function shouldAttemptRenewal(
+  error: unknown,
+  token: string | undefined
+): boolean {
+  return Boolean(token) && error instanceof ApiError && error.status === 401;
+}
+
+function renewalRejectsSession(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.status >= 400 &&
+    error.status < 500 &&
+    error.status !== 408
+  );
+}
+
+async function performRequest<T>(
+  baseUrl: string,
   path: string,
-  options?: {
-    method?: "GET" | "POST" | "PUT";
-    body?: unknown;
-    token?: string;
-    suppressErrorLog?: boolean;
-  }
-) {
-  const baseUrl = getApiUrl();
+  options: RequestOptions | undefined,
+  token: string | undefined
+): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let response: Response;
@@ -37,17 +134,17 @@ export async function apiRequest<T>(
       method: options?.method ?? "GET",
       headers: {
         "Content-Type": "application/json",
-        ...(options?.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: options?.body ? JSON.stringify(options.body) : undefined,
       signal: controller.signal,
     });
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new ApiError("Tempo limite da requisicao excedido.", 408);
+      throw new ApiError("Tempo limite da requisição excedido.", 408);
     }
     if (__DEV__) {
-      console.error("[API] Falha na requisicao", { path, error });
+      console.error("[API] Request failed", { path, error });
     }
     throw error;
   } finally {
@@ -61,24 +158,90 @@ export async function apiRequest<T>(
       parsed = JSON.parse(raw) as { message?: string } & T;
     } catch {
       if (__DEV__) {
-        console.error("[API] Resposta invalida", { path, status: response.status, body: raw });
+        console.error("[API] Invalid response", {
+          path,
+          status: response.status,
+          body: raw,
+        });
       }
-      parsed = { message: "Resposta invalida da API." } as { message?: string } & T;
+      parsed = { message: "Resposta inválida da API." } as {
+        message?: string;
+      } & T;
     }
   }
 
   if (!response.ok) {
     const message = (parsed as { message?: string }).message ?? "Erro na API.";
+    const retryAfter = parseRetryAfter(
+      parsed as { retryAfter?: number },
+      response.headers.get("Retry-After")
+    );
+    const code = (parsed as { code?: string }).code;
     if (__DEV__ && !options?.suppressErrorLog) {
-      console.error("[API] Erro na resposta", {
+      console.error("[API] Response error", {
         path,
         status: response.status,
         message,
+        retryAfter,
+        code,
         body: raw,
       });
     }
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, retryAfter, code);
   }
 
   return parsed as T;
+}
+
+export async function apiRequest<T>(
+  path: string,
+  options?: RequestOptions
+): Promise<T> {
+  const baseUrl = getApiUrl();
+  const sentToken = options?.token;
+  const quiet = { ...options, suppressErrorLog: true };
+
+  let attemptOptions = options;
+  if (sentToken) {
+    attemptOptions = quiet;
+  }
+
+  try {
+    return await performRequest<T>(baseUrl, path, attemptOptions, sentToken);
+  } catch (error) {
+    if (!shouldAttemptRenewal(error, sentToken)) {
+      throw error;
+    }
+
+    const session = getSession();
+    if (!session) {
+      throw error;
+    }
+
+    if (session.accessToken === sentToken) {
+      try {
+        await renewSession();
+      } catch (renewalError) {
+        if (renewalRejectsSession(renewalError)) {
+          if (__DEV__) {
+            console.error("[API] Clearing session after failed renewal", {
+              path,
+              status:
+                renewalError instanceof ApiError
+                  ? renewalError.status
+                  : undefined,
+            });
+          }
+          await clearSession();
+        }
+        throw error;
+      }
+    }
+
+    const renewed = getSession();
+    if (!renewed) {
+      throw error;
+    }
+    return await performRequest<T>(baseUrl, path, quiet, renewed.accessToken);
+  }
 }

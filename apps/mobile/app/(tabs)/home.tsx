@@ -1,141 +1,57 @@
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  FadeInDown,
-  FadeInRight,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
-import { colors, fonts, spacing } from "@/theme";
+import InteractivePressable from "@/components/ui/InteractivePressable";
+import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchGarageCurrent } from "@/services/garage";
-import { GarageData } from "@/types/garage";
+import { useGarage } from "@/hooks/useGarage";
+import { colors, fonts, spacing } from "@/theme";
+import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
-function canUseCorollaAltisImage(model?: string) {
-  return (model ?? "").toLowerCase().includes("corolla altis");
-}
-
-const mainCarImage = require("@/assets/images/corolla-main.png");
-const sideCarImage = require("@/assets/images/corolla-side.png");
-const newsImage = require("@/assets/images/corolla-news.png");
+const mainCarImage = require("@/assets/images/corolla-main.jpg");
+const sideCarImage = require("@/assets/images/corolla-side.jpg");
+const newsImage = require("@/assets/images/corolla-news.jpg");
 
 const highlightCards = [
   { id: "corolla", title: "Corolla Altis", image: mainCarImage },
   { id: "yaris", title: "Yaris Cross", image: sideCarImage },
   { id: "services", title: "Serviços Toyota", image: newsImage },
-  { id: "lifestyle", title: "Lifestyle", image: mainCarImage },
+  { id: "lifestyle", title: "Estilo de vida", image: mainCarImage },
 ];
 
 const toyotaTips = [
   {
     id: "tip-1",
     title: "Economia Híbrida",
-    description: "Dicas para maximizar o uso do modo elétrico no seu Corolla.",
+    description: "Dicas para maximizar o uso elétrico no seu Corolla.",
     category: "MANUTENÇÃO",
   },
   {
     id: "tip-2",
     title: "Toyota Safety Sense",
-    description: "Entenda como funcionam os radares de pré-colisão.",
+    description:
+      "Saiba como funcionam os radares de frenagem antes da colisão.",
     category: "TECNOLOGIA",
   },
   {
     id: "tip-3",
-    title: "Acessórios Genuínos",
-    description: "Personalize seu Toyota com garantia e qualidade de fábrica.",
+    title: "Acessórios Originais",
+    description: "Customize sua Toyota com garantia e qualidade de fábrica.",
     category: "ESTILO",
   },
 ];
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-function InteractivePressable({
-  children,
-  style,
-  onPress,
-  ...props
-}: React.ComponentProps<typeof Pressable>) {
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
-  };
-
-  return (
-    <AnimatedPressable
-      {...props}
-      style={[style, animatedStyle]}
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-    >
-      {children}
-    </AnimatedPressable>
-  );
-}
-
-function VehicleFallbackHero({ vehicle }: { vehicle?: GarageData["vehicle"] }) {
-  const model = vehicle?.model ?? "Seu Toyota";
-  const specs = vehicle
-    ? `${vehicle.version} • ${vehicle.color}`
-    : "Dados do veiculo em preparacao";
-
-  return (
-    <View style={styles.vehicleFallbackHero}>
-      <Text style={styles.vehicleFallbackEyebrow}>VEICULO VINCULADO</Text>
-      <Text style={styles.vehicleFallbackModel}>{model}</Text>
-      <Text style={styles.vehicleFallbackSpecs}>{specs}</Text>
-      {vehicle?.chassi ? (
-        <Text style={styles.vehicleFallbackChassi}>Chassi {vehicle.chassi}</Text>
-      ) : null}
-      <Text style={styles.vehicleFallbackNote}>Imagem ilustrativa indisponivel</Text>
-    </View>
-  );
-}
-
 export default function HomeScreen() {
   const router = useRouter();
-  const { token, user } = useAuth();
-  const [garage, setGarage] = useState<GarageData | null>(null);
+  const { user } = useAuth();
+  const { garage } = useGarage();
   const displayName = user?.profile?.fullName || user?.name || "Usuário";
   const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
   const vehicle = garage?.vehicle;
-  const vehicleLabel = vehicle?.model ?? "Seu Toyota";
+  const vehicleLabel = vehicle?.model ?? "Sua Toyota";
   const shouldUseVehicleImage = canUseCorollaAltisImage(vehicle?.model);
-
-  useEffect(() => {
-    let active = true;
-    const loadGarage = async () => {
-      if (!token) {
-        return;
-      }
-      try {
-        const result = await fetchGarageCurrent(token);
-        if (active) {
-          setGarage(result.garage);
-        }
-      } catch (error) {
-        console.error("Failed to fetch garage", error);
-      }
-    };
-
-    void loadGarage();
-    return () => {
-      active = false;
-    };
-  }, [token]);
 
   return (
     <View style={styles.container}>
@@ -147,7 +63,7 @@ export default function HomeScreen() {
           entering={FadeInDown.duration(600).springify()}
           style={styles.welcomeText}
         >
-          Bem vindo, {firstName}!
+          Bem-vindo, {firstName}!
         </Animated.Text>
 
         <Animated.View
@@ -156,13 +72,23 @@ export default function HomeScreen() {
         >
           {shouldUseVehicleImage ? (
             <>
-              <Image source={mainCarImage} style={styles.mainImage} resizeMode="cover" />
+              <Image
+                source={mainCarImage}
+                style={styles.mainImage}
+                resizeMode="cover"
+              />
               <View style={styles.carLabel}>
                 <Text style={styles.carLabelText}>{vehicleLabel}</Text>
               </View>
             </>
           ) : (
-            <VehicleFallbackHero vehicle={vehicle} />
+            <VehicleFallback
+              model={vehicle?.model}
+              version={vehicle?.version}
+              color={vehicle?.color}
+              chassi={vehicle?.chassi}
+              variant="hero"
+            />
           )}
         </Animated.View>
 
@@ -184,7 +110,7 @@ export default function HomeScreen() {
           entering={FadeInDown.delay(400).duration(600)}
           style={styles.sectionTitle}
         >
-          Destaques para você
+          Novidades
         </Animated.Text>
         <Animated.ScrollView
           entering={FadeInRight.delay(500).duration(600)}
@@ -195,7 +121,11 @@ export default function HomeScreen() {
         >
           {highlightCards.map((card) => (
             <InteractivePressable key={card.id} style={styles.highlightCard}>
-              <Image source={card.image} style={styles.highlightImage} resizeMode="cover" />
+              <Image
+                source={card.image}
+                style={styles.highlightImage}
+                resizeMode="cover"
+              />
               <View style={styles.highlightLabel}>
                 <Text style={styles.highlightLabelText}>{card.title}</Text>
               </View>
@@ -208,11 +138,11 @@ export default function HomeScreen() {
             entering={FadeInDown.delay(600).duration(600)}
             style={styles.sectionTitle}
           >
-            Guia e Novidades
+            Guias e Notícias
           </Animated.Text>
           <Animated.View entering={FadeInDown.delay(600).duration(600)}>
             <InteractivePressable style={styles.newsHeaderButton}>
-              <Text style={styles.newsHeaderText}>Ver tudo</Text>
+              <Text style={styles.newsHeaderText}>Ver todos</Text>
               <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
             </InteractivePressable>
           </Animated.View>
@@ -240,7 +170,9 @@ export default function HomeScreen() {
           style={styles.footer}
         >
           <View style={styles.footerDivider} />
-          <Text style={styles.footerText}>Sempre o melhor para o seu Toyota</Text>
+          <Text style={styles.footerText}>
+            Sempre o melhor para a sua Toyota
+          </Text>
         </Animated.View>
       </ScrollView>
     </View>
@@ -271,51 +203,6 @@ const styles = StyleSheet.create({
   mainImage: {
     width: "100%",
     height: "100%",
-  },
-  vehicleFallbackHero: {
-    width: "100%",
-    height: "100%",
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    padding: spacing.lg,
-    justifyContent: "flex-end",
-  },
-  vehicleFallbackEyebrow: {
-    fontFamily: fonts.bold,
-    fontSize: 12,
-    color: colors.primary,
-    letterSpacing: 1.2,
-  },
-  vehicleFallbackModel: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.bold,
-    fontSize: 34,
-    lineHeight: 36,
-    color: colors.black,
-  },
-  vehicleFallbackSpecs: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.regular,
-    fontSize: 18,
-    color: colors.textSecondary,
-  },
-  vehicleFallbackChassi: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.medium,
-    fontSize: 14,
-    color: colors.black,
-  },
-  vehicleFallbackNote: {
-    marginTop: spacing.lg,
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderColor: colors.black,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.textSecondary,
   },
   carLabel: {
     position: "absolute",

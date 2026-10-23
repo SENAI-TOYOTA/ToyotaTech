@@ -2,50 +2,73 @@
 
 ## Introdução
 
-O *Toyota Tech* é um projeto acadêmico voltado para o desenvolvimento de uma solução digital inovadora para clientes da Toyota. O foco é a criação de um *aplicativo web* que permite ao cliente acompanhar todas as etapas da compra do seu novo carro, desde o pedido até a entrega.
+O *Toyota Tech* é um projeto acadêmico que desenvolve uma solução digital para clientes da Toyota acompanharem todas as etapas da compra do seu novo carro, do pedido à entrega.
 
-O projeto simula um ambiente real de aplicação, integrando diferentes áreas da tecnologia, como banco de dados, ciência de dados, desenvolvimento web e produção de material de apoio.
+A solução é composta por um **aplicativo mobile** (Expo/React Native) e um **backend serverless na AWS** (API Gateway, Lambdas Python, DynamoDB e Cognito). O acompanhamento da linha de montagem é alimentado por eventos de tracking enviados ao backend.
 
-## Estrutura do Projeto
+## Estrutura do Repositório
 
-O projeto está dividido em cinco partes principais:
+| Caminho | Descrição |
+|---|---|
+| `apps/mobile` | Aplicativo mobile (Expo SDK 57, React Native, TypeScript, Expo Router) |
+| `apps/server` | Backend serverless (AWS SAM, 4 Lambdas Python 3.12, DynamoDB, Cognito) |
+| `apps/client` | Protótipo web (Next.js) das telas da aplicação |
+| `infra/docker` | Stack local de IoT (Mosquitto, simulador, Node-RED, InfluxDB, Grafana) |
+| `docs` | Documentação acadêmica e diagramas |
+| `.github/workflows` | CI: lint e testes de backend e frontend |
 
-- *Banco de Dados*  
-  Estrutura relacional que dá suporte à aplicação, com tabelas que simulam clientes, veículos, pedidos, pagamentos e muito mais.
-  
-  ➤ [Acessar README de Banco de Dados](./docs/diagramas/BD.md)
-  
-- *Diagrama de Classes*
-  Modelo UML que mostra classes, atributos e relações, facilitando a visualização da estrutura do sistema.
-  
-  ➤ [Acessar README do Driagrama de Classes](./docs/diagramas/UML.md)
+## Documentação Técnica
 
-- *Ciência de Dados*  
-  Análise e visualização de dados da operação, com insights sobre vendas, preferências de clientes, tempo de entrega, etc.
-  
-  ➤ [Acessar README de Ciência de Dados](./docs/diagramas/CD.md)
+A documentação detalhada de arquitetura, contratos e operação está na [Wiki do projeto](https://github.com/SENAI-TOYOTA/ToyotaTech/wiki).
 
-- *Telas Web (Front-End)*  
-  Protótipo funcional da aplicação, com páginas que simulam a interface utilizada pelos clientes da Toyota.
+- [Aplicativo Mobile — Visão Geral](https://github.com/SENAI-TOYOTA/ToyotaTech/wiki/Aplicativo-Mobile---Visao-Geral)
+- [Aplicativo Mobile — Arquitetura](https://github.com/SENAI-TOYOTA/ToyotaTech/wiki/Aplicativo-Mobile---Arquitetura)
+- [Backend Serverless](https://github.com/SENAI-TOYOTA/ToyotaTech/wiki/Backend-Serverless)
+- [Backend — Operação e Deploy](https://github.com/SENAI-TOYOTA/ToyotaTech/wiki/Backend-Operacao)
+- [Handoff](https://github.com/SENAI-TOYOTA/ToyotaTech/wiki/Handoff)
 
-- *Vídeo Explicativo*  
-  Apresentação em vídeo do projeto, explicando o funcionamento da plataforma e suas principais funcionalidades.
-  
-  ➤ [Ver vídeo](https://drive.google.com/file/d/1a74CHLaFyhtTp_PLwMmixmdxDPXuN3eu/view)
-  
-- *Apresentação*  
-  Slides utilizados para explicar o projeto de forma visual e resumida.  
-  ➤ [Ver apresentação](https://www.canva.com/design/DAGpVkXnpeA/-IqE3Sv6lRKOfNJXP_c3Bw/edit?utm_content=DAGpVkXnpeA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
-  
-  
-- *Documentação*  
-  Aqui está todo o nosso projeto documentado em PDF e nos padrões ABNT.
-  
-  ➤ [Ver documentação](./docs/geral/ToyotaDocument.pdf)
+## Como Rodar
 
+### Mobile
+
+```bash
+cd apps/mobile
+npm install
+npm start
+```
+
+As variáveis `EXPO_PUBLIC_*` estão documentadas em `apps/mobile/.env.example`.
+
+### Backend
+
+```bash
+sam build
+sam deploy --guided
+```
+
+Validação local:
+
+```bash
+ruff check apps/server && ruff format --check apps/server
+.venv/bin/python -m pytest apps/server -q
+```
+
+### Stack local de IoT
+
+```bash
+cd infra/docker
+docker compose up --build
+```
+
+## Material Acadêmico
+
+- *Documentação* — projeto documentado em PDF e nos padrões ABNT: [Ver documentação](./docs/geral/ToyotaDocument.pdf)
+- *Evidência da demanda* — [SAGA](./docs/negocio/SAGA.md) e [Mapeamento IVH](./docs/negocio/Mapeamento-IVH.pdf)
+- *Vídeo explicativo* — [Ver vídeo](https://drive.google.com/file/d/1a74CHLaFyhtTp_PLwMmixmdxDPXuN3eu/view)
+- *Apresentação* — [Ver apresentação](https://www.canva.com/design/DAGpVkXnpeA/-IqE3Sv6lRKOfNJXP_c3Bw/edit?utm_content=DAGpVkXnpeA&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
 ## Objetivo
 
-Nosso objetivo é demonstrar, de forma prática, como tecnologias integradas podem ser utilizadas para melhorar a experiência do cliente no setor automotivo, com foco em *transparência, controle e inovação* no processo de compra de veículos.
+Demonstrar, de forma prática, como tecnologias integradas melhoram a experiência do cliente no setor automotivo, com foco em *transparência, controle e inovação* no processo de compra de veículos.
 
 ---
