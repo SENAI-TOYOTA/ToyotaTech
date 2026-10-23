@@ -43,6 +43,7 @@ EXPO_PUBLIC_API_URL=<valor de ApiUrl>
 EXPO_PUBLIC_COGNITO_USER_POOL_ID=<valor de UserPoolId>
 EXPO_PUBLIC_COGNITO_CLIENT_ID=<valor de UserPoolClientId>
 EXPO_PUBLIC_AWS_REGION=<região do deploy>
+EXPO_PUBLIC_COGNITO_DOMAIN=https://toyotatech-mobile.auth.<região>.amazoncognito.com
 ```
 
 ## Cleanup
