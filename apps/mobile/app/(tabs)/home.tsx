@@ -10,9 +10,9 @@ import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, spacing } from "@/theme";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
-const mainCarImage = require("@/assets/images/corolla-main.png");
-const sideCarImage = require("@/assets/images/corolla-side.png");
-const newsImage = require("@/assets/images/corolla-news.png");
+const mainCarImage = require("@/assets/images/corolla-main.jpg");
+const sideCarImage = require("@/assets/images/corolla-side.jpg");
+const newsImage = require("@/assets/images/corolla-news.jpg");
 
 const highlightCards = [
   { id: "corolla", title: "Corolla Altis", image: mainCarImage },

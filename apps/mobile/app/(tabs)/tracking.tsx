@@ -18,7 +18,7 @@ import { colors, fonts, spacing } from "@/theme";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
-const mainCarImage = require("@/assets/images/corolla-main.png");
+const mainCarImage = require("@/assets/images/corolla-main.jpg");
 
 export default function TrackingScreen() {
   const router = useRouter();
