@@ -16,7 +16,6 @@ export default function ToyotaCarousel() {
     setCurrent((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const nextSlide = useCallback(() => {
     setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
   }, [slides.length]);
