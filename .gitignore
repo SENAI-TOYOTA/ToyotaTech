@@ -3,6 +3,15 @@ desktop.ini
 
 # Environment
 .env
+.env.*
+.env.local
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Coverage
+coverage/
 
 # IDEs
 .vscode/
@@ -10,7 +19,14 @@ desktop.ini
 
 # Logs
 *.log
+
 # Python
 __pycache__/
 *.pyc
-
+*.pyo
+.pytest_cache/
+.coverage
+*.egg-info/
+.venv/
+.DS_Store
+.aws-sam/

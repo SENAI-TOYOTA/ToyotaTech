@@ -1,13 +1,14 @@
-import { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Platform, Pressable } from "react-native";
-import { ArrowRight, Eye } from "lucide-react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { ArrowRight, Eye } from "lucide-react-native";
+import { useMemo, useState } from "react";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
+import { validatePassword } from "@/profileValidation";
+import { apiErrorMessage } from "@/services/api";
 import { colors, fonts, fontSize, spacing } from "@/theme";
-import { ApiError } from "@/services/api";
 import { AuthScreenLayout } from "./_layout";
 
 export default function RegisterScreen() {
@@ -21,11 +22,24 @@ export default function RegisterScreen() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
-  const canSubmit = normalizedEmail.includes("@") && password.length >= 8 && !isSubmitting;
+  const canSubmit =
+    normalizedEmail.includes("@") &&
+    validatePassword(password) === null &&
+    !isSubmitting;
 
   const handleCreateAccountPress = async () => {
-    if (!canSubmit) {
-      setFormError("Informe e-mail valido e senha com ao menos 8 caracteres.");
+    if (!normalizedEmail.includes("@")) {
+      setFormError("Informe um email válido.");
+      return;
+    }
+
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setFormError(passwordError);
+      return;
+    }
+
+    if (isSubmitting) {
       return;
     }
 
@@ -49,11 +63,12 @@ export default function RegisterScreen() {
         });
       }
     } catch (error) {
-      if (error instanceof ApiError) {
-        setFormError(error.message);
-      } else {
-        setFormError("Nao foi possivel criar a conta. Tente novamente.");
-      }
+      setFormError(
+        apiErrorMessage(
+          error,
+          "Não foi possível criar a conta. Tente novamente."
+        )
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -85,15 +100,19 @@ export default function RegisterScreen() {
           onPress={() => setShowPassword((current) => !current)}
         >
           <Eye size={18} strokeWidth={1.8} color={colors.black} />
-          <Text style={styles.visibilityText}>{showPassword ? "OCULTAR" : "EXIBIR"}</Text>
+          <Text style={styles.visibilityText}>
+            {showPassword ? "OCULTAR" : "EXIBIR"}
+          </Text>
         </Pressable>
 
         <Text style={styles.passwordHintText}>
-          Mínimo de 8 caracteres com pelo menos uma letrar maiúscula, uma
+          Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
           minúscula e um número.
         </Text>
 
-        {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+        {formError ? (
+          <Text style={styles.formErrorText}>{formError}</Text>
+        ) : null}
 
         <Button
           title={isSubmitting ? "Criando..." : "Criar conta"}

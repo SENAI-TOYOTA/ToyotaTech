@@ -3,7 +3,14 @@ from typing import Any, Dict, List, Optional
 
 from botocore.exceptions import ClientError
 
-from .cognito import COGNITO_USER_POOL_ID, cognito_client, is_federated, link_provider, parse_attributes
+from .cognito import (
+    COGNITO_USER_POOL_ID,
+    cognito_client,
+    is_federated,
+    link_provider,
+    parse_attributes,
+    warn_link_failure,
+)
 from .responses import error_body
 
 
@@ -15,53 +22,43 @@ def matches_email(user: Dict[str, Any], email: str) -> bool:
     return isinstance(username, str) and username.strip().lower() == email
 
 
-def scan_by_email(email: str, *, max_pages: int = 10) -> List[Dict[str, Any]]:
-    matches: List[Dict[str, Any]] = []
-    token: Optional[str] = None
-    pages = 0
-
-    while pages < max_pages:
-        pages += 1
-        params: Dict[str, Any] = {"UserPoolId": COGNITO_USER_POOL_ID, "Limit": 60}
-        if token:
-            params["PaginationToken"] = token
-        result = cognito_client.list_users(**params)
-        for user in result.get("Users", []):
-            if matches_email(user, email):
-                matches.append(user)
-        if matches:
-            return matches
-        token = result.get("PaginationToken")
-        if not token:
-            break
-    return matches
-
-
 def find_by_email(email: str) -> List[Dict[str, Any]]:
     normalized_email = email.strip().lower()
     found: Dict[str, Dict[str, Any]] = {}
 
     def add(user: Dict[str, Any]) -> None:
         username = user.get("Username")
-        if isinstance(username, str) and username and matches_email(user, normalized_email):
+        if (
+            isinstance(username, str)
+            and username
+            and matches_email(user, normalized_email)
+        ):
             found[username] = user
 
     try:
-        add(cognito_client.admin_get_user(UserPoolId=COGNITO_USER_POOL_ID, Username=normalized_email))
+        add(
+            cognito_client.admin_get_user(
+                UserPoolId=COGNITO_USER_POOL_ID, Username=normalized_email
+            )
+        )
     except ClientError as error:
         code, _ = error_body(error)
-        if code != "UserNotFoundException":
+        if code not in ("UserNotFoundException", "InvalidParameterException"):
             raise
 
-    result = cognito_client.list_users(
-        UserPoolId=COGNITO_USER_POOL_ID,
-        Filter=f'email = "{normalized_email}"',
-        Limit=10,
-    )
+    escaped_email = normalized_email.replace("\\", "\\\\").replace('"', '\\"')
+    try:
+        result = cognito_client.list_users(
+            UserPoolId=COGNITO_USER_POOL_ID,
+            Filter=f'email = "{escaped_email}"',
+            Limit=10,
+        )
+    except ClientError as error:
+        code, _ = error_body(error)
+        if code != "InvalidParameterException":
+            raise
+        result = {"Users": []}
     for user in result.get("Users", []):
-        add(user)
-
-    for user in scan_by_email(normalized_email):
         add(user)
 
     return list(found.values())
@@ -107,10 +104,9 @@ def link_federated_if_needed(federated_user: Dict[str, Any]) -> None:
     if not isinstance(local_username, str) or local_username == federated_username:
         return
     try:
-        link_provider(local_username, identity["providerName"], identity["providerUserId"])
+        link_provider(
+            local_username, identity["providerName"], identity["providerUserId"]
+        )
     except ClientError as error:
-        code, _ = error_body(error)
-        if code in ("ResourceNotFoundException", "ResourceConflictException", "AliasExistsException", "InvalidParameterException"):
-            print(f"Aviso: falha ao vincular IdP: {code}")
-            return
-        raise
+        warn_link_failure(error)
+        return

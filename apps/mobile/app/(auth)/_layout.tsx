@@ -1,14 +1,14 @@
+import { Stack } from "expo-router";
 import { ReactNode } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  StyleProp,
-  ViewStyle,
   ColorValue,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Stack } from "expo-router";
 
 import Logo from "@/components/Logo";
 import { colors, fonts, fontSize, spacing } from "@/theme";
@@ -33,12 +33,19 @@ export function AuthScreenLayout({
           <View style={styles.logoContainer}>
             <Logo size={fontSize.logo} />
           </View>
-          <View style={[styles.contentSection, contentSectionStyle]}>{children}</View>
+          <View style={[styles.contentSection, contentSectionStyle]}>
+            {children}
+          </View>
         </View>
 
         <View style={styles.bottomSection}>
           {bottomContent}
-          <Text style={[styles.footerText, footerTextColor && { color: footerTextColor }]}>
+          <Text
+            style={[
+              styles.footerText,
+              footerTextColor && { color: footerTextColor },
+            ]}
+          >
             todos os direitos reservados © 2026
           </Text>
         </View>

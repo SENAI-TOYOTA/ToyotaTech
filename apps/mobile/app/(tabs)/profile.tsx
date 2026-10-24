@@ -1,121 +1,35 @@
-import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Button from "@/components/ui/Button";
+import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfileForm } from "@/hooks/useProfileForm";
 import { colors, fonts, fontSize, spacing } from "@/theme";
-import { ApiError } from "@/services/api";
-import { resolveGarage } from "@/services/garage";
-import { fetchProfile, updateProfile } from "@/services/profile";
-import { validateBirthDate } from "@/profileValidation";
-
-const formatBirthDate = (value: string) => {
-  const digits = value.replace(/\D/g, "").slice(0, 8);
-  if (!digits) {
-    return "";
-  }
-  let result = digits.slice(0, 2);
-  if (digits.length > 2) {
-    result += `/${digits.slice(2, 4)}`;
-  }
-  if (digits.length > 4) {
-    result += `/${digits.slice(4, 8)}`;
-  }
-  return result;
-};
-
-const normalizeCpf = (value: string) => value.replace(/\D/g, "").slice(0, 11);
-
-const formatCpf = (value: string) => {
-  const digits = normalizeCpf(value);
-  if (!digits) {
-    return "";
-  }
-  let result = digits.slice(0, 3);
-  if (digits.length > 3) {
-    result += `.${digits.slice(3, 6)}`;
-  }
-  if (digits.length > 6) {
-    result += `.${digits.slice(6, 9)}`;
-  }
-  if (digits.length > 9) {
-    result += `-${digits.slice(9, 11)}`;
-  }
-  return result;
-};
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { signOut, token, user, refreshUser } = useAuth();
-  const [fullName, setFullName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [email, setEmail] = useState("");
-  const [password] = useState("********");
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [isCpfLocked, setIsCpfLocked] = useState(false);
-
-  useEffect(() => {
-    setEmail(user?.email ?? "");
-  }, [user?.email]);
-
-  useEffect(() => {
-    const loadedCpf = user?.profile?.cpf ?? "";
-    if (normalizeCpf(loadedCpf).length === 11) {
-      setCpf(formatCpf(loadedCpf));
-      setIsCpfLocked(true);
-    }
-  }, [user?.profile?.cpf]);
-
-  useEffect(() => {
-    let isActive = true;
-    const loadProfile = async () => {
-      if (!token) {
-        setIsLoadingProfile(false);
-        return;
-      }
-      setIsLoadingProfile(true);
-      try {
-        const profileResult = await fetchProfile(token);
-        if (!isActive) {
-          return;
-        }
-        const loadedCpf = profileResult.profile.cpf ?? "";
-        setFullName(profileResult.profile.fullName ?? "");
-        setBirthDate(formatBirthDate(profileResult.profile.birthDate ?? ""));
-        setCpf(formatCpf(loadedCpf));
-        setIsCpfLocked(normalizeCpf(loadedCpf).length === 11);
-        setFormError(null);
-      } catch (error) {
-        if (!isActive) {
-          return;
-        }
-        if (error instanceof ApiError && error.status === 404) {
-          setFormError(null);
-        } else if (error instanceof ApiError) {
-          setFormError(error.message);
-        } else {
-          setFormError("Nao foi possivel carregar o perfil.");
-        }
-      } finally {
-        if (isActive) {
-          setIsLoadingProfile(false);
-        }
-      }
-    };
-
-    void loadProfile();
-    return () => {
-      isActive = false;
-    };
-  }, [token]);
+  const { signOut, user, token, sessionPersistence } = useAuth();
+  const {
+    fullName,
+    setFullName,
+    birthDate,
+    setBirthDate,
+    cpf,
+    setCpf,
+    isCpfLocked,
+    isLoadingProfile,
+    isSaving,
+    formError,
+    saveProfile,
+    formatBirthDate,
+    formatCpf,
+  } = useProfileForm();
+  const email = user?.email ?? "";
+  const password = "********";
 
   return (
     <View style={styles.container}>
@@ -162,7 +76,7 @@ export default function ProfileScreen() {
             style={styles.inputText}
           />
           <TextInput
-            placeholder="e-mail"
+            placeholder="Email"
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -178,14 +92,22 @@ export default function ProfileScreen() {
             containerStyle={styles.inputContainer}
             style={styles.inputText}
           />
-          {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
+          {formError ? (
+            <Text style={styles.formErrorText}>{formError}</Text>
+          ) : null}
+          {sessionPersistence !== "persistent" ? (
+            <Text style={styles.formErrorText}>
+              Não foi possível salvar sua sessão neste dispositivo. Você
+              precisará entrar novamente ao reabrir o app.
+            </Text>
+          ) : null}
         </Animated.View>
         <Animated.View
           entering={FadeInDown.delay(400).duration(600).springify()}
           style={styles.actionContainer}
         >
           <Button
-            title="Sair da conta"
+            title="Sair"
             variant="outline"
             style={styles.logoutButton}
             onPress={async () => {
@@ -207,43 +129,7 @@ export default function ProfileScreen() {
             }
             disabled={isSaving || isLoadingProfile || !token}
             onPress={async () => {
-              if (!token) {
-                setFormError("Sessao invalida. Faça login novamente.");
-                return;
-              }
-              const normalizedCpf = normalizeCpf(cpf);
-              if (!fullName.trim()) {
-                setFormError("Preencha o nome completo.");
-                return;
-              }
-              const birthDateError = validateBirthDate(birthDate.trim());
-              if (birthDateError) {
-                setFormError(birthDateError);
-                return;
-              }
-              if (!isCpfLocked && normalizedCpf.length !== 11) {
-                setFormError("Preencha um CPF valido.");
-                return;
-              }
-              setIsSaving(true);
-              setFormError(null);
-              try {
-                await updateProfile(token, {
-                  fullName: fullName.trim(),
-                  birthDate: birthDate.trim(),
-                  ...(isCpfLocked ? {} : { cpf: normalizedCpf }),
-                });
-                await resolveGarage(token);
-                await refreshUser();
-              } catch (error) {
-                if (error instanceof ApiError) {
-                  setFormError(error.message);
-                } else {
-                  setFormError("Nao foi possivel salvar o perfil.");
-                }
-              } finally {
-                setIsSaving(false);
-              }
+              await saveProfile();
             }}
           />
         </Animated.View>

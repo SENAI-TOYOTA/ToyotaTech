@@ -1,5 +1,4 @@
 import os
-import re
 import time
 from typing import Any, Dict
 
@@ -16,44 +15,60 @@ from common.cognito import (
 )
 from common.ddb import get_table
 from common.responses import ApiError, error_body, parse_body, require
+from common.validation import (
+    PASSWORD_POLICY_MESSAGE,
+    is_valid_cpf,
+    normalize_birth_date,
+    normalize_cpf,
+    validate_password_policy,
+)
 
 PROFILE_TABLE_NAME = os.environ.get("PROFILE_TABLE_NAME", "").strip()
 
 FEDERATED_MESSAGE = (
-    "Esta conta foi criada com Google. Entre com Google ou use a senha definida no seu perfil."
+    "Esta conta foi criada com Google. "
+    "Entre com Google ou use a senha definida no seu perfil."
 )
 
 
 def _email(body: Dict[str, Any]) -> str:
-    email = str(body.get("email", "")).strip().lower()
-    require(bool(email) and "@" in email, 400, "E-mail inválido.")
+    import re
+
+    value = body.get("email")
+    require(isinstance(value, str), 400, "E-mail inválido.")
+    email = value.strip().lower()
+    email_pattern = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    require(
+        bool(email)
+        and len(email) <= 254
+        and bool(email_pattern.match(email))
+        and '"' not in email,
+        400,
+        "E-mail inválido.",
+    )
+    domain = email.split("@", 1)[1]
+    require(
+        all(len(label) <= 63 and len(label) > 0 for label in domain.split(".")),
+        400,
+        "E-mail inválido.",
+    )
     return email
 
 
-def _normalize_cpf(value: Any) -> str:
-    text = str(value or "").strip()
-    return re.sub(r"\D+", "", text)[:11]
-
-
-def _normalize_birth_date(value: Any) -> str:
-    text = str(value or "").strip()
-    digits = re.sub(r"\D+", "", text)
-    if len(digits) == 8:
-        return f"{digits[:2]}/{digits[2:4]}/{digits[4:]}"
-    return text
-
-
 def _profile(user_id: str) -> Dict[str, str]:
-    item = (get_table(PROFILE_TABLE_NAME).get_item(Key={"userId": user_id})).get("Item") or {}
+    item = (get_table(PROFILE_TABLE_NAME).get_item(Key={"userId": user_id})).get(
+        "Item"
+    ) or {}
     return {
         "fullName": str(item.get("fullName", "") or ""),
-        "birthDate": _normalize_birth_date(item.get("birthDate", "")),
-        "cpf": _normalize_cpf(item.get("cpf", "")),
+        "birthDate": normalize_birth_date(item.get("birthDate", "")),
+        "cpf": normalize_cpf(item.get("cpf", "")),
     }
 
 
 def check_email(body: Dict[str, Any]) -> Dict[str, Any]:
-    from common.cognito_users import find_by_email, is_federated as _f
+    from common.cognito_users import find_by_email
+    from common.cognito_users import is_federated as _f
 
     email = _email(body)
     users = find_by_email(email)
@@ -74,9 +89,20 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
 
     email = _email(body)
     password = body.get("password", "")
-    name = (body.get("name", "") or "").strip()
-    require(len(password) >= 8, 400, "A senha deve ter ao menos 8 caracteres.")
+    require(isinstance(password, str), 400, PASSWORD_POLICY_MESSAGE)
+    password_error = validate_password_policy(password)
+    require(password_error is None, 400, password_error or PASSWORD_POLICY_MESSAGE)
+    if "cpf" in body:
+        cpf_value = body.get("cpf")
+        require(isinstance(cpf_value, str), 400, "CPF inválido.")
+        require(is_valid_cpf(cpf_value), 400, "CPF inválido.")
+    name_value = body.get("name")
+    name = ""
+    if name_value is not None:
+        require(isinstance(name_value, str), 400, "Nome inválido.")
+        name = name_value.strip()
     require(not find_by_email(email), 409, "Usuário já cadastrado.")
+    require(len(email) <= 128, 400, "E-mail inválido.")
 
     attributes = [{"Name": "email", "Value": email}]
     if name:
@@ -93,10 +119,14 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
         )
     except ClientError as error:
         code, message = error_body(error)
+        if code in ("LimitExceededException", "TooManyRequestsException"):
+            raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
         if code == "UsernameExistsException":
             raise ApiError(409, "Usuário já cadastrado.")
-        if code in ("InvalidPasswordException", "InvalidParameterException"):
+        if code == "InvalidPasswordException":
             raise ApiError(400, message)
+        if code == "InvalidParameterException":
+            raise ApiError(400, "Dados inválidos.")
         raise
 
     return {
@@ -107,6 +137,7 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
 
 def verify_email(body: Dict[str, Any]) -> Dict[str, Any]:
     email = _email(body)
+    require(len(email) <= 128, 400, "E-mail inválido.")
     code_value = str(body.get("code", "")).strip()
     require(bool(code_value), 400, "Código de verificação obrigatório.")
 
@@ -119,10 +150,13 @@ def verify_email(body: Dict[str, Any]) -> Dict[str, Any]:
         return {"message": "E-mail verificado com sucesso."}
     except ClientError as error:
         code, _ = error_body(error)
+        if code in ("LimitExceededException", "TooManyRequestsException"):
+            raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
         mapping = {
             "CodeMismatchException": (400, "Código inválido."),
             "ExpiredCodeException": (400, "Código expirado. Solicite novo código."),
             "UserNotFoundException": (404, "Usuário não encontrado."),
+            "InvalidParameterException": (400, "Dados inválidos."),
         }
         if code in mapping:
             status, message = mapping[code]
@@ -134,18 +168,26 @@ def verify_email(body: Dict[str, Any]) -> Dict[str, Any]:
 
 def resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
     email = _email(body)
+    require(len(email) <= 128, 400, "E-mail inválido.")
 
     from common.cognito import cognito_client
 
     try:
-        cognito_client.resend_confirmation_code(ClientId=COGNITO_CLIENT_ID, Username=email)
+        cognito_client.resend_confirmation_code(
+            ClientId=COGNITO_CLIENT_ID, Username=email
+        )
         return {"message": "Código reenviado."}
     except ClientError as error:
         code, _ = error_body(error)
+        if code in ("LimitExceededException", "TooManyRequestsException"):
+            raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
         mapping = {
             "UserNotFoundException": (404, "Usuário não encontrado."),
             "InvalidParameterException": (409, "E-mail já verificado."),
-            "NotAuthorizedException": (409, "Não foi possível reenviar o código no momento."),
+            "NotAuthorizedException": (
+                409,
+                "Não foi possível reenviar o código no momento.",
+            ),
         }
         if code in mapping:
             status, message = mapping[code]
@@ -154,11 +196,20 @@ def resend_verification(body: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def login(body: Dict[str, Any]) -> Dict[str, Any]:
-    from common.cognito_users import find_by_email, is_federated, password_auth_candidates
+    from common.cognito_users import (
+        find_by_email,
+        is_federated,
+        password_auth_candidates,
+    )
 
-    email = str(body.get("email", "")).strip().lower()
+    email_value = body.get("email")
     password = body.get("password", "")
-    require(bool(email and password), 400, "Informe e-mail e senha.")
+    require(
+        isinstance(email_value, str) and bool(email_value.strip()) and bool(password),
+        400,
+        "Informe e-mail e senha.",
+    )
+    email = _email(body)
 
     users = find_by_email(email)
     auth_result: Dict[str, Any] | None = None
@@ -173,9 +224,17 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
             break
         except ClientError as error:
             code, _ = error_body(error)
+            if code in ("LimitExceededException", "TooManyRequestsException"):
+                raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
             if code == "UserNotConfirmedException":
-                raise ApiError(403, "E-mail ainda não verificado.", {"code": "EMAIL_NOT_VERIFIED"})
-            if code in ("NotAuthorizedException", "UserNotFoundException", "InvalidParameterException"):
+                raise ApiError(
+                    403, "E-mail ainda não verificado.", {"code": "EMAIL_NOT_VERIFIED"}
+                )
+            if code in (
+                "NotAuthorizedException",
+                "UserNotFoundException",
+                "InvalidParameterException",
+            ):
                 last_code, last_error = code, error
                 continue
             raise
@@ -185,8 +244,14 @@ def login(body: Dict[str, Any]) -> Dict[str, Any]:
             not is_federated(user) for user in users
         )
         if federated_only:
-            raise ApiError(409, FEDERATED_MESSAGE, {"code": "FEDERATED_USER_NO_PASSWORD"})
-        if last_code in ("NotAuthorizedException", "UserNotFoundException"):
+            raise ApiError(
+                409, FEDERATED_MESSAGE, {"code": "FEDERATED_USER_NO_PASSWORD"}
+            )
+        if last_code in (
+            "NotAuthorizedException",
+            "UserNotFoundException",
+            "InvalidParameterException",
+        ):
             raise ApiError(401, "Credenciais inválidas.")
         if last_error:
             raise last_error
@@ -221,8 +286,9 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
     access_token = extract_token(event)
     require(bool(access_token), 401, "Token não informado.")
 
-    password = str(parse_body(event).get("password", "")).strip()
-    require(len(password) >= 8, 400, "A senha deve ter ao menos 8 caracteres.")
+    password = str(parse_body(event).get("password", ""))
+    password_error = validate_password_policy(password)
+    require(password_error is None, 400, password_error or PASSWORD_POLICY_MESSAGE)
 
     from common.cognito import cognito_client
 
@@ -232,7 +298,11 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
         email = attrs.get("email", "").strip().lower()
         username = cognito_user.get("Username")
         require(bool(email), 500, "Não foi possível identificar o usuário.")
-        require(isinstance(username, str) and bool(username), 500, "Não foi possível identificar o usuário.")
+        require(
+            isinstance(username, str) and bool(username),
+            500,
+            "Não foi possível identificar o usuário.",
+        )
 
         if is_federated(cognito_user):
             try:
@@ -248,7 +318,11 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
                 code, _ = error_body(error)
                 if code != "AliasExistsException":
                     raise
-                log_error("Falha ao verificar e-mail federado por alias existente.", event=event, error=error)
+                log_error(
+                    "Failed to verify federated email due to existing alias.",
+                    event=event,
+                    error=error,
+                )
 
         cognito_client.admin_set_user_password(
             UserPoolId=COGNITO_USER_POOL_ID,
@@ -259,16 +333,19 @@ def set_password(event: Dict[str, Any]) -> Dict[str, Any]:
         return {"message": "Senha definida com sucesso."}
     except ClientError as error:
         code, message = error_body(error)
-        log_error("Falha ao definir senha.", event=event, error=error)
+        log_error("Failed to set password.", event=event, error=error)
         mapping = {
             "NotAuthorizedException": (401, "Sessão inválida ou expirada."),
             "UserNotFoundException": (409, "Conta não encontrada para definir senha."),
             "InvalidPasswordException": (400, message),
-            "InvalidParameterException": (400, message),
+            "InvalidParameterException": (400, "Dados inválidos."),
+            "LimitExceededException": (429, "Muitas requisições."),
+            "TooManyRequestsException": (429, "Muitas requisições."),
         }
         if code in mapping:
             status, msg = mapping[code]
-            raise ApiError(status, msg)
+            extra = {"retryAfter": 60} if status == 429 else None
+            raise ApiError(status, msg, extra)
         raise
 
 
@@ -277,10 +354,21 @@ def refresh(body: Dict[str, Any]) -> Dict[str, Any]:
     require(bool(refresh_token), 400, "Refresh token obrigatório.")
 
     try:
-        auth_result = initiate_auth("REFRESH_TOKEN_AUTH", {"REFRESH_TOKEN": refresh_token})
+        auth_result = initiate_auth(
+            "REFRESH_TOKEN_AUTH", {"REFRESH_TOKEN": refresh_token}
+        )
     except ClientError as error:
         code, _ = error_body(error)
-        if code == "NotAuthorizedException":
+        if code in ("LimitExceededException", "TooManyRequestsException"):
+            raise ApiError(429, "Muitas requisições.", {"retryAfter": 60})
+        if code in (
+            "NotAuthorizedException",
+            "InvalidParameterException",
+            "UserNotFoundException",
+            "ResourceNotFoundException",
+            "InvalidSignatureException",
+            "ExpiredTokenException",
+        ):
             raise ApiError(401, "Sessão inválida ou expirada.")
         raise
 

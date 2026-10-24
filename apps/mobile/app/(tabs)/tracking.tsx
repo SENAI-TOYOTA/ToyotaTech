@@ -1,3 +1,5 @@
+import { useRouter } from "expo-router";
+import { ArrowLeft, Check } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -8,19 +10,15 @@ import {
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { ArrowLeft, Check } from "lucide-react-native";
 
-import { colors, fonts, spacing } from "@/theme";
+import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchGarageStatus } from "@/services/garage";
+import { fetchTrackingStatus } from "@/services/tracking";
+import { colors, fonts, spacing } from "@/theme";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
+import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
-function canUseCorollaAltisImage(model?: string) {
-  return (model ?? "").toLowerCase().includes("corolla altis");
-}
-
-const mainCarImage = require("@/assets/images/corolla-main.png");
+const mainCarImage = require("@/assets/images/corolla-main.jpg");
 
 export default function TrackingScreen() {
   const router = useRouter();
@@ -35,16 +33,16 @@ export default function TrackingScreen() {
         return;
       }
       try {
-        const data = await fetchGarageStatus(token);
-        setTrackingData(data.tracking);
+        const data = await fetchTrackingStatus(token);
+        setTrackingData(data);
       } catch (error) {
-        console.error("Failed to fetch tracking data", error);
+        console.warn("Falha ao carregar os dados de rastreamento", error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    void loadData();
   }, [token]);
 
   if (loading) {
@@ -58,7 +56,9 @@ export default function TrackingScreen() {
   if (!trackingData) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Erro ao carregar status do veículo.</Text>
+        <Text style={styles.errorText}>
+          Não foi possível carregar o status do veículo.
+        </Text>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Voltar</Text>
         </Pressable>
@@ -68,7 +68,6 @@ export default function TrackingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header with Back Button */}
       <View style={styles.header}>
         <Pressable
           onPress={() => router.back()}
@@ -80,29 +79,28 @@ export default function TrackingScreen() {
         >
           <ArrowLeft size={24} color={colors.black} />
         </Pressable>
-        <Text style={styles.headerTitle}>Status do Pedido</Text>
+        <Text style={styles.headerTitle}>Status do pedido</Text>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}
       >
-        {/* Car Card */}
         <View style={styles.carCard}>
           <View style={styles.carImageContainer}>
             {canUseCorollaAltisImage(trackingData.model) ? (
-              <Image source={mainCarImage} style={styles.carImage} resizeMode="contain" />
+              <Image
+                source={mainCarImage}
+                style={styles.carImage}
+                resizeMode="contain"
+              />
             ) : (
-              <View style={styles.vehicleFallbackCard}>
-                <Text style={styles.vehicleFallbackEyebrow}>VEICULO VINCULADO</Text>
-                <Text style={styles.vehicleFallbackModel}>{trackingData.model}</Text>
-                <Text style={styles.vehicleFallbackSpecs}>
-                  {trackingData.version} • {trackingData.color}
-                </Text>
-                <Text style={styles.vehicleFallbackNote}>
-                  Imagem ilustrativa indisponivel
-                </Text>
-              </View>
+              <VehicleFallback
+                model={trackingData.model}
+                version={trackingData.version}
+                color={trackingData.color}
+                variant="card"
+              />
             )}
           </View>
           <View style={styles.carDetails}>
@@ -116,9 +114,8 @@ export default function TrackingScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Acompanhamento</Text>
+        <Text style={styles.sectionTitle}>Rastreamento</Text>
 
-        {/* Timeline */}
         <View style={styles.timelineContainer}>
           {trackingData.steps.map((step, index) => (
             <TimelineStep
@@ -133,7 +130,13 @@ export default function TrackingScreen() {
   );
 }
 
-function TimelineStep({ step, isLast }: { step: TrackingStep; isLast: boolean }) {
+function TimelineStep({
+  step,
+  isLast,
+}: {
+  step: TrackingStep;
+  isLast: boolean;
+}) {
   const isCompleted = step.status === "completed";
   const isCurrent = step.status === "current";
 
@@ -147,10 +150,16 @@ function TimelineStep({ step, isLast }: { step: TrackingStep; isLast: boolean })
             isCurrent && styles.indicatorCurrent,
           ]}
         >
-          {isCompleted && <Check size={14} color={colors.white} strokeWidth={3} />}
+          {isCompleted && (
+            <Check size={14} color={colors.white} strokeWidth={3} />
+          )}
           {isCurrent && <View style={styles.innerCircle} />}
         </View>
-        {!isLast && <View style={[styles.connector, isCompleted && styles.connectorCompleted]} />}
+        {!isLast && (
+          <View
+            style={[styles.connector, isCompleted && styles.connectorCompleted]}
+          />
+        )}
       </View>
 
       <View style={styles.stepContent}>
@@ -229,40 +238,6 @@ const styles = StyleSheet.create({
   carImage: {
     width: "100%",
     height: "100%",
-  },
-  vehicleFallbackCard: {
-    width: "100%",
-    height: "100%",
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    padding: spacing.md,
-    justifyContent: "center",
-  },
-  vehicleFallbackEyebrow: {
-    fontFamily: fonts.bold,
-    fontSize: 11,
-    color: colors.primary,
-    letterSpacing: 1,
-  },
-  vehicleFallbackModel: {
-    marginTop: spacing.sm,
-    fontFamily: fonts.bold,
-    fontSize: 28,
-    lineHeight: 30,
-    color: colors.black,
-  },
-  vehicleFallbackSpecs: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.regular,
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  vehicleFallbackNote: {
-    marginTop: spacing.md,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    color: colors.textSecondary,
   },
   carDetails: {
     marginTop: spacing.sm,

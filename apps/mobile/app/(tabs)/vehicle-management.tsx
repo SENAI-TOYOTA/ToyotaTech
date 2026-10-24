@@ -1,90 +1,25 @@
 import { ArrowRight } from "lucide-react-native";
-import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from "react-native-reanimated";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
+import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, fontSize, spacing } from "@/theme";
-import { useAuth } from "@/contexts/AuthContext";
-import { fetchGarageCurrent } from "@/services/garage";
-import { GarageData } from "@/types/garage";
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const documentDatePattern =
-  /(?:\s*[-–—|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
+  /(?:\s*[-|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
 
 function getDocumentDisplayTitle(title: string) {
   const sanitizedTitle = title
     .replace(documentDatePattern, "")
     .replace(/\s{2,}/g, " ")
     .trim();
-
   return sanitizedTitle || title;
 }
 
-function InteractivePressable({
-  children,
-  style,
-  onPress,
-  ...props
-}: React.ComponentProps<typeof Pressable>) {
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.97, { damping: 10, stiffness: 200 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 10, stiffness: 200 });
-  };
-
-  return (
-    <AnimatedPressable
-      {...props}
-      style={[style, animatedStyle]}
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-    >
-      {children}
-    </AnimatedPressable>
-  );
-}
-
 export default function VehicleManagementScreen() {
-  const { token } = useAuth();
-  const [garage, setGarage] = useState<GarageData | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const loadGarage = async () => {
-      if (!token) {
-        return;
-      }
-      try {
-        const result = await fetchGarageCurrent(token);
-        if (active) {
-          setGarage(result.garage);
-        }
-      } catch (error) {
-        console.error("Failed to fetch garage documents", error);
-      }
-    };
-
-    void loadGarage();
-    return () => {
-      active = false;
-    };
-  }, [token]);
+  const { garage } = useGarage();
 
   const documents = garage?.documents ?? [];
   const recalls = garage?.recalls ?? [];
@@ -104,28 +39,38 @@ export default function VehicleManagementScreen() {
         </Animated.View>
 
         <View style={styles.documentList}>
-          {documents.length ? documents.map((document, index) => {
-            const documentTitle = getDocumentDisplayTitle(document.title);
+          {documents.length ? (
+            documents.map((document, index) => {
+              const documentTitle = getDocumentDisplayTitle(document.title);
 
-            return (
-              <Animated.View
-                key={document.id}
-                entering={FadeInDown.delay(200 + index * 100)
-                  .duration(600)
-                  .springify()}
-                style={styles.documentButtonWrapper}
-              >
-                <View style={styles.documentButtonShadow} />
-                <InteractivePressable style={styles.documentButton}>
-                  <View style={styles.documentButtonContent}>
-                    <Text style={styles.documentButtonText}>{documentTitle}</Text>
-                  </View>
-                  <ArrowRight size={30} strokeWidth={2.4} color={colors.black} />
-                </InteractivePressable>
-              </Animated.View>
-            );
-          }) : (
-            <Text style={styles.emptyStateText}>Nenhum documento vinculado.</Text>
+              return (
+                <Animated.View
+                  key={document.id}
+                  entering={FadeInDown.delay(200 + index * 100)
+                    .duration(600)
+                    .springify()}
+                  style={styles.documentButtonWrapper}
+                >
+                  <View style={styles.documentButtonShadow} />
+                  <InteractivePressable style={styles.documentButton}>
+                    <View style={styles.documentButtonContent}>
+                      <Text style={styles.documentButtonText}>
+                        {documentTitle}
+                      </Text>
+                    </View>
+                    <ArrowRight
+                      size={30}
+                      strokeWidth={2.4}
+                      color={colors.black}
+                    />
+                  </InteractivePressable>
+                </Animated.View>
+              );
+            })
+          ) : (
+            <Text style={styles.emptyStateText}>
+              Nenhum documento vinculado.
+            </Text>
           )}
         </View>
 
@@ -138,15 +83,21 @@ export default function VehicleManagementScreen() {
             Notificações e agendamentos de reparos obrigatórios.
           </Text>
           <View style={styles.recallList}>
-            {recalls.length ? recalls.map((recall) => (
-              <View key={recall.id} style={styles.recallItem}>
-                <Text style={styles.recallItemTitle}>{recall.title}</Text>
-                {recall.description ? (
-                  <Text style={styles.recallItemDescription}>{recall.description}</Text>
-                ) : null}
-              </View>
-            )) : (
-              <Text style={styles.recallEmptyText}>Nenhum recall registrado.</Text>
+            {recalls.length ? (
+              recalls.map((recall) => (
+                <View key={recall.id} style={styles.recallItem}>
+                  <Text style={styles.recallItemTitle}>{recall.title}</Text>
+                  {recall.description ? (
+                    <Text style={styles.recallItemDescription}>
+                      {recall.description}
+                    </Text>
+                  ) : null}
+                </View>
+              ))
+            ) : (
+              <Text style={styles.recallEmptyText}>
+                Nenhum recall registrado.
+              </Text>
             )}
           </View>
         </Animated.View>

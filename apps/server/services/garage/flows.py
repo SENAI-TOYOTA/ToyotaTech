@@ -1,29 +1,16 @@
 import time
 from typing import Any, Dict
 
+import demo
+import projection
+import purchases
+import resolver
+import validation
 from botocore.exceptions import ClientError
 
-from common.cognito import build_user, extract_token, get_user_by_access_token
-from common.cognito_users import link_federated_if_needed
+from common.auth import authenticated_user
 from common.ddb import get_table
 from common.responses import ApiError, error_body, parse_body, require
-
-from . import demo, projection, purchases, resolver, validation
-
-
-def authenticated_user(event: Dict[str, Any]) -> Dict[str, Any]:
-    access_token = extract_token(event)
-    require(bool(access_token), 401, "Token não informado.")
-
-    try:
-        cognito_user = get_user_by_access_token(access_token)
-        link_federated_if_needed(cognito_user)
-        return build_user(cognito_user)
-    except ClientError as error:
-        code, _ = error_body(error)
-        if code == "NotAuthorizedException":
-            raise ApiError(401, "Sessão inválida ou expirada.")
-        raise
 
 
 def current(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -43,11 +30,17 @@ def resolve(event: Dict[str, Any]) -> Dict[str, Any]:
 def upsert(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
     user_id = user.get("sub")
-    require(isinstance(user_id, str) and bool(user_id), 500, "Usuário sem identificador válido.")
+    require(
+        isinstance(user_id, str) and bool(user_id),
+        500,
+        "Usuário sem identificador válido.",
+    )
 
     body = parse_body(event)
     table = get_table(resolver.GARAGE_TABLE_NAME)
-    garage = table.get_item(Key={"userId": user_id}).get("Item") or demo.build_garage(user)
+    garage = table.get_item(Key={"userId": user_id}).get("Item") or demo.build_garage(
+        user
+    )
 
     for key in ("order", "vehicle", "financing", "documents", "recalls", "tracking"):
         if key in body and body[key] is not None:
@@ -87,7 +80,8 @@ def link(event: Dict[str, Any]) -> Dict[str, Any]:
     if not purchase:
         raise ApiError(404, "Compra não encontrada.")
     require(
-        not purchases.is_generated(purchase) and purchases.matches_profile(purchase, profile),
+        not purchases.is_generated(purchase)
+        and purchases.matches_profile(purchase, profile),
         403,
         "Compra não pertence ao CPF do perfil.",
     )
@@ -101,7 +95,11 @@ def link(event: Dict[str, Any]) -> Dict[str, Any]:
         raise
     if not linked_purchase:
         existing_user_id = validation.coerce_text(purchase.get("userId"))
-        require(not (existing_user_id and existing_user_id != user_id), 409, "Compra já vinculada a outro usuário.")
+        require(
+            not (existing_user_id and existing_user_id != user_id),
+            409,
+            "Compra já vinculada a outro usuário.",
+        )
         raise ApiError(500, "Não foi possível vincular a compra.")
 
     garage = projection.project_garage(user, linked_purchase)
