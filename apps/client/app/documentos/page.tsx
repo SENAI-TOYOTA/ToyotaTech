@@ -3,7 +3,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
-import { FaFacebook, FaInstagram, FaLinkedin, FaYoutube } from "react-icons/fa";
 import ReactCountryFlag from "react-country-flag";
 
 // --- COMPONENTE DE PREVIEW PDF ---
