@@ -9,7 +9,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, LogBox, StyleSheet, View } from "react-native";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { hasCompleteProfile } from "@/profileValidation";
@@ -17,6 +17,10 @@ import { colors } from "@/theme";
 
 SplashScreen.preventAutoHideAsync();
 WebBrowser.maybeCompleteAuthSession();
+
+if (__DEV__) {
+  LogBox.ignoreLogs([/^The action 'ROUTE_NAMES_CHANGED'/]);
+}
 
 function AppNavigator() {
   const router = useRouter();
