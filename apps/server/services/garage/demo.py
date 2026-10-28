@@ -127,7 +127,7 @@ def build_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> l
         },
         {
             "id": "maintenance-plan",
-            "title": "Plano de revisoes",
+            "title": "Plano de revisões",
             "date": purchase_date,
             "status": "available",
         },
@@ -152,7 +152,7 @@ def build_garage(
     tracking_steps = [
         {
             "id": "1",
-            "label": "Inicio da producao",
+            "label": "Início da produção",
             "status": "completed",
             "date": "10/05/2026",
         },
@@ -174,7 +174,7 @@ def build_garage(
             "orderId": f"TT-{chassi[-5:]}",
             "status": "linked",
             "purchaseDate": "03/10/2025",
-            "dealership": "Concessionaria Toyota",
+            "dealership": "Concessionária Toyota",
         },
         "vehicle": vehicle,
         "financing": build_financing(seed),

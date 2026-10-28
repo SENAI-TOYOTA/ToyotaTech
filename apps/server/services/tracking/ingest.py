@@ -9,11 +9,11 @@ from common.responses import require
 from common.validation import coerce_text
 
 TRACKING_FLOW_STEPS = [
-    {"id": "1", "label": "Inicio da producao"},
+    {"id": "1", "label": "Início da produção"},
     {"id": "2", "label": "Montagem finalizada"},
     {"id": "3", "label": "Teste de qualidade"},
     {"id": "4", "label": "Em transporte"},
-    {"id": "5", "label": "Concessionaria"},
+    {"id": "5", "label": "Concessionária"},
     {"id": "6", "label": "Pronto para retirada"},
 ]
 

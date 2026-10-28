@@ -66,7 +66,7 @@ def seed_purchase(
         "fullName": "Maria Silva",
         "cpf": cpf,
         "purchaseDate": "03/10/2025",
-        "dealership": "Concessionaria Toyota",
+        "dealership": "Concessionária Toyota",
         "vehicle": {"chassi": "CHASSI_12345", "model": "Corolla"},
     }
     if user_id is not None:
