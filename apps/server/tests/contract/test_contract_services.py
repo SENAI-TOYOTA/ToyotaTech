@@ -225,8 +225,16 @@ def test_me_returns_user_with_profile(contract):
         status, headers, body = call(handler, "GET", "/me", token=token)
     assert status == 200
     assert set(body) == {"user"}
-    assert set(body["user"]) == {"email", "name", "isVerified", "sub", "profile"}
+    assert set(body["user"]) == {
+        "email",
+        "name",
+        "isVerified",
+        "sub",
+        "profile",
+        "profileComplete",
+    }
     assert body["user"]["email"] == email
+    assert body["user"]["profileComplete"] is False
     assert headers["Access-Control-Expose-Headers"] == "Retry-After"
 
 

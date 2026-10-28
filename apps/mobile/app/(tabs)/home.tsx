@@ -46,7 +46,7 @@ const toyotaTips = [
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { garage } = useGarage();
+  const { garage, error, reload } = useGarage();
   const displayName = user?.profile?.fullName || user?.name || "Usuário";
   const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
   const vehicle = garage?.vehicle;
@@ -92,10 +92,26 @@ export default function HomeScreen() {
           )}
         </Animated.View>
 
+        {error ? (
+          <Animated.View
+            entering={FadeInDown.delay(250).duration(600)}
+            style={styles.garageErrorContainer}
+          >
+            <Text style={styles.garageErrorText}>{error}</Text>
+            <InteractivePressable
+              style={styles.garageRetryButton}
+              onPress={reload}
+            >
+              <Text style={styles.garageRetryText}>Tentar novamente</Text>
+            </InteractivePressable>
+          </Animated.View>
+        ) : null}
+
         <Animated.View
           entering={FadeInDown.delay(300).duration(600).springify()}
           style={styles.statusButtonWrapper}
         >
+          {" "}
           <View style={styles.statusButtonShadow} />
           <InteractivePressable
             style={styles.statusButton}
@@ -218,6 +234,35 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 18,
     color: colors.black,
+  },
+  garageErrorContainer: {
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    padding: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  garageErrorText: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    color: colors.black,
+  },
+  garageRetryButton: {
+    marginLeft: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: colors.black,
+    backgroundColor: colors.primary,
+  },
+  garageRetryText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.white,
   },
   statusButtonWrapper: {
     width: 251,

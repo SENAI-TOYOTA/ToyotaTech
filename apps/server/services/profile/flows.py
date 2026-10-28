@@ -117,4 +117,5 @@ def me(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
     if "sub" in user:
         user["profile"] = _get_profile(user["sub"])
+        user["profileComplete"] = validation.is_complete(user["profile"])
     return {"user": user}

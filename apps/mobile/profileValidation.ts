@@ -99,6 +99,7 @@ export function validateCpf(value: string): string | null {
 
 export function hasCompleteProfile(
   user: {
+    profileComplete?: boolean;
     profile?: {
       fullName?: string | null;
       birthDate?: string | null;
@@ -106,6 +107,9 @@ export function hasCompleteProfile(
     } | null;
   } | null
 ) {
+  if (user && typeof user.profileComplete === "boolean") {
+    return user.profileComplete;
+  }
   return Boolean(
     user?.profile?.fullName && user.profile.birthDate && user.profile.cpf
   );

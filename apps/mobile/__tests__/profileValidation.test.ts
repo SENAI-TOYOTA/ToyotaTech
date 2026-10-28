@@ -1,6 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { validateCpf, validatePassword } from "../profileValidation";
+import {
+  hasCompleteProfile,
+  validateCpf,
+  validatePassword,
+} from "../profileValidation";
 
 describe("validatePassword", () => {
   it("accepts a password meeting length and complexity", () => {
@@ -83,5 +87,48 @@ describe("validateCpf", () => {
 
   it("rejects an empty cpf", () => {
     expect(validateCpf("")).not.toBeNull();
+  });
+});
+
+describe("hasCompleteProfile", () => {
+  it("trusts profileComplete from the server", () => {
+    expect(
+      hasCompleteProfile({
+        profileComplete: true,
+        profile: { fullName: "", birthDate: "", cpf: "" },
+      })
+    ).toBe(true);
+  });
+
+  it("trusts an incomplete flag even with filled fields", () => {
+    expect(
+      hasCompleteProfile({
+        profileComplete: false,
+        profile: {
+          fullName: "Maria Silva",
+          birthDate: "01/02/1990",
+          cpf: "52998224725",
+        },
+      })
+    ).toBe(false);
+  });
+
+  it("falls back to the local check when the flag is absent", () => {
+    expect(
+      hasCompleteProfile({
+        profile: {
+          fullName: "Maria Silva",
+          birthDate: "01/02/1990",
+          cpf: "52998224725",
+        },
+      })
+    ).toBe(true);
+    expect(hasCompleteProfile({ profile: { fullName: "Maria Silva" } })).toBe(
+      false
+    );
+  });
+
+  it("treats a missing user as incomplete", () => {
+    expect(hasCompleteProfile(null)).toBe(false);
   });
 });
