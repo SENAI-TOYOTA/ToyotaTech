@@ -111,7 +111,6 @@ export default function HomeScreen() {
           entering={FadeInDown.delay(300).duration(600).springify()}
           style={styles.statusButtonWrapper}
         >
-          {" "}
           <View style={styles.statusButtonShadow} />
           <InteractivePressable
             style={styles.statusButton}
