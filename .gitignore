@@ -1,0 +1,72 @@
+﻿# Dependências
+**/node_modules/
+**/.pnpm-store/
+
+# Builds e caches
+**/dist/
+**/build/
+**/.expo/
+**/.next/
+**/coverage/
+
+# Repositórios Git aninhados
+**/.git
+
+# Backups
+vlibras-web-browsers-backup/
+
+# Backups temporários
+**/*.backup
+**/*.backup_*
+**/*_backup_*.py
+**/*_backup_*.tsx
+
+# Bancos de dados locais
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# Python
+**/__pycache__/
+**/*.pyc
+
+# Backups do projeto
+vlibras-web-browsers-backup/
+
+# Backups temporários
+**/*.backup
+**/*.backup_*
+**/*_backup_*.py
+**/*_backup_*.tsx
+
+# Bancos de dados locais
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# Python
+**/__pycache__/
+**/*.pyc
+
+# Backups do projeto
+vlibras-web-browsers-backup/
+
+# Backups locais do Toyota Tech
+/backup_backend_*/
+/vlibras-web-browsers-backup/
+/mobile-base/
+**/*backup*
+**/*_backup_*
+
+# Bancos de dados locais
+*.db
+*.sqlite
+*.sqlite3
+
+# Ambientes virtuais Python
+**/.venv/
+**/venv/
+
+# Arquivos Python temporários
+**/__pycache__/
+**/*.pyc
