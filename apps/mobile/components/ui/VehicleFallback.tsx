@@ -24,7 +24,7 @@ export default function VehicleFallback({
 
   return (
     <View style={variant === "hero" ? styles.hero : styles.card}>
-      <Text style={styles.eyebrow}>LINKED VEHICLE</Text>
+      <Text style={styles.eyebrow}>VEÍCULO VINCULADO</Text>
       <Text style={variant === "hero" ? styles.modelHero : styles.modelCard}>
         {displayModel}
       </Text>
@@ -32,7 +32,7 @@ export default function VehicleFallback({
         {specs}
       </Text>
       {variant === "hero" && chassi ? (
-        <Text style={styles.chassi}>Chassis {chassi}</Text>
+        <Text style={styles.chassi}>Chassi {chassi}</Text>
       ) : null}
       <Text style={variant === "hero" ? styles.noteHero : styles.noteCard}>
         Imagem ilustrativa indisponível

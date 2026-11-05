@@ -12,7 +12,7 @@ DEMO_VEHICLE_CATALOG = [
     {
         "model": "Toyota Corolla Altis",
         "version": "Hybrid 2025",
-        "color": "Branco Perola",
+        "color": "Branco Pérola",
         "year": "2025",
         "engine": "1.8 Hybrid",
     },
@@ -164,7 +164,7 @@ def build_garage(
             "date": "15/05/2026",
         },
         {"id": "4", "label": "Aguardando o embarque", "status": "current"},
-        {"id": "5", "label": "Em transito", "status": "pending"},
+        {"id": "5", "label": "Em trânsito", "status": "pending"},
         {"id": "6", "label": "Saiu para entrega", "status": "pending"},
     ]
     return {
