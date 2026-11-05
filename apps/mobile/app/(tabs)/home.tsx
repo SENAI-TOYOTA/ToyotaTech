@@ -46,7 +46,7 @@ const toyotaTips = [
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { garage, error, reload } = useGarage();
+  const { garage, isLoading, error, reload } = useGarage();
   const displayName = user?.profile?.fullName || user?.name || "Usuário";
   const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
   const vehicle = garage?.vehicle;
@@ -99,10 +99,16 @@ export default function HomeScreen() {
           >
             <Text style={styles.garageErrorText}>{error}</Text>
             <InteractivePressable
-              style={styles.garageRetryButton}
+              style={[
+                styles.garageRetryButton,
+                isLoading && styles.garageRetryButtonDisabled,
+              ]}
               onPress={reload}
+              disabled={isLoading}
             >
-              <Text style={styles.garageRetryText}>Tentar novamente</Text>
+              <Text style={styles.garageRetryText}>
+                {isLoading ? "Carregando..." : "Tentar novamente"}
+              </Text>
             </InteractivePressable>
           </Animated.View>
         ) : null}
@@ -257,6 +263,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.black,
     backgroundColor: colors.primary,
+  },
+  garageRetryButtonDisabled: {
+    opacity: 0.6,
   },
   garageRetryText: {
     fontFamily: fonts.semiBold,

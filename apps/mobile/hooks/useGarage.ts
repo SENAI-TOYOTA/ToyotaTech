@@ -21,10 +21,17 @@ export function useGarage() {
 
     const loadGarage = async () => {
       if (!token || !profileReady) {
-        if (active) setIsLoading(false);
+        if (active) {
+          setGarage(null);
+          setError(null);
+          setIsLoading(false);
+        }
         return;
       }
-      setIsLoading(true);
+      if (active) {
+        setIsLoading(true);
+        setError(null);
+      }
       try {
         const result = await fetchGarageCurrent(token);
         if (active) {
