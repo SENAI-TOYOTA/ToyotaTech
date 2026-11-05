@@ -51,16 +51,16 @@ export default function FinancingScreen() {
             </View>
 
             <Text style={styles.bankInfo}>
-              Financial institution:{" "}
+              Instituição financeira:{" "}
               <Text style={styles.bankName}>{financing.bank}</Text>
             </Text>
             {financing.contractNumber ? (
               <Text style={styles.contractInfo}>
-                Contract: {financing.contractNumber}
+                Contrato: {financing.contractNumber}
               </Text>
             ) : null}
             <Text style={styles.invoiceDescription}>
-              Installment {financing.installmentAmount} | Due{" "}
+              Parcela {financing.installmentAmount} | Vencimento{" "}
               {financing.nextDueDate}
             </Text>
           </Animated.View>
