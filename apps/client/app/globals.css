@@ -1,26 +1,98 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ==========================================================================
+   Toyota Tech — Design System (Tailwind CSS v4)
+   Fonte da verdade: apps/mobile/theme.ts (traduzido para tokens web).
+
+   Mapeamento de escalas do mobile -> utilitários padrão do Tailwind:
+   - spacing  xs=4 sm=8 md=16 lg=24 xl=32 xxl=48  ->  1 / 2 / 4 / 6 / 8 / 12
+   - radius   sm=8 md=12 lg=16 xl=24 pill        ->  rounded-lg / xl / 2xl / 3xl / full
+   - fontSize xs=12 sm=14 md=16 lg=20 xl=24 xxl=32 -> text-xs / sm / base / xl / 2xl / 4xl
+              display=40 logo=50                  ->  text-display / text-logo (custom)
+   ========================================================================== */
+
+@theme {
+  /* ---------- Cores de marca ---------- */
+  --color-primary: #eb0a1e; /* Toyota Red */
+  --color-primary-pressed: #c70818;
+  --color-primary-soft: #fdecee;
+  --color-toyota-red: var(--color-primary);
+
+  /* ---------- Neutros ---------- */
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-ink: #101418;
+  --color-ink-soft: #1c2229;
+  --color-gray: #8a919c;
+  --color-gray-light: #e4e7eb;
+
+  /* ---------- Superfícies ---------- */
+  --color-background: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7f8fa;
+  --color-overlay: rgb(16 20 24 / 0.55);
+
+  /* ---------- Texto (uso: text-fg, text-fg-secondary...) ---------- */
+  --color-fg: #101418;
+  --color-fg-secondary: #5a6270;
+  --color-fg-muted: #8a919c;
+  --color-fg-inverse: #ffffff;
+  --color-fg-inverse-muted: rgb(255 255 255 / 0.72);
+  --color-foreground: var(--color-fg); /* alias legado */
+
+  /* ---------- Bordas ---------- */
+  --color-border: #e4e7eb;
+  --color-border-strong: #c9ced6;
+
+  /* ---------- Status ---------- */
+  --color-success: #157f46;
+  --color-success-soft: #e6f4ec;
+  --color-warning: #a6620b;
+  --color-warning-soft: #fdf3e2;
+  --color-info: #1f5fad;
+  --color-info-soft: #e8f0fb;
+
+  /* ---------- Tipografia ---------- */
+  --text-display: 2.5rem; /* 40px */
+  --text-display--line-height: 1.1;
+  --text-logo: 3.125rem; /* 50px */
+  --text-logo--line-height: 1;
+
+  /* ---------- Sombras ---------- */
+  --shadow-card:
+    0px 1px 2px rgb(16 20 24 / 0.04), 0px 6px 20px rgb(16 20 24 / 0.06);
+  --shadow-raised:
+    0px 2px 4px rgb(16 20 24 / 0.06), 0px 12px 32px rgb(16 20 24 / 0.1);
+  --shadow-bar: 0px -1px 0px rgb(16 20 24 / 0.06);
+  --shadow-focus: 0px 0px 0px 3px rgb(16 20 24 / 0.08);
+
+  /* ---------- Layout ---------- */
+  --container-content: 70rem; /* 1120px -> max-w-content */
+  --container-form: 26.25rem; /* 420px  -> max-w-form */
+  --spacing-gutter: 1.25rem; /* 20px   -> px-gutter */
+  --breakpoint-tablet: 45rem; /* 720px  -> tablet: */
+  --breakpoint-wide: 60rem; /* 960px  -> wide: */
 }
 
+/* Fontes carregadas via next/font (variáveis injetadas no <html>) */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-afacad), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    color-scheme: light;
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    background-color: var(--color-background);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary-pressed);
+  }
 }
