@@ -2,7 +2,7 @@ import os
 import time
 from typing import Any, Dict, Optional
 
-from boto3.dynamodb.conditions import Attr, Key
+from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from common.ddb import get_table
@@ -10,6 +10,7 @@ from common.responses import error_body
 
 TRACKING_TABLE_NAME = os.environ.get("TRACKING_TABLE_NAME", "").strip()
 GARAGE_TABLE_NAME = os.environ.get("GARAGE_TABLE_NAME", "").strip()
+CHASSI_INDEX_NAME = "chassi-index"
 
 
 def get_garage(user_id: str) -> Optional[Dict[str, Any]]:
@@ -24,13 +25,11 @@ def find_garage_by_chassi(chassi: str) -> Optional[Dict[str, Any]]:
         return None
     table = get_table(GARAGE_TABLE_NAME)
     try:
-        result = table.scan(
-            FilterExpression=Attr("vehicle.chassi").eq(normalized), Limit=1
+        result = table.query(
+            IndexName=CHASSI_INDEX_NAME,
+            KeyConditionExpression=Key("chassi").eq(normalized),
+            Limit=1,
         )
-        items = result.get("Items", [])
-        if items:
-            return items[0]
-        result = table.scan(FilterExpression=Attr("chassi").eq(normalized), Limit=1)
         items = result.get("Items", [])
         return items[0] if items else None
     except ClientError as error:

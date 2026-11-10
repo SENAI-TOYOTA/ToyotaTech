@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,13 +19,21 @@ import { colors, fonts, spacing } from "@/theme";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
-const mainCarImage = require("@/assets/images/corolla-main.png");
+const mainCarImage = require("@/assets/images/corolla-main.jpg");
 
 export default function TrackingScreen() {
   const router = useRouter();
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [trackingData, setTrackingData] = useState<TrackingInfo | null>(null);
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/home");
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -36,7 +45,7 @@ export default function TrackingScreen() {
         const data = await fetchTrackingStatus(token);
         setTrackingData(data);
       } catch (error) {
-        console.warn("Failed to fetch tracking data", error);
+        console.warn("Falha ao carregar os dados de rastreamento", error);
       } finally {
         setLoading(false);
       }
@@ -56,28 +65,37 @@ export default function TrackingScreen() {
   if (!trackingData) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Failed to load vehicle status.</Text>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Go back</Text>
+        <Text style={styles.errorText}>
+          Não foi possível carregar o status do veículo.
+        </Text>
+        <Pressable
+          style={styles.backButton}
+          onPress={handleBack}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
+        >
+          <Text style={styles.backButtonText}>Voltar</Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={({ pressed }) => [
             styles.backIcon,
             pressed && { opacity: 0.7, backgroundColor: colors.grayLight },
           ]}
           hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
         >
-          <ArrowLeft size={24} color={colors.black} />
+          <ArrowLeft size={22} color={colors.black} strokeWidth={1.8} />
         </Pressable>
-        <Text style={styles.headerTitle}>Order Status</Text>
+        <Text style={styles.headerTitle}>Status do pedido</Text>
       </View>
 
       <ScrollView
@@ -112,7 +130,7 @@ export default function TrackingScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Tracking</Text>
+        <Text style={styles.sectionTitle}>Rastreamento</Text>
 
         <View style={styles.timelineContainer}>
           {trackingData.steps.map((step, index) => (
@@ -124,7 +142,7 @@ export default function TrackingScreen() {
           ))}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -202,14 +220,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: spacing.xxl,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     backgroundColor: colors.white,
   },
   backIcon: {
-    padding: spacing.xs,
-    marginRight: spacing.sm,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.xs,
+    borderRadius: 999,
   },
   headerTitle: {
     fontFamily: fonts.bold,

@@ -11,6 +11,10 @@ BROKER = os.getenv("BROKER", "mqtt")
 PORT = int(os.getenv("PORT", "1883"))
 TOPIC = os.getenv("TOPIC", "Toyota_Tech/linha")
 INGEST_URL = os.getenv("INGEST_URL", "").strip()
+INGEST_KEY = os.getenv("INGEST_KEY", "").strip()
+
+if INGEST_URL and not INGEST_KEY:
+    print("[ingest] INGEST_URL definido sem INGEST_KEY: toda ingestao sera recusada com 401.")
 
 QTD_CARROS = 10
 
@@ -41,14 +45,17 @@ def gerar_chassi(n):
 
 
 def enviar_ingestao(payload):
-    if not INGEST_URL:
+    if not INGEST_URL or not INGEST_KEY:
         return
     try:
         body = json.dumps(payload).encode("utf-8")
         req = request.Request(
             INGEST_URL,
             data=body,
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "X-Ingest-Key": INGEST_KEY,
+            },
             method="POST",
         )
         with request.urlopen(req, timeout=5) as response:

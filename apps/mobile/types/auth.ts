@@ -6,6 +6,7 @@ export interface AuthUser {
   isVerified: boolean;
   sub?: string;
   profile?: UserProfile;
+  profileComplete?: boolean;
 }
 
 export interface RegisterPayload {

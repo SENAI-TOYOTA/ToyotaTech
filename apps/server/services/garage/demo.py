@@ -12,7 +12,7 @@ DEMO_VEHICLE_CATALOG = [
     {
         "model": "Toyota Corolla Altis",
         "version": "Hybrid 2025",
-        "color": "Branco Perola",
+        "color": "Branco Pérola",
         "year": "2025",
         "engine": "1.8 Hybrid",
     },
@@ -127,7 +127,7 @@ def build_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> l
         },
         {
             "id": "maintenance-plan",
-            "title": "Plano de revisoes",
+            "title": "Plano de revisões",
             "date": purchase_date,
             "status": "available",
         },
@@ -152,7 +152,7 @@ def build_garage(
     tracking_steps = [
         {
             "id": "1",
-            "label": "Inicio da producao",
+            "label": "Início da produção",
             "status": "completed",
             "date": "10/05/2026",
         },
@@ -164,16 +164,17 @@ def build_garage(
             "date": "15/05/2026",
         },
         {"id": "4", "label": "Aguardando o embarque", "status": "current"},
-        {"id": "5", "label": "Em transito", "status": "pending"},
+        {"id": "5", "label": "Em trânsito", "status": "pending"},
         {"id": "6", "label": "Saiu para entrega", "status": "pending"},
     ]
     return {
         "userId": str(user.get("sub", "")),
+        "chassi": chassi,
         "order": {
             "orderId": f"TT-{chassi[-5:]}",
             "status": "linked",
             "purchaseDate": "03/10/2025",
-            "dealership": "Concessionaria Toyota",
+            "dealership": "Concessionária Toyota",
         },
         "vehicle": vehicle,
         "financing": build_financing(seed),

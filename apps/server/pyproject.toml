@@ -1,3 +1,9 @@
+[tool.pytest.ini_options]
+testpaths = ["services", "tests"]
+python_files = ["test_*.py"]
+addopts = "-ra"
+norecursedirs = [".git", ".aws-sam", "__pycache__", ".venv", "venv", ".pytest_cache"]
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"

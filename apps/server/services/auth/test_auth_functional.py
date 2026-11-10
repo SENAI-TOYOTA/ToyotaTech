@@ -507,7 +507,7 @@ def test_register_and_login_email_normalization_integration():
                             "/auth/register",
                             body={
                                 "email": "  NEW@Example.COM  ",
-                                "password": "password123",
+                                "password": "Toyota2026",
                             },
                         )
                         result = handler.lambda_handler(event, None)

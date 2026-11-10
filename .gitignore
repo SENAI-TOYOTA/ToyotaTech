@@ -3,6 +3,15 @@ desktop.ini
 
 # Environment
 .env
+.env.*
+.env.local
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Coverage
+coverage/
 
 # IDEs
 .vscode/

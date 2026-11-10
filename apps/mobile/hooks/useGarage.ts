@@ -1,23 +1,37 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { hasCompleteProfile } from "@/profileValidation";
 import { fetchGarageCurrent } from "@/services/garage";
 import { GarageData } from "@/types/garage";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function useGarage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const profileReady = hasCompleteProfile(user);
   const [garage, setGarage] = useState<GarageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const reload = useCallback(() => {
+    setReloadKey((current) => current + 1);
+  }, []);
 
   useEffect(() => {
     let active = true;
 
     const loadGarage = async () => {
-      if (!token) {
-        if (active) setIsLoading(false);
+      if (!token || !profileReady) {
+        if (active) {
+          setGarage(null);
+          setError(null);
+          setIsLoading(false);
+        }
         return;
       }
-      setIsLoading(true);
+      if (active) {
+        setIsLoading(true);
+        setError(null);
+      }
       try {
         const result = await fetchGarageCurrent(token);
         if (active) {
@@ -25,8 +39,12 @@ export function useGarage() {
           setError(null);
         }
       } catch (err) {
-        if (active) setError("Failed to load garage");
-        console.warn("Failed to fetch garage", err);
+        if (__DEV__) {
+          console.warn("Failed to fetch garage", err);
+        }
+        if (active) {
+          setError("Não foi possível carregar os dados do veículo.");
+        }
       } finally {
         if (active) setIsLoading(false);
       }
@@ -36,7 +54,7 @@ export function useGarage() {
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [token, profileReady, reloadKey]);
 
-  return { garage, isLoading, error };
+  return { garage, isLoading, error, reload };
 }

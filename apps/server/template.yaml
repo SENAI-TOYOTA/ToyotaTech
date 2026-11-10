@@ -8,6 +8,11 @@ Parameters:
     Default: "*"
     Description: CORS allowed origin
 
+  IngestKeyParameterName:
+    Type: String
+    Default: /toyotatech/garage/ingest/key
+    Description: SSM SecureString com a chave compartilhada do ingest
+
 Globals:
   Function:
     Runtime: python3.12
@@ -35,6 +40,7 @@ Resources:
       FunctionName: toyotatech-auth
       CodeUri: services/auth/
       Handler: handler.lambda_handler
+      ReservedConcurrentExecutions: 4
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
@@ -92,6 +98,7 @@ Resources:
     Properties:
       CodeUri: services/profile/
       Handler: handler.lambda_handler
+      ReservedConcurrentExecutions: 2
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
@@ -123,6 +130,7 @@ Resources:
     Properties:
       CodeUri: services/garage/
       Handler: handler.lambda_handler
+      ReservedConcurrentExecutions: 2
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
@@ -162,6 +170,7 @@ Resources:
     Properties:
       CodeUri: services/tracking/
       Handler: handler.lambda_handler
+      ReservedConcurrentExecutions: 1
       Role: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
       Environment:
         Variables:
@@ -169,6 +178,7 @@ Resources:
           COGNITO_CLIENT_ID: !Ref UserPoolClient
           TRACKING_TABLE_NAME: !Ref TrackingTable
           GARAGE_TABLE_NAME: !Ref GarageTable
+          INGEST_KEY_PARAMETER_NAME: !Ref IngestKeyParameterName
       Events:
         GetStatus:
           Type: HttpApi
@@ -183,13 +193,21 @@ Resources:
             Path: /garage/ingest
             Method: POST
 
+  AuthFunctionEventInvokeConfig:
+    Type: AWS::Lambda::EventInvokeConfig
+    Properties:
+      FunctionName: !Ref AuthFunction
+      Qualifier: $LATEST
+      MaximumRetryAttempts: 0
+      MaximumEventAgeInSeconds: 60
+
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: $default
       DefaultRouteSettings:
-        ThrottlingBurstLimit: 50
-        ThrottlingRateLimit: 100
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 20
       CorsConfiguration:
         AllowOrigins:
           - !Ref AllowedOrigin
@@ -236,9 +254,18 @@ Resources:
       AttributeDefinitions:
         - AttributeName: userId
           AttributeType: S
+        - AttributeName: chassi
+          AttributeType: S
       KeySchema:
         - AttributeName: userId
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: chassi-index
+          KeySchema:
+            - AttributeName: chassi
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
 
   PurchasesTable:
     Type: AWS::DynamoDB::Table
@@ -305,6 +332,13 @@ Resources:
       UserPoolName: ToyotatechUserPool
       AutoVerifiedAttributes:
         - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
       LambdaConfig:
         PreSignUp: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:toyotatech-auth
 
@@ -317,6 +351,26 @@ Resources:
       ExplicitAuthFlows:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - openid
+        - email
+        - profile
+        - aws.cognito.signin.user.admin
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+        - mobile://
+        - http://localhost:8081
+      LogoutURLs:
+        - mobile://
+        - http://localhost:8081
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: toyotatech-mobile
 
   AuthFunctionCognitoPermission:
     Type: AWS::Lambda::Permission

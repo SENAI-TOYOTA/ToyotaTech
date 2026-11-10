@@ -5,7 +5,7 @@ import { Platform, StyleSheet, Text, View } from "react-native";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 
 import Button from "@/components/ui/Button";
-import { ApiError } from "@/services/api";
+import { apiErrorMessage } from "@/services/api";
 import { resendVerification, verifyEmail } from "@/services/auth";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
@@ -24,7 +24,7 @@ export default function VerifyEmailScreen() {
 
   const handleVerifyPress = async () => {
     if (verificationCode.length !== CODE_LENGTH) {
-      setFormError("Enter the full verification code.");
+      setFormError("Digite o código completo.");
       return;
     }
     setFormError(null);
@@ -45,11 +45,12 @@ export default function VerifyEmailScreen() {
         params: { email: String(email).toLowerCase() },
       });
     } catch (error) {
-      if (error instanceof ApiError) {
-        setFormError(error.message);
-      } else {
-        setFormError("Unable to validate code. Try again.");
-      }
+      setFormError(
+        apiErrorMessage(
+          error,
+          "Não foi possível validar o código. Tente novamente."
+        )
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -61,15 +62,13 @@ export default function VerifyEmailScreen() {
     setIsResending(true);
     try {
       await resendVerification(String(email).toLowerCase());
-      setFeedback("Code resent.");
+      setFeedback("Código reenviado.");
       setVerificationCode("");
       otpRef.current?.clear();
     } catch (error) {
-      if (error instanceof ApiError) {
-        setFormError(error.message);
-      } else {
-        setFormError("Unable to resend code.");
-      }
+      setFormError(
+        apiErrorMessage(error, "Não foi possível reenviar o código.")
+      );
     } finally {
       setIsResending(false);
     }
@@ -77,15 +76,15 @@ export default function VerifyEmailScreen() {
 
   return (
     <AuthScreenLayout contentSectionStyle={styles.contentSection}>
-      <Text style={styles.title}>VERIFY YOUR EMAIL</Text>
+      <Text style={styles.title}>VERIFIQUE SEU EMAIL</Text>
       <Text style={styles.subtitle}>
-        Do not forget to check your spam folder!
+        Não se esqueça de olhar a caixa de spam!
       </Text>
 
       <View style={styles.formContainer}>
         <View style={styles.emailRow}>
-          <Text style={styles.emailLabel}>Email sent to:</Text>
-          <Text style={styles.emailValue}>{email || "your email"}</Text>
+          <Text style={styles.emailLabel}>Email enviado para:</Text>
+          <Text style={styles.emailValue}>{email || "seu email"}</Text>
         </View>
 
         <View style={styles.codeInputsRow}>
@@ -105,7 +104,7 @@ export default function VerifyEmailScreen() {
         </View>
 
         <Button
-          title={isSubmitting ? "Verifying..." : "Verify"}
+          title={isSubmitting ? "Verificando..." : "Verificar"}
           variant="primary"
           icon={
             <ArrowRight
@@ -121,7 +120,7 @@ export default function VerifyEmailScreen() {
           disabled={isSubmitting || isResending}
         />
         <Button
-          title={isResending ? "Resending..." : "Resend code"}
+          title={isResending ? "Reenviando..." : "Reenviar código"}
           variant="outline"
           style={styles.resendButton}
           onPress={handleResendPress}

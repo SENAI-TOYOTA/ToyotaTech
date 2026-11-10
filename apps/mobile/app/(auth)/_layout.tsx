@@ -43,10 +43,10 @@ export function AuthScreenLayout({
           <Text
             style={[
               styles.footerText,
-              footerTextColor && { color: footerTextColor },
+              footerTextColor ? { color: footerTextColor } : null,
             ]}
           >
-            all rights reserved 2026
+            todos os direitos reservados © 2026
           </Text>
         </View>
       </View>

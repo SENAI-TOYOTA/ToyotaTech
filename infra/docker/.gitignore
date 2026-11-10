@@ -11,11 +11,11 @@ __pycache__/
 # Docker
 *.log
 
-# Node-RED data (caso adicione volume depois)
-node-red-data/
-
-# InfluxDB data (caso adicione volume depois)
-influxdb-data/
-
-# Grafana data (caso adicione volume depois)
-grafana-data/
+# Dados de runtime (volumes do docker-compose.yml)
+influxdb/
+grafana/
+nodered/node_modules/
+nodered/.config.*.json
+nodered/package.json
+nodered/package-lock.json
+nodered/flows_cred.json

@@ -49,7 +49,13 @@ def save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
 
     if "fullName" in body:
         require(isinstance(body.get("fullName"), str), 400, "Nome completo inválido.")
-        updates["fullName"] = body.get("fullName", "").strip()
+        full_name = validation.coerce_text(body.get("fullName"))
+        require(
+            len(validation.normalize_name(full_name).split()) >= 2,
+            400,
+            "Informe nome e sobrenome.",
+        )
+        updates["fullName"] = full_name
 
     if "birthDate" in body:
         require(
@@ -64,9 +70,8 @@ def save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
 
     if "cpf" in body:
         require(isinstance(body.get("cpf"), str), 400, "CPF inválido.")
-        normalized_cpf = validation.normalize_cpf(body.get("cpf", ""))
-        require(len(normalized_cpf) == 11, 400, "CPF inválido.")
-        updates["cpf"] = normalized_cpf
+        require(validation.is_valid_cpf(body.get("cpf", "")), 400, "CPF inválido.")
+        updates["cpf"] = validation.normalize_cpf(body.get("cpf", ""))
 
     require(bool(updates), 400, "Nenhum campo de perfil informado.")
 
@@ -92,13 +97,19 @@ def save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
                 "userId": user_id,
                 **profile,
                 "updatedAt": int(time.time()),
-            }
+            },
+            ConditionExpression="attribute_not_exists(cpf) OR cpf = :expected_cpf",
+            ExpressionAttributeValues={":expected_cpf": existing_cpf},
         )
         return {"profile": profile}
     except ClientError as error:
         code, _ = error_body(error)
         if code == "NotAuthorizedException":
             raise ApiError(401, "Sessão inválida ou expirada.")
+        if code == "ConditionalCheckFailedException":
+            raise ApiError(
+                409, "CPF não pode ser alterado depois de vinculado ao perfil."
+            )
         raise
 
 
@@ -106,4 +117,5 @@ def me(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
     if "sub" in user:
         user["profile"] = _get_profile(user["sub"])
+        user["profileComplete"] = validation.is_complete(user["profile"])
     return {"user": user}

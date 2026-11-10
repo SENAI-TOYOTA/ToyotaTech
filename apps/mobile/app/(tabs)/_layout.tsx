@@ -1,19 +1,22 @@
 import { Tabs, useRouter } from "expo-router";
 import { CarFront, CircleDollarSign, Home, User } from "lucide-react-native";
 import React, { useEffect } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { type ColorValue, Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import Logo from "@/components/Logo";
-import { colors, fontSize, spacing } from "@/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 
-const iconSize = 22;
+const iconSize = 20;
 const iconStrokeWidth = 1.8;
 
 function TabsHeader() {
@@ -25,7 +28,8 @@ function TabsHeader() {
         <Pressable
           onPress={() => router.replace("/home")}
           accessibilityRole="button"
-          accessibilityLabel="Go to home"
+          accessibilityLabel="Ir para o início"
+          style={styles.logoPressable}
         >
           <Logo size={fontSize.xxl + spacing.xs} />
         </Pressable>
@@ -40,60 +44,72 @@ const TabIcon = React.memo(function TabIcon({
   Icon,
 }: {
   focused: boolean;
-  color: string;
+  color: ColorValue;
   Icon: typeof Home;
 }) {
   const scale = useSharedValue(1);
-  const indicatorOpacity = useSharedValue(0);
-  const indicatorScale = useSharedValue(0.5);
+  const pillOpacity = useSharedValue(0);
 
   useEffect(() => {
-    scale.value = withSpring(focused ? 1.15 : 1, {
+    scale.value = withSpring(focused ? 1.05 : 1, {
       damping: 15,
       stiffness: 150,
     });
-    indicatorOpacity.value = withTiming(focused ? 1 : 0, { duration: 250 });
-    indicatorScale.value = withSpring(focused ? 1 : 0.5);
-  }, [focused, scale, indicatorOpacity, indicatorScale]);
+    pillOpacity.value = withTiming(focused ? 1 : 0, { duration: 200 });
+  }, [focused, scale, pillOpacity]);
 
   const animatedIconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  const animatedIndicatorStyle = useAnimatedStyle(() => ({
-    opacity: indicatorOpacity.value,
-    transform: [{ scaleX: indicatorScale.value }],
+  const animatedPillStyle = useAnimatedStyle(() => ({
+    opacity: pillOpacity.value,
   }));
 
   return (
     <View style={styles.tabIconWrapper}>
+      <Animated.View style={[styles.tabPill, animatedPillStyle]} />
       <Animated.View style={animatedIconStyle}>
-        <Icon size={iconSize} strokeWidth={iconStrokeWidth} color={color} />
+        <Icon
+          size={iconSize}
+          strokeWidth={iconStrokeWidth}
+          color={focused ? colors.white : (color as string)}
+        />
       </Animated.View>
-      <Animated.View style={[styles.tabIndicator, animatedIndicatorStyle]} />
     </View>
   );
 });
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, spacing.xs);
+
   return (
     <Tabs
       screenOptions={{
         header: () => <TabsHeader />,
         headerShadowVisible: false,
         sceneStyle: styles.scene,
-        tabBarShowLabel: false,
+        tabBarShowLabel: true,
         tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.black,
-        tabBarStyle: styles.tabBar,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: styles.tabBarLabel,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: 56 + bottomInset,
+            paddingBottom: bottomInset,
+          },
+        ],
         tabBarItemStyle: styles.tabBarItem,
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
-          title: "Home",
+          title: "Início",
+          tabBarLabel: "Início",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={Home} color={color} focused={focused} />
           ),
@@ -102,7 +118,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="financing"
         options={{
-          title: "Financing",
+          title: "Financiamento",
+          tabBarLabel: "Financiamento",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={CircleDollarSign} color={color} focused={focused} />
           ),
@@ -111,7 +128,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="vehicle-management"
         options={{
-          title: "Vehicle Management",
+          title: "Gestão do veículo",
+          tabBarLabel: "Veículo",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={CarFront} color={color} focused={focused} />
           ),
@@ -120,16 +138,11 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: "Perfil",
+          tabBarLabel: "Perfil",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={User} color={color} focused={focused} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="tracking"
-        options={{
-          href: null,
         }}
       />
     </Tabs>
@@ -153,31 +166,41 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     backgroundColor: colors.background,
   },
+  logoPressable: {
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+  },
   tabBar: {
-    height: spacing.xxl + spacing.md,
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    boxShadow: "0px -1px 10px rgba(0, 0, 0, 0.12)",
+    boxShadow: "0px -1px 10px rgba(0, 0, 0, 0.08)",
     elevation: 8,
     paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
   },
   tabBarItem: {
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 2,
+  },
+  tabBarLabel: {
+    fontFamily: fonts.medium,
+    fontSize: fontSize.xs,
+    marginTop: 2,
   },
   tabIconWrapper: {
-    width: 38,
-    height: 34,
+    width: 48,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
   },
-  tabIndicator: {
-    marginTop: 6,
-    width: 18,
-    height: 2,
-    borderRadius: 999,
+  tabPill: {
+    position: "absolute",
+    width: 44,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: colors.primary,
   },
 });

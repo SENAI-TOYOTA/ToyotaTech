@@ -5,6 +5,9 @@ import urllib.error
 import urllib.request
 
 BODY = b'{"email":"a@b.co"}'
+DEFAULT_COUNT = 25
+MAX_COUNT = 50
+MAX_WORKERS = 1
 
 
 def api_url() -> str:
@@ -29,8 +32,9 @@ def call(_: int) -> tuple[int, dict[str, str]]:
 
 
 def main() -> int:
-    count = int(sys.argv[1]) if len(sys.argv) > 1 else 40
-    with concurrent.futures.ThreadPoolExecutor(max_workers=count) as pool:
+    count = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_COUNT
+    count = max(1, min(count, MAX_COUNT))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
         results = list(pool.map(call, range(count)))
 
     codes: dict[int, int] = {}

@@ -23,7 +23,7 @@ function AppNavigator() {
   const segments = useSegments();
   const { isAuthenticated, isLoadingSession, user } = useAuth();
 
-  const isInAuthGroup = segments[0] === "(auth)";
+  const isInAuthGroup = (segments[0] ?? "(auth)") === "(auth)";
   const isInProfileSetup = segments[0] === "profile-setup";
   const needsProfile = Boolean(isAuthenticated) && !hasCompleteProfile(user);
 

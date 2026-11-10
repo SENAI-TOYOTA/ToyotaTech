@@ -9,11 +9,11 @@ from common.responses import require
 from common.validation import coerce_text
 
 TRACKING_FLOW_STEPS = [
-    {"id": "1", "label": "Inicio da producao"},
+    {"id": "1", "label": "Início da produção"},
     {"id": "2", "label": "Montagem finalizada"},
     {"id": "3", "label": "Teste de qualidade"},
     {"id": "4", "label": "Em transporte"},
-    {"id": "5", "label": "Concessionaria"},
+    {"id": "5", "label": "Concessionária"},
     {"id": "6", "label": "Pronto para retirada"},
 ]
 
@@ -69,26 +69,6 @@ TRACKING_STAGE_ALIASES = {
         "pickup_ready",
     },
 }
-
-TRACKING_FIELDS = (
-    "chassi",
-    "vehicleId",
-    "vin",
-    "currentStepIndex",
-    "stepIndex",
-    "progress",
-    "stage",
-    "phase",
-    "status",
-    "eventTime",
-    "timestamp",
-    "history",
-    "timestamps",
-    "state",
-    "tags",
-    "fields",
-    "measurement",
-)
 
 
 def slugify_tracking_token(value: Any) -> str:
@@ -229,31 +209,6 @@ def extract_step_dates(payload: Dict[str, Any]) -> Dict[int, str]:
                 step_dates[index] = formatted
 
     return step_dates
-
-
-def extract_iot_tracking_payload(event: Any) -> Optional[Dict[str, Any]]:
-    if not isinstance(event, dict):
-        return None
-    if event.get("requestContext") or event.get("triggerSource"):
-        return None
-
-    payload = event
-    if isinstance(event.get("payload"), dict):
-        payload = event["payload"]
-    elif isinstance(event.get("detail"), dict):
-        payload = event["detail"]
-    elif isinstance(event.get("state"), dict):
-        state = event["state"]
-        if isinstance(state.get("reported"), dict):
-            payload = state["reported"]
-        elif isinstance(state.get("desired"), dict):
-            payload = state["desired"]
-        else:
-            payload = state
-
-    if any(key in payload for key in TRACKING_FIELDS):
-        return coerce_iot_tracking_payload(payload)
-    return None
 
 
 def coerce_iot_tracking_payload(payload: Any) -> Optional[Dict[str, Any]]:
