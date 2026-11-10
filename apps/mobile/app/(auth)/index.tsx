@@ -4,14 +4,12 @@ import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
-import FormMessage from "@/components/ui/FormMessage";
 import SocialButton from "@/components/ui/SocialButton";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { t } from "@/i18n";
 import { ApiError } from "@/services/api";
 import { checkEmail } from "@/services/auth";
 import { colors, fonts, fontSize, spacing } from "@/theme";
@@ -217,110 +215,114 @@ export default function LoginScreen() {
 
   return (
     <AuthScreenLayout
-      title="Welcome"
-      subtitle="Sign in to follow your Toyota from order to delivery."
+      contentSectionStyle={styles.contentSection}
+      footerTextColor={colors.textSecondary}
       bottomContent={
-        <Button
-          title={isSubmitting ? "Verifying..." : "Continue"}
-          loading={isSubmitting}
-          icon={<ArrowRight size={20} strokeWidth={2.4} color={colors.white} />}
-          onPress={handleContinuePress}
-          disabled={!canContinue}
-        />
+        <View style={styles.bottomContentContainer}>
+          <Button
+            title={isSubmitting ? "Verifying..." : "Continue"}
+            variant="primary"
+            icon={
+              <ArrowRight
+                size={36}
+                strokeWidth={3}
+                color={colors.white}
+                strokeLinecap="butt"
+                strokeLinejoin="round"
+              />
+            }
+            style={styles.continueButton}
+            onPress={handleContinuePress}
+            disabled={!canContinue}
+          />
+        </View>
       }
     >
       <View style={styles.formSection}>
         <SocialButton
           icon={googleIcon}
-          label="Continue with Google"
-          loading={isGoogleLoading}
-          onPress={handleGooglePress}
+          onPress={isGoogleLoading ? undefined : handleGooglePress}
         />
-
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>{t("or use your email")}</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
         <TextInput
-          label="Email address"
-          placeholder="name@example.com"
+          placeholder="EMAIL ADDRESS *"
           autoCapitalize="none"
-          autoComplete="email"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
-          onSubmitEditing={handleContinuePress}
-          returnKeyType="next"
         />
-
-        <Pressable
-          style={styles.termsContainer}
-          onPress={() => setAcceptedTerms((current) => !current)}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: acceptedTerms }}
-        >
+        <View style={styles.termsContainer}>
           <Checkbox
             value={acceptedTerms}
+            onValueChange={setAcceptedTerms}
             style={styles.checkbox}
-            color={acceptedTerms ? colors.primary : colors.borderStrong}
+            color={acceptedTerms ? colors.black : undefined}
           />
           <Text style={styles.termsText}>
-            {t("I have read and agree to the")}{" "}
+            By clicking continue, you{"\n"}agree to the{" "}
             <Text style={styles.termsLink}>
-              {t("ToyotaTech Terms and Conditions")}
+              ToyotaTech{"\n"}Terms and Conditions
             </Text>
             .
           </Text>
-        </Pressable>
-
-        <FormMessage message={formError} />
+        </View>
+        {formError ? (
+          <Text style={styles.formErrorText}>{formError}</Text>
+        ) : null}
+        {isGoogleLoading ? (
+          <Text style={styles.formInfoText}>Connecting to Google...</Text>
+        ) : null}
       </View>
     </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
+  contentSection: {
+    marginTop: spacing.xl + spacing.xl + spacing.sm,
+  },
   formSection: {
-    gap: spacing.md + 4,
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md - 4,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    fontFamily: fonts.regular,
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
+    gap: spacing.lg,
   },
   termsContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: spacing.md - 4,
+    gap: spacing.md,
+    marginTop: spacing.sm,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    marginTop: 1,
+    width: 22,
+    height: 22,
+    borderRadius: 2,
+    marginTop: 2,
+    borderColor: colors.black,
   },
   termsText: {
-    flex: 1,
     fontFamily: fonts.regular,
-    fontSize: fontSize.sm + 1,
-    lineHeight: 21,
-    color: colors.textSecondary,
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+    lineHeight: 22,
+    flex: 1,
   },
   termsLink: {
-    fontFamily: fonts.semiBold,
-    color: colors.textPrimary,
     textDecorationLine: "underline",
+    fontFamily: fonts.medium,
+  },
+  formErrorText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.primary,
+  },
+  formInfoText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  bottomContentContainer: {
+    width: "100%",
+  },
+  continueButton: {
+    width: "100%",
   },
 });

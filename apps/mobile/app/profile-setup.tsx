@@ -1,23 +1,16 @@
 import { useRouter } from "expo-router";
-import { ArrowRight, KeyRound } from "lucide-react-native";
+import { ArrowRight, Eye } from "lucide-react-native";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import Logo from "@/components/Logo";
 import Button from "@/components/ui/Button";
-import Card from "@/components/ui/Card";
-import FormMessage from "@/components/ui/FormMessage";
-import PasswordInput from "@/components/ui/PasswordInput";
-import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileForm } from "@/hooks/useProfileForm";
-import { t } from "@/i18n";
 import { validatePassword } from "@/profileValidation";
 import { ApiError } from "@/services/api";
-import { colors, fonts, fontSize, radius, spacing } from "@/theme";
+import { colors, fonts, fontSize, spacing } from "@/theme";
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
@@ -39,6 +32,7 @@ export default function ProfileSetupScreen() {
     formatCpf,
   } = useProfileForm();
   const [password, setPasswordValue] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const handleSave = async () => {
@@ -73,128 +67,200 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <Screen maxWidth={560} showFooter={false}>
-        <Logo size={fontSize.xl + 2} />
+    <View style={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
         <ScreenSectionHeader
-          eyebrow="ONE LAST STEP"
           title="Complete your profile"
-          subtitle="We use this information to find your purchase and link it to your account."
+          subtitle="Provide your data to continue"
+          style={styles.sectionHeader}
         />
 
-        <Card>
-          <View style={styles.form}>
-            <TextInput
-              label="Full name"
-              placeholder="Your full name"
-              autoComplete="name"
-              value={fullName}
-              onChangeText={setFullName}
-            />
-            <TextInput
-              label="Birth date"
-              placeholder="DD/MM/YYYY"
-              value={birthDate}
-              onChangeText={(text) => setBirthDate(formatBirthDate(text))}
-              keyboardType="numeric"
-              maxLength={10}
-            />
-            <TextInput
-              label="CPF"
-              placeholder="000.000.000-00"
-              value={cpf}
-              onChangeText={(text) => setCpf(formatCpf(text))}
-              keyboardType="numeric"
-              maxLength={14}
-              editable={!isCpfLocked}
-            />
-          </View>
-        </Card>
+        <View style={styles.formContainer}>
+          <TextInput
+            placeholder="Full name"
+            value={fullName}
+            onChangeText={setFullName}
+            containerStyle={styles.inputContainer}
+            style={styles.inputText}
+          />
+          <TextInput
+            placeholder="Birth date (DD/MM/YYYY)"
+            value={birthDate}
+            onChangeText={(text) => setBirthDate(formatBirthDate(text))}
+            keyboardType="numeric"
+            maxLength={10}
+            containerStyle={styles.inputContainer}
+            style={styles.inputText}
+          />
+          <TextInput
+            placeholder="CPF"
+            value={cpf}
+            onChangeText={(text) => setCpf(formatCpf(text))}
+            keyboardType="numeric"
+            maxLength={14}
+            editable={!isCpfLocked}
+            containerStyle={styles.inputContainer}
+            style={styles.inputText}
+          />
+          {isFederatedUser ? (
+            <View style={styles.passwordSection}>
+              <Text style={styles.passwordSectionTitle}>
+                CREATE PASSWORD (OPTIONAL)
+              </Text>
+              <Text style={styles.passwordSectionSubtitle}>
+                Set a password to sign in with email and password as well,
+                without using Google button.
+              </Text>
 
-        {isFederatedUser ? (
-          <Card>
-            <View style={styles.passwordHeader}>
-              <View style={styles.passwordIcon}>
-                <KeyRound size={20} strokeWidth={1.8} color={colors.primary} />
-              </View>
-              <View style={styles.passwordHeaderText}>
-                <Text style={styles.passwordTitle}>
-                  {t("Create a password (optional)")}
+              <TextInput
+                placeholder="NEW PASSWORD"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPasswordValue}
+                containerStyle={styles.passwordInputContainer}
+                style={styles.inputText}
+              />
+              <Pressable
+                style={styles.visibilityRow}
+                onPress={() => setShowPassword((current) => !current)}
+              >
+                <Eye size={18} strokeWidth={1.8} color={colors.black} />
+                <Text style={styles.visibilityText}>
+                  {showPassword ? "HIDE" : "SHOW"}
                 </Text>
-                <Text style={styles.passwordSubtitle}>
-                  {t(
-                    "Sign in with email and password too, without using the Google button."
-                  )}
+              </Pressable>
+
+              <Text style={styles.passwordHintText}>
+                At least 8 characters with one uppercase, one lowercase and one
+                number.
+              </Text>
+
+              {passwordSuccess ? (
+                <Text style={styles.passwordSuccessText}>
+                  Password set successfully!
                 </Text>
-              </View>
+              ) : null}
             </View>
-            <PasswordInput
-              label="New password"
-              placeholder="Create a password"
-              autoComplete="new-password"
-              value={password}
-              onChangeText={setPasswordValue}
-              hint="At least 8 characters with one uppercase, one lowercase and one number."
-            />
-            <FormMessage
-              message={passwordSuccess ? "Password set successfully!" : null}
-              tone="success"
-              style={styles.passwordMessage}
-            />
-          </Card>
-        ) : null}
+          ) : null}
 
-        <FormMessage message={formError} />
+          {formError ? (
+            <Text style={styles.formErrorText}>{formError}</Text>
+          ) : null}
+        </View>
+      </ScrollView>
 
+      <View style={styles.saveButtonContainer}>
         <Button
           title={isSaving ? "Saving..." : "Save and continue"}
-          loading={isSaving}
-          icon={<ArrowRight size={20} strokeWidth={2.4} color={colors.white} />}
-          disabled={isLoadingProfile || !token}
+          style={styles.saveButton}
+          icon={
+            <ArrowRight
+              size={36}
+              strokeWidth={3}
+              color={colors.white}
+              strokeLinecap="butt"
+              strokeLinejoin="round"
+            />
+          }
+          disabled={isSaving || isLoadingProfile || !token}
           onPress={handleSave}
         />
-      </Screen>
-    </SafeAreaView>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  form: {
+  contentContainer: {
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.lg + 3,
+    paddingBottom: spacing.xxl + spacing.xxl + spacing.xl,
+  },
+  sectionHeader: {
+    marginTop: spacing.lg,
+  },
+  formContainer: {
+    marginTop: spacing.xl + spacing.sm + 2,
     gap: spacing.md,
   },
-  passwordHeader: {
-    flexDirection: "row",
-    gap: spacing.md - 4,
-    marginBottom: spacing.md,
+  inputContainer: {
+    height: 50,
+    paddingVertical: 0,
+    paddingHorizontal: spacing.md - 2,
+    borderRadius: 0,
+    backgroundColor: colors.white,
   },
-  passwordIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    backgroundColor: colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  passwordHeaderText: {
-    flex: 1,
-  },
-  passwordTitle: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.md + 1,
+  inputText: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.md,
     color: colors.textPrimary,
   },
-  passwordSubtitle: {
-    marginTop: 2,
+  passwordSection: {
+    marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  passwordSectionTitle: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.sm,
+    color: colors.black,
+    letterSpacing: 0.5,
+  },
+  passwordSectionSubtitle: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  passwordInputContainer: {
+    height: 50,
+    paddingVertical: 0,
+    paddingHorizontal: spacing.md - 2,
+    borderRadius: 0,
+    backgroundColor: colors.white,
+  },
+  visibilityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    gap: 6,
+  },
+  visibilityText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.black,
+  },
+  passwordHintText: {
     fontFamily: fonts.regular,
     fontSize: fontSize.sm,
     lineHeight: 20,
     color: colors.textSecondary,
   },
-  passwordMessage: {
-    marginTop: spacing.md - 4,
+  passwordSuccessText: {
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+  },
+  formErrorText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.primary,
+  },
+  saveButtonContainer: {
+    position: "absolute",
+    left: spacing.lg + 3,
+    right: spacing.lg + 3,
+    bottom: spacing.xxl + spacing.md,
+    zIndex: 1,
+  },
+  saveButton: {
+    width: "100%",
   },
 });

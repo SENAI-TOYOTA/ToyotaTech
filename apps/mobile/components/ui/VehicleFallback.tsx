@@ -1,87 +1,118 @@
-import { CarFront } from "lucide-react-native";
+import { colors, fonts, spacing } from "@/theme";
 import { StyleSheet, Text, View } from "react-native";
-
-import { t } from "@/i18n";
-import { colors, fonts, fontSize, radius, spacing } from "@/theme";
 
 interface VehicleFallbackProps {
   model?: string;
+  version?: string;
+  color?: string;
+  chassi?: string;
   variant?: "hero" | "card";
 }
 
 export default function VehicleFallback({
   model,
+  version,
+  color,
+  chassi,
   variant = "hero",
 }: VehicleFallbackProps) {
-  const isHero = variant === "hero";
+  const displayModel = model ?? "Your Toyota";
+  const specs =
+    version && color
+      ? `${version} • ${color}`
+      : (version ?? color ?? "Vehicle data in preparation");
 
   return (
-    <View style={[styles.container, isHero ? styles.hero : styles.card]}>
-      <View style={[styles.iconRing, isHero && styles.iconRingHero]}>
-        <CarFront
-          size={isHero ? 44 : 36}
-          strokeWidth={1.4}
-          color={isHero ? colors.white : colors.textSecondary}
-        />
-      </View>
-      <Text style={[styles.model, isHero && styles.modelHero]}>
-        {model ?? t("Your Toyota")}
+    <View style={variant === "hero" ? styles.hero : styles.card}>
+      <Text style={styles.eyebrow}>LINKED VEHICLE</Text>
+      <Text style={variant === "hero" ? styles.modelHero : styles.modelCard}>
+        {displayModel}
       </Text>
-      <Text style={[styles.note, isHero && styles.noteHero]}>
-        {t("Illustrative image unavailable")}
+      <Text style={variant === "hero" ? styles.specsHero : styles.specsCard}>
+        {specs}
+      </Text>
+      {variant === "hero" && chassi ? (
+        <Text style={styles.chassi}>Chassis {chassi}</Text>
+      ) : null}
+      <Text style={variant === "hero" ? styles.noteHero : styles.noteCard}>
+        Illustrative image unavailable
       </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  hero: {
     width: "100%",
     height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
     padding: spacing.lg,
-  },
-  hero: {
-    backgroundColor: colors.inkSoft,
+    justifyContent: "flex-end",
   },
   card: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radius.md,
-  },
-  iconRing: {
-    width: 76,
-    height: 76,
-    borderRadius: radius.pill,
+    width: "100%",
+    height: "100%",
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    alignItems: "center",
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    padding: spacing.md,
     justifyContent: "center",
   },
-  iconRingHero: {
-    width: 96,
-    height: 96,
-    borderColor: "rgba(255, 255, 255, 0.16)",
-    backgroundColor: "rgba(255, 255, 255, 0.06)",
-  },
-  model: {
-    marginTop: spacing.md - 4,
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.lg,
-    color: colors.textPrimary,
-    textAlign: "center",
+  eyebrow: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.primary,
+    letterSpacing: 1,
   },
   modelHero: {
-    color: colors.white,
+    marginTop: spacing.sm,
+    fontFamily: fonts.bold,
+    fontSize: 34,
+    lineHeight: 36,
+    color: colors.black,
   },
-  note: {
-    marginTop: 2,
+  modelCard: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.bold,
+    fontSize: 28,
+    lineHeight: 30,
+    color: colors.black,
+  },
+  specsHero: {
+    marginTop: spacing.sm,
     fontFamily: fonts.regular,
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
+    fontSize: 18,
+    color: colors.textSecondary,
+  },
+  specsCard: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  chassi: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    color: colors.black,
   },
   noteHero: {
-    color: colors.textInverseMuted,
+    marginTop: spacing.lg,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: colors.black,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  noteCard: {
+    marginTop: spacing.md,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.textSecondary,
   },
 });

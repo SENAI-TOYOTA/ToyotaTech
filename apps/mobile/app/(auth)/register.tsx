@@ -1,14 +1,11 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowRight } from "lucide-react-native";
+import { ArrowRight, Eye } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
-import FormMessage from "@/components/ui/FormMessage";
-import PasswordInput from "@/components/ui/PasswordInput";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { t } from "@/i18n";
 import { ApiError } from "@/services/api";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
@@ -19,6 +16,7 @@ export default function RegisterScreen() {
   const { signUp } = useAuth();
   const [email, setEmail] = useState(emailFromParams ?? "");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -65,87 +63,116 @@ export default function RegisterScreen() {
   };
 
   return (
-    <AuthScreenLayout
-      showBack
-      title="Create your account"
-      subtitle="It only takes a minute to start following your Toyota."
-    >
-      <View style={styles.form}>
+    <AuthScreenLayout>
+      <Text style={styles.welcomeText}>WELCOME!</Text>
+
+      <View style={styles.formContainer}>
         <TextInput
-          label="Email address"
-          placeholder="name@example.com"
+          placeholder="EMAIL ADDRESS *"
           autoCapitalize="none"
-          autoComplete="email"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
         />
 
-        <PasswordInput
-          label="Password"
-          placeholder="Create a password"
-          autoComplete="new-password"
+        <TextInput
+          placeholder="PASSWORD *"
+          secureTextEntry={!showPassword}
           value={password}
           onChangeText={setPassword}
-          onSubmitEditing={handleCreateAccountPress}
-          hint="At least 8 characters with one uppercase, one lowercase and one number."
+          containerStyle={styles.passwordInputContainer}
+          style={styles.passwordInputText}
         />
+        <Pressable
+          style={styles.visibilityRow}
+          onPress={() => setShowPassword((current) => !current)}
+        >
+          <Eye size={18} strokeWidth={1.8} color={colors.black} />
+          <Text style={styles.visibilityText}>
+            {showPassword ? "HIDE" : "SHOW"}
+          </Text>
+        </Pressable>
 
-        <FormMessage message={formError} />
+        <Text style={styles.passwordHintText}>
+          At least 8 characters with one uppercase, one lowercase and one
+          number.
+        </Text>
+
+        {formError ? (
+          <Text style={styles.formErrorText}>{formError}</Text>
+        ) : null}
 
         <Button
-          title={isSubmitting ? "Creating account..." : "Create account"}
-          loading={isSubmitting}
-          icon={<ArrowRight size={20} strokeWidth={2.4} color={colors.white} />}
-          style={styles.submit}
+          title={isSubmitting ? "Creating..." : "Create account"}
+          variant="primary"
+          icon={
+            <ArrowRight
+              size={36}
+              strokeWidth={3}
+              color={colors.white}
+              strokeLinecap="butt"
+              strokeLinejoin="round"
+            />
+          }
+          style={styles.createAccountButton}
           onPress={handleCreateAccountPress}
           disabled={!canSubmit}
         />
-
-        <View style={styles.switchRow}>
-          <Text style={styles.switchText}>{t("Already have an account?")}</Text>
-          <Pressable
-            accessibilityRole="link"
-            hitSlop={6}
-            onPress={() => {
-              router.replace({
-                pathname: "/(auth)/login",
-                params: { email: normalizedEmail },
-              });
-            }}
-          >
-            <Text style={styles.switchLink}>{t("Sign in")}</Text>
-          </Pressable>
-        </View>
       </View>
     </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  form: {
-    gap: spacing.md + 4,
+  welcomeText: {
+    marginTop: 66,
+    textAlign: "center",
+    fontFamily: fonts.semiBold,
+    fontSize: 28,
+    color: colors.black,
   },
-  submit: {
+  formContainer: {
+    width: "100%",
+    marginTop: spacing.xxl,
+  },
+  visibilityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    gap: 6,
     marginTop: spacing.xs,
   },
-  switchRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 6,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+  visibilityText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.black,
   },
-  switchText: {
+  passwordInputContainer: {
+    width: "100%",
+    height: 50,
+    paddingVertical: 0,
+    paddingHorizontal: 12,
+    marginTop: spacing.md,
+  },
+  passwordInputText: {
+    fontFamily: fonts.regular,
+    fontSize: 18,
+  },
+  passwordHintText: {
+    marginTop: spacing.sm,
     fontFamily: fonts.regular,
     fontSize: fontSize.md,
-    color: colors.textSecondary,
+    lineHeight: 22,
+    color: colors.textPrimary,
   },
-  switchLink: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.md,
+  createAccountButton: {
+    width: "100%",
+    marginTop: spacing.xl,
+  },
+  formErrorText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
     color: colors.primary,
   },
 });
