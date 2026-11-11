@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react-native";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
+import Button from "@/components/ui/Button";
 import InteractivePressable from "@/components/ui/InteractivePressable";
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
@@ -115,16 +116,17 @@ export default function HomeScreen() {
 
         <Animated.View
           entering={FadeInDown.delay(300).duration(600).springify()}
-          style={styles.statusButtonWrapper}
         >
-          <View style={styles.statusButtonShadow} />
-          <InteractivePressable
-            style={styles.statusButton}
+          <Button
+            variant="primary"
+            layout="row"
+            title="Verificar Status"
+            icon={
+              <ArrowRight size={26} strokeWidth={2.4} color={colors.white} />
+            }
             onPress={() => router.push("/tracking")}
-          >
-            <Text style={styles.statusButtonText}>Verificar Status</Text>
-            <ArrowRight size={24} strokeWidth={2.6} color={colors.white} />
-          </InteractivePressable>
+            style={styles.statusButton}
+          />
         </Animated.View>
 
         <Animated.Text
@@ -141,7 +143,7 @@ export default function HomeScreen() {
           style={styles.highlightScroll}
         >
           {highlightCards.map((card) => (
-            <InteractivePressable key={card.id} style={styles.highlightCard}>
+            <View key={card.id} style={styles.highlightCard}>
               <Image
                 source={card.image}
                 style={styles.highlightImage}
@@ -150,7 +152,7 @@ export default function HomeScreen() {
               <View style={styles.highlightLabel}>
                 <Text style={styles.highlightLabelText}>{card.title}</Text>
               </View>
-            </InteractivePressable>
+            </View>
           ))}
         </Animated.ScrollView>
 
@@ -162,10 +164,10 @@ export default function HomeScreen() {
             Guias e Notícias
           </Animated.Text>
           <Animated.View entering={FadeInDown.delay(600).duration(600)}>
-            <InteractivePressable style={styles.newsHeaderButton}>
+            <View style={styles.newsHeaderButton}>
               <Text style={styles.newsHeaderText}>Ver todos</Text>
               <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
-            </InteractivePressable>
+            </View>
           </Animated.View>
         </View>
 
@@ -175,13 +177,13 @@ export default function HomeScreen() {
               key={tip.id}
               entering={FadeInDown.delay(700 + index * 100).duration(600)}
             >
-              <InteractivePressable style={styles.newsCard}>
+              <View style={styles.newsCard}>
                 <Text style={styles.newsMeta}>{tip.category}</Text>
                 <Text style={styles.newsTitle}>{tip.title}</Text>
                 <Text style={styles.newsDescription} numberOfLines={2}>
                   {tip.description}
                 </Text>
-              </InteractivePressable>
+              </View>
             </Animated.View>
           ))}
         </View>
@@ -272,36 +274,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.white,
   },
-  statusButtonWrapper: {
-    width: 251,
-    height: 42,
-    marginTop: spacing.lg - 5,
-    marginLeft: 6,
-  },
-  statusButtonShadow: {
-    position: "absolute",
-    top: 4,
-    left: 6,
-    right: -6,
-    bottom: -4,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-  },
   statusButton: {
-    height: 40,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  statusButtonText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 24,
-    color: colors.white,
+    width: 251,
+    marginTop: spacing.lg - 5,
   },
   sectionTitle: {
     marginTop: spacing.xl + spacing.sm,

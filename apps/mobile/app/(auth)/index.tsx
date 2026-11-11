@@ -227,8 +227,9 @@ export default function LoginScreen() {
       bottomContent={
         <View style={styles.bottomContentContainer}>
           <Button
-            title={isSubmitting ? "Verificando..." : "Prosseguir"}
+            title="Prosseguir"
             variant="primary"
+            loading={isSubmitting}
             icon={
               <ArrowRight
                 size={36}

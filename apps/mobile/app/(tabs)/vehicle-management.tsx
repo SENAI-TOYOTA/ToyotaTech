@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react-native";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import InteractivePressable from "@/components/ui/InteractivePressable";
+import Button from "@/components/ui/Button";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, fontSize, spacing } from "@/theme";
@@ -49,21 +49,19 @@ export default function VehicleManagementScreen() {
                   entering={FadeInDown.delay(200 + index * 100)
                     .duration(600)
                     .springify()}
-                  style={styles.documentButtonWrapper}
                 >
-                  <View style={styles.documentButtonShadow} />
-                  <InteractivePressable style={styles.documentButton}>
-                    <View style={styles.documentButtonContent}>
-                      <Text style={styles.documentButtonText}>
-                        {documentTitle}
-                      </Text>
-                    </View>
-                    <ArrowRight
-                      size={30}
-                      strokeWidth={2.4}
-                      color={colors.black}
-                    />
-                  </InteractivePressable>
+                  <Button
+                    variant="secondary"
+                    layout="row"
+                    title={documentTitle}
+                    icon={
+                      <ArrowRight
+                        size={26}
+                        strokeWidth={2.4}
+                        color={colors.black}
+                      />
+                    }
+                  />
                 </Animated.View>
               );
             })
@@ -122,39 +120,6 @@ const styles = StyleSheet.create({
   documentList: {
     marginTop: spacing.xl + spacing.sm + 2,
     gap: spacing.xl,
-  },
-  documentButtonWrapper: {
-    height: spacing.xxl - spacing.sm + 2,
-    marginRight: spacing.sm - 1,
-  },
-  documentButtonShadow: {
-    position: "absolute",
-    top: spacing.xs,
-    left: spacing.sm - 1,
-    right: -(spacing.sm - 1),
-    bottom: -spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: "transparent",
-  },
-  documentButton: {
-    height: spacing.xxl - spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.md + 2,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  documentButtonContent: {
-    flex: 1,
-    paddingRight: spacing.sm,
-  },
-  documentButtonText: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xl,
-    color: colors.textPrimary,
   },
   emptyStateText: {
     fontFamily: fonts.regular,

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchTrackingStatus } from "@/services/tracking";
@@ -68,14 +68,14 @@ export default function TrackingScreen() {
         <Text style={styles.errorText}>
           Não foi possível carregar o status do veículo.
         </Text>
-        <Pressable
+        <InteractivePressable
           style={styles.backButton}
           onPress={handleBack}
           accessibilityRole="button"
           accessibilityLabel="Voltar"
         >
           <Text style={styles.backButtonText}>Voltar</Text>
-        </Pressable>
+        </InteractivePressable>
       </View>
     );
   }
@@ -83,18 +83,15 @@ export default function TrackingScreen() {
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
       <View style={styles.header}>
-        <Pressable
+        <InteractivePressable
           onPress={handleBack}
-          style={({ pressed }) => [
-            styles.backIcon,
-            pressed && { opacity: 0.7, backgroundColor: colors.grayLight },
-          ]}
+          style={styles.backIcon}
           hitSlop={10}
           accessibilityRole="button"
           accessibilityLabel="Voltar"
         >
           <ArrowLeft size={22} color={colors.black} strokeWidth={1.8} />
-        </Pressable>
+        </InteractivePressable>
         <Text style={styles.headerTitle}>Status do pedido</Text>
       </View>
 

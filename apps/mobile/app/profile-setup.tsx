@@ -1,9 +1,10 @@
 import { useRouter } from "expo-router";
 import { ArrowRight, Eye } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
@@ -124,7 +125,7 @@ export default function ProfileSetupScreen() {
                 containerStyle={styles.passwordInputContainer}
                 style={styles.inputText}
               />
-              <Pressable
+              <InteractivePressable
                 style={styles.visibilityRow}
                 onPress={() => setShowPassword((current) => !current)}
               >
@@ -132,7 +133,7 @@ export default function ProfileSetupScreen() {
                 <Text style={styles.visibilityText}>
                   {showPassword ? "OCULTAR" : "EXIBIR"}
                 </Text>
-              </Pressable>
+              </InteractivePressable>
 
               <Text style={styles.passwordHintText}>
                 Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
@@ -155,7 +156,8 @@ export default function ProfileSetupScreen() {
 
       <View style={styles.saveButtonContainer}>
         <Button
-          title={isSaving ? "Salvando..." : "Salvar e continuar"}
+          title="Salvar e continuar"
+          loading={isSaving}
           style={styles.saveButton}
           icon={
             <ArrowRight

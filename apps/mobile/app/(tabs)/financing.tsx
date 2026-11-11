@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react-native";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import InteractivePressable from "@/components/ui/InteractivePressable";
+import Button from "@/components/ui/Button";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, fontSize, spacing } from "@/theme";
@@ -87,16 +87,16 @@ export default function FinancingScreen() {
               Baixe seus boletos e carnês com facilidade
             </Text>
 
-            <View style={styles.invoiceButtonWrapper}>
-              <View style={styles.invoiceButtonShadow} />
-              <InteractivePressable
-                style={styles.invoiceButton}
-                disabled={!boletoAvailable}
-              >
-                <Text style={styles.invoiceButtonText}>Acessar boleto</Text>
-                <ArrowRight size={28} strokeWidth={2.4} color={colors.white} />
-              </InteractivePressable>
-            </View>
+            <Button
+              variant="primary"
+              layout="row"
+              title="Acessar boleto"
+              icon={
+                <ArrowRight size={26} strokeWidth={2.4} color={colors.white} />
+              }
+              disabled={!boletoAvailable}
+              style={styles.invoiceButton}
+            />
           </Animated.View>
         ) : null}
       </ScrollView>
@@ -220,35 +220,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textSecondary,
   },
-  invoiceButtonWrapper: {
-    width: 219,
-    height: 40,
-    marginTop: spacing.md - 1,
-    marginLeft: 1,
-  },
-  invoiceButtonShadow: {
-    position: "absolute",
-    top: 4,
-    left: 6,
-    right: -6,
-    bottom: -4,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: "transparent",
-  },
   invoiceButton: {
-    height: 40,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm + 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  invoiceButtonText: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xl,
-    color: colors.white,
+    width: 219,
+    marginTop: spacing.md - 1,
   },
 });

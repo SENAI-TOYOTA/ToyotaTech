@@ -1,7 +1,7 @@
 import { Tabs, useRouter } from "expo-router";
 import { CarFront, CircleDollarSign, Home, User } from "lucide-react-native";
 import React, { useEffect } from "react";
-import { type ColorValue, Pressable, StyleSheet, View } from "react-native";
+import { type ColorValue, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -14,6 +14,7 @@ import {
 } from "react-native-safe-area-context";
 
 import Logo from "@/components/Logo";
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 
 const iconSize = 20;
@@ -25,14 +26,14 @@ function TabsHeader() {
   return (
     <SafeAreaView edges={["top"]} style={styles.headerSafeArea}>
       <View style={styles.headerContent}>
-        <Pressable
+        <InteractivePressable
           onPress={() => router.replace("/home")}
           accessibilityRole="button"
           accessibilityLabel="Ir para o início"
           style={styles.logoPressable}
         >
           <Logo size={fontSize.xxl + spacing.xs} />
-        </Pressable>
+        </InteractivePressable>
       </View>
     </SafeAreaView>
   );

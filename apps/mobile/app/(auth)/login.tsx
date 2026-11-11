@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight, Eye } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError, apiErrorMessage } from "@/services/api";
@@ -82,7 +83,7 @@ export default function LoginScreen() {
           containerStyle={styles.passwordInputContainer}
           style={styles.passwordInputText}
         />
-        <Pressable
+        <InteractivePressable
           style={styles.visibilityRow}
           onPress={() => setShowPassword((current) => !current)}
         >
@@ -90,11 +91,12 @@ export default function LoginScreen() {
           <Text style={styles.visibilityText}>
             {showPassword ? "OCULTAR" : "EXIBIR"}
           </Text>
-        </Pressable>
+        </InteractivePressable>
 
         <Button
-          title={isSubmitting ? "Entrando..." : "Fazer login"}
+          title="Fazer login"
           variant="primary"
+          loading={isSubmitting}
           icon={
             <ArrowRight
               size={36}
@@ -119,7 +121,7 @@ export default function LoginScreen() {
         ) : null}
 
         {isFederatedError ? (
-          <Pressable
+          <InteractivePressable
             onPress={() => {
               router.push({
                 pathname: "/",
@@ -128,10 +130,10 @@ export default function LoginScreen() {
             }}
           >
             <Text style={styles.forgotPasswordText}>ENTRAR COM GOOGLE</Text>
-          </Pressable>
+          </InteractivePressable>
         ) : null}
 
-        <Pressable
+        <InteractivePressable
           onPress={() => {
             router.push({
               pathname: "/(auth)/register",
@@ -142,7 +144,7 @@ export default function LoginScreen() {
           <Text style={styles.forgotPasswordText}>
             NÃO TEM CONTA? CRIAR CONTA
           </Text>
-        </Pressable>
+        </InteractivePressable>
       </View>
     </AuthScreenLayout>
   );

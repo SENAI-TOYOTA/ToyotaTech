@@ -1,8 +1,10 @@
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { useRef } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Easing,
+  StyleProp,
   StyleSheet,
   Text,
   TextStyle,
@@ -13,32 +15,44 @@ import {
   ViewStyle,
 } from "react-native";
 
-type ButtonVariant = "primary" | "outline" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "outline";
+type ButtonLayout = "cta" | "row";
 
 interface ButtonProps {
   title: string;
   variant?: ButtonVariant;
+  layout?: ButtonLayout;
   icon?: React.ReactNode;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
-  onPress?: TouchableOpacityProps["onPress"];
+  loading?: boolean;
   disabled?: boolean;
+  onPress?: TouchableOpacityProps["onPress"];
+  style?: StyleProp<ViewStyle>;
+  textStyle?: TextStyle;
+  accessibilityLabel?: string;
 }
 
 export default function Button({
   title,
   variant = "primary",
+  layout = "cta",
   icon,
+  loading = false,
+  disabled = false,
+  onPress,
   style,
   textStyle,
-  onPress,
-  disabled = false,
+  accessibilityLabel,
 }: ButtonProps) {
   const { width } = useWindowDimensions();
   const isCompactScreen = width <= 390;
   const pressProgress = useRef(new Animated.Value(0)).current;
   const AnimatedTouchableOpacity =
     Animated.createAnimatedComponent(TouchableOpacity);
+
+  const isRow = layout === "row";
+  const isInactive = disabled || loading;
+  const isInteractive = Boolean(onPress) && !isInactive;
+  const hasShadow = variant !== "outline";
 
   const animatePress = (toValue: number) => {
     Animated.timing(pressProgress, {
@@ -49,148 +63,95 @@ export default function Button({
     }).start();
   };
 
-  const getDisabledSurfaceStyle = (variant: ButtonVariant) => {
-    switch (variant) {
-      case "primary":
-        return styles.disabledSurfacePrimary;
-      case "outline":
-        return styles.disabledSurfaceOutline;
-      case "ghost":
-        return styles.disabledSurfaceGhost;
-    }
-  };
-
-  if (variant === "primary") {
-    return (
-      <View
-        style={[
-          style,
-          { marginLeft: 6, marginBottom: 6 },
-          styles.wrapperShadow,
-        ]}
-      >
-        <View
-          style={[styles.shadowLayer, disabled && styles.shadowLayerDisabled]}
-        />
-        <AnimatedTouchableOpacity
-          style={[
-            styles.base,
-            variantStyles[variant],
-            disabled && getDisabledSurfaceStyle(variant),
-            {
-              transform: [
-                {
-                  translateX: pressProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -6],
-                  }),
-                },
-                {
-                  translateY: pressProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 6],
-                  }),
-                },
-              ],
-            },
-          ]}
-          activeOpacity={1}
-          onPressIn={() => {
-            if (!disabled) {
-              animatePress(1);
-            }
-          }}
-          onPressOut={() => {
-            if (!disabled) {
-              animatePress(0);
-            }
-          }}
-          onPress={disabled ? undefined : onPress}
-        >
-          <View
-            style={[
-              styles.contentWrapper,
-              isCompactScreen && styles.contentWrapperCompact,
-            ]}
-          >
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.text,
-                variantTextStyles[variant],
-                isCompactScreen && styles.textCompact,
-                textStyle,
-                disabled && styles.disabledText,
-              ]}
-            >
-              {title}
-            </Text>
-            {icon && <View style={{ flexShrink: 0 }}>{icon}</View>}
-          </View>
-        </AnimatedTouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <TouchableOpacity
+  const renderSurface = (surfaceStyle?: StyleProp<ViewStyle>) => (
+    <AnimatedTouchableOpacity
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{ disabled: !isInteractive }}
+      activeOpacity={1}
+      disabled={!isInteractive}
       style={[
         styles.base,
+        isRow && styles.baseRow,
         variantStyles[variant],
-        disabled && getDisabledSurfaceStyle(variant),
-        style,
+        isInactive && disabledSurfaceStyles[variant],
+        hasShadow && {
+          transform: [
+            {
+              translateX: pressProgress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -6],
+              }),
+            },
+            {
+              translateY: pressProgress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 6],
+              }),
+            },
+          ],
+        },
+        surfaceStyle,
       ]}
-      activeOpacity={1}
-      onPress={disabled ? undefined : onPress}
+      onPressIn={() => {
+        if (isInteractive) {
+          animatePress(1);
+        }
+      }}
+      onPressOut={() => {
+        if (isInteractive) {
+          animatePress(0);
+        }
+      }}
+      onPress={onPress}
     >
-      <View
-        style={[
-          styles.contentWrapper,
-          isCompactScreen && styles.contentWrapperCompact,
-        ]}
-      >
+      <View style={[styles.contentWrapper, isRow && styles.contentWrapperRow]}>
         <Text
           numberOfLines={1}
           style={[
             styles.text,
+            isRow && styles.textRow,
             variantTextStyles[variant],
-            isCompactScreen && styles.textCompact,
+            !isRow && isCompactScreen && styles.textCompact,
             textStyle,
-            disabled && styles.disabledText,
+            isInactive && styles.textInactive,
           ]}
         >
           {title}
         </Text>
-        {icon && <View style={{ flexShrink: 0 }}>{icon}</View>}
+        {loading ? (
+          <ActivityIndicator
+            size="small"
+            color={variant === "primary" ? colors.white : colors.black}
+          />
+        ) : (
+          icon
+        )}
       </View>
-    </TouchableOpacity>
+    </AnimatedTouchableOpacity>
+  );
+
+  if (!hasShadow) {
+    return renderSurface(style);
+  }
+
+  return (
+    <View style={[styles.wrapper, isRow && styles.wrapperRow, style]}>
+      <View
+        style={[styles.shadowLayer, isInactive && styles.shadowLayerInactive]}
+      />
+      {renderSurface()}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  base: {
-    paddingVertical: 8,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 2,
-    width: "100%",
+  wrapper: {
+    marginLeft: 6,
+    marginBottom: 6,
   },
-  contentWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.lg,
-    minWidth: 0,
-  },
-  contentWrapperCompact: {
-    gap: spacing.md,
-  },
-  text: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xxl,
-    flexShrink: 1,
-  },
-  textCompact: {
-    fontSize: 28,
+  wrapperRow: {
+    height: 40,
   },
   shadowLayer: {
     position: "absolute",
@@ -203,25 +164,44 @@ const styles = StyleSheet.create({
     borderColor: colors.black,
     borderRadius: 2,
   },
-  shadowLayerDisabled: {
+  shadowLayerInactive: {
     borderColor: colors.grayLight,
   },
-  wrapperShadow: {
-    boxShadow: "0px 4px 4px rgba(0, 0, 0, 0.1)",
-    elevation: 4,
+  base: {
+    width: "100%",
+    paddingVertical: 8,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 2,
   },
-  disabledSurfacePrimary: {
-    backgroundColor: colors.grayLight,
-    borderColor: colors.grayLight,
+  baseRow: {
+    height: "100%",
+    paddingVertical: 0,
+    paddingHorizontal: spacing.sm + 6,
   },
-  disabledSurfaceOutline: {
-    backgroundColor: "transparent",
-    borderColor: colors.gray,
+  contentWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.lg,
+    minWidth: 0,
   },
-  disabledSurfaceGhost: {
-    backgroundColor: "transparent",
+  contentWrapperRow: {
+    gap: spacing.sm,
+    justifyContent: "space-between",
   },
-  disabledText: {
+  text: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.xxl,
+    flexShrink: 1,
+  },
+  textRow: {
+    flex: 1,
+    fontSize: fontSize.xl,
+  },
+  textCompact: {
+    fontSize: 28,
+  },
+  textInactive: {
     color: colors.gray,
   },
 });
@@ -232,13 +212,15 @@ const variantStyles: Record<ButtonVariant, ViewStyle> = {
     borderWidth: 1,
     borderColor: colors.black,
   },
+  secondary: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.black,
+  },
   outline: {
     backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: colors.border,
-  },
-  ghost: {
-    backgroundColor: "transparent",
   },
 };
 
@@ -246,10 +228,25 @@ const variantTextStyles: Record<ButtonVariant, TextStyle> = {
   primary: {
     color: colors.white,
   },
+  secondary: {
+    color: colors.textPrimary,
+  },
   outline: {
     color: colors.textPrimary,
   },
-  ghost: {
-    color: colors.textPrimary,
+};
+
+const disabledSurfaceStyles: Record<ButtonVariant, ViewStyle> = {
+  primary: {
+    backgroundColor: colors.grayLight,
+    borderColor: colors.grayLight,
+  },
+  secondary: {
+    backgroundColor: colors.grayLight,
+    borderColor: colors.gray,
+  },
+  outline: {
+    backgroundColor: "transparent",
+    borderColor: colors.gray,
   },
 };

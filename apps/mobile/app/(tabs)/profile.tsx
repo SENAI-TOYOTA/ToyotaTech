@@ -116,7 +116,8 @@ export default function ProfileScreen() {
             }}
           />
           <Button
-            title={isSaving ? "Salvando..." : "Salvar"}
+            title="Salvar"
+            loading={isSaving}
             style={styles.saveButton}
             icon={
               <ArrowRight

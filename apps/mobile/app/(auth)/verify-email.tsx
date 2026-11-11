@@ -104,8 +104,9 @@ export default function VerifyEmailScreen() {
         </View>
 
         <Button
-          title={isSubmitting ? "Verificando..." : "Verificar"}
+          title="Verificar"
           variant="primary"
+          loading={isSubmitting}
           icon={
             <ArrowRight
               size={36}
@@ -120,8 +121,9 @@ export default function VerifyEmailScreen() {
           disabled={isSubmitting || isResending}
         />
         <Button
-          title={isResending ? "Reenviando..." : "Reenviar código"}
+          title="Reenviar código"
           variant="outline"
+          loading={isResending}
           style={styles.resendButton}
           onPress={handleResendPress}
           disabled={isSubmitting || isResending}

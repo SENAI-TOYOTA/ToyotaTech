@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight, Eye } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { validatePassword } from "@/profileValidation";
@@ -95,7 +96,7 @@ export default function RegisterScreen() {
           containerStyle={styles.passwordInputContainer}
           style={styles.passwordInputText}
         />
-        <Pressable
+        <InteractivePressable
           style={styles.visibilityRow}
           onPress={() => setShowPassword((current) => !current)}
         >
@@ -103,7 +104,7 @@ export default function RegisterScreen() {
           <Text style={styles.visibilityText}>
             {showPassword ? "OCULTAR" : "EXIBIR"}
           </Text>
-        </Pressable>
+        </InteractivePressable>
 
         <Text style={styles.passwordHintText}>
           Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
@@ -115,8 +116,9 @@ export default function RegisterScreen() {
         ) : null}
 
         <Button
-          title={isSubmitting ? "Criando..." : "Criar conta"}
+          title="Criar conta"
           variant="primary"
+          loading={isSubmitting}
           icon={
             <ArrowRight
               size={36}
