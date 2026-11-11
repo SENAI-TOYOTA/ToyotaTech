@@ -15,18 +15,6 @@
     "check": "npm run lint && npm run format:check",
     "test": "jest"
   },
-  "jest": {
-    "testEnvironment": "node",
-    "setupFiles": [
-      "<rootDir>/jest.setup.ts"
-    ],
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/$1"
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|expo/virtual/.*|react-navigation|@react-navigation/.*|native-base|react-native-svg))"
-    ]
-  },
   "dependencies": {
     "@expo-google-fonts/afacad": "^0.4.1",
     "@react-navigation/bottom-tabs": "^7.4.0",
@@ -60,14 +48,17 @@
     "react-native-worklets": "0.13.0"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^14.1.0",
     "@types/node": "^26.4.1",
     "@types/react": "~19.3.0",
     "babel-jest": "^29.7.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~58.0.4",
     "jest": "~30.5.2",
+    "jest-expo": "~58.0.0",
     "prettier": "^3.8.3",
     "prettier-plugin-organize-imports": "^4.3.0",
+    "react-test-renderer": "^19.3.0",
     "typescript": "~6.0.3"
   },
   "private": true
