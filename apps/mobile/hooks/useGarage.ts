@@ -2,59 +2,112 @@ import { useAuth } from "@/contexts/AuthContext";
 import { hasCompleteProfile } from "@/profileValidation";
 import { fetchGarageCurrent } from "@/services/garage";
 import { GarageData } from "@/types/garage";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
+
+interface GarageSnapshot {
+  garage: GarageData | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const initialSnapshot: GarageSnapshot = {
+  garage: null,
+  isLoading: false,
+  error: null,
+};
+
+let snapshot: GarageSnapshot = initialSnapshot;
+let loadedSession: string | null = null;
+let inflightSession: string | null = null;
+let inflightRequest: Promise<void> | null = null;
+const listeners = new Set<() => void>();
+
+function notifyListeners() {
+  snapshot = { ...snapshot };
+  listeners.forEach((listener) => listener());
+}
+
+function resetGarageCache() {
+  loadedSession = null;
+  inflightSession = null;
+  inflightRequest = null;
+  snapshot = initialSnapshot;
+  notifyListeners();
+}
+
+async function loadGarage(session: string, token: string, force: boolean) {
+  if (!force && loadedSession === session) {
+    return;
+  }
+  if (inflightSession === session && inflightRequest) {
+    return inflightRequest;
+  }
+
+  snapshot = { ...snapshot, isLoading: true, error: null };
+  notifyListeners();
+
+  const request = fetchGarageCurrent(token)
+    .then((result) => {
+      loadedSession = session;
+      snapshot = { garage: result.garage, isLoading: false, error: null };
+    })
+    .catch(() => {
+      loadedSession = null;
+      snapshot = {
+        ...snapshot,
+        isLoading: false,
+        error: "Não foi possível carregar os dados do veículo.",
+      };
+    })
+    .finally(() => {
+      if (inflightRequest === request) {
+        inflightSession = null;
+        inflightRequest = null;
+      }
+      notifyListeners();
+    });
+
+  inflightSession = session;
+  inflightRequest = request;
+
+  return request;
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot() {
+  return snapshot;
+}
 
 export function useGarage() {
   const { token, user } = useAuth();
+  const session = user?.sub ?? user?.email ?? null;
   const profileReady = hasCompleteProfile(user);
-  const [garage, setGarage] = useState<GarageData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
-
-  const reload = useCallback(() => {
-    setReloadKey((current) => current + 1);
-  }, []);
+  const current = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   useEffect(() => {
-    let active = true;
+    if (!token || !profileReady || !session) {
+      resetGarageCache();
+      return;
+    }
 
-    const loadGarage = async () => {
-      if (!token || !profileReady) {
-        if (active) {
-          setGarage(null);
-          setError(null);
-          setIsLoading(false);
-        }
-        return;
-      }
-      if (active) {
-        setIsLoading(true);
-        setError(null);
-      }
-      try {
-        const result = await fetchGarageCurrent(token);
-        if (active) {
-          setGarage(result.garage);
-          setError(null);
-        }
-      } catch (err) {
-        if (__DEV__) {
-          console.warn("Failed to fetch garage", err);
-        }
-        if (active) {
-          setError("Não foi possível carregar os dados do veículo.");
-        }
-      } finally {
-        if (active) setIsLoading(false);
-      }
-    };
+    void loadGarage(session, token, false);
+  }, [token, profileReady, session]);
 
-    void loadGarage();
-    return () => {
-      active = false;
-    };
-  }, [token, profileReady, reloadKey]);
+  const reload = useCallback(() => {
+    if (!token || !profileReady || !session) {
+      return;
+    }
 
-  return { garage, isLoading, error, reload };
+    void loadGarage(session, token, true);
+  }, [token, profileReady, session]);
+
+  return { ...current, reload };
 }
+
+export { resetGarageCache };
