@@ -35,3 +35,62 @@ export const fontSize = {
   xxl: 32,
   logo: 50,
 };
+
+export const radii = {
+  none: 0,
+  sm: 2,
+  md: 6,
+  lg: 12,
+  pill: 999,
+};
+
+export const borders = {
+  thin: 1,
+  strong: 2,
+  color: colors.black,
+};
+
+export const touch = {
+  minTarget: 44,
+};
+
+export const sizes = {
+  buttonRow: 40,
+  inputField: 50,
+};
+
+export const elevation = {
+  offset: 6,
+};
+
+export const layout = {
+  screenPadding: spacing.lg + 3,
+  sectionGap: spacing.xl + spacing.sm,
+  formGap: spacing.md,
+  readingWidth: 640,
+};
+
+export const semantic = {
+  error: colors.primary,
+  surface: colors.white,
+  outline: colors.black,
+  textMuted: colors.textSecondary,
+};
+
+export const textStyles = {
+  label: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+  },
+  caption: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  badge: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+  },
+};

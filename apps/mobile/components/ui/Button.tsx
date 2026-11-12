@@ -1,4 +1,14 @@
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import {
+  borders,
+  colors,
+  elevation,
+  fonts,
+  fontSize,
+  radii,
+  sizes,
+  spacing,
+  touch,
+} from "@/theme";
 import { useRef } from "react";
 import {
   ActivityIndicator,
@@ -69,6 +79,14 @@ export default function Button({
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityState={{ disabled: !isInteractive }}
       activeOpacity={1}
+      hitSlop={
+        isRow
+          ? {
+              top: (touch.minTarget - sizes.buttonRow) / 2,
+              bottom: (touch.minTarget - sizes.buttonRow) / 2,
+            }
+          : undefined
+      }
       disabled={!isInteractive}
       style={[
         styles.base,
@@ -147,22 +165,22 @@ export default function Button({
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginLeft: 6,
-    marginBottom: 6,
+    marginLeft: elevation.offset,
+    marginBottom: elevation.offset,
   },
   wrapperRow: {
-    height: 40,
+    height: sizes.buttonRow,
   },
   shadowLayer: {
     position: "absolute",
-    top: 6,
-    left: -6,
-    right: 6,
-    bottom: -6,
+    top: elevation.offset,
+    left: -elevation.offset,
+    right: elevation.offset,
+    bottom: -elevation.offset,
     backgroundColor: colors.white,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
-    borderRadius: 2,
+    borderRadius: radii.sm,
   },
   shadowLayerInactive: {
     borderColor: colors.grayLight,
@@ -171,7 +189,7 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingVertical: 8,
     paddingHorizontal: spacing.lg,
-    borderRadius: 2,
+    borderRadius: radii.sm,
   },
   baseRow: {
     height: "100%",
@@ -209,17 +227,17 @@ const styles = StyleSheet.create({
 const variantStyles: Record<ButtonVariant, ViewStyle> = {
   primary: {
     backgroundColor: colors.primary,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
   },
   secondary: {
     backgroundColor: colors.white,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
   },
   outline: {
     backgroundColor: "transparent",
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.border,
   },
 };

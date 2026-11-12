@@ -1,4 +1,4 @@
-import { colors } from "@/theme";
+import { borders, colors, radii } from "@/theme";
 import {
   Image,
   ImageSourcePropType,
@@ -40,8 +40,8 @@ const styles = StyleSheet.create({
   container: {
     width: 60,
     height: 60,
-    borderRadius: 2,
-    borderWidth: 1,
+    borderRadius: radii.sm,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     alignItems: "center",
     justifyContent: "center",

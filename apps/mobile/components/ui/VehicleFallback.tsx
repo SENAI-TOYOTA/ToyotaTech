@@ -1,4 +1,4 @@
-import { colors, fonts, spacing } from "@/theme";
+import { borders, colors, fonts, spacing } from "@/theme";
 import { StyleSheet, Text, View } from "react-native";
 
 interface VehicleFallbackProps {
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   hero: {
     width: "100%",
     height: "100%",
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     padding: spacing.lg,
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   card: {
     width: "100%",
     height: "100%",
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     padding: spacing.md,
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   noteHero: {
     marginTop: spacing.lg,
     alignSelf: "flex-start",
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,

@@ -1,14 +1,15 @@
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { borders, colors, fonts, fontSize, radii, spacing } from "@/theme";
 import {
   TextInput as RNTextInput,
   TextInputProps as RNTextInputProps,
+  StyleProp,
   StyleSheet,
   View,
   ViewStyle,
 } from "react-native";
 
 interface TextInputProps extends RNTextInputProps {
-  containerStyle?: ViewStyle;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 export default function TextInput({
@@ -29,11 +30,11 @@ export default function TextInput({
 
 const styles = StyleSheet.create({
   container: {
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     paddingVertical: 15,
     paddingHorizontal: spacing.md,
-    borderRadius: 2,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
   },
   input: {
