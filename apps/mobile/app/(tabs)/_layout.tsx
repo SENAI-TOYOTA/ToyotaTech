@@ -15,7 +15,7 @@ import {
 
 import Logo from "@/components/Logo";
 import InteractivePressable from "@/components/ui/InteractivePressable";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { colors, fontSize, fonts, radii, spacing } from "@/theme";
 
 const iconSize = 20;
 const iconStrokeWidth = 1.8;
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 44,
     height: 26,
-    borderRadius: 13,
+    borderRadius: radii.lg,
     backgroundColor: colors.primary,
   },
 });

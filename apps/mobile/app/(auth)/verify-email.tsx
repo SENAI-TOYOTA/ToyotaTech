@@ -7,7 +7,7 @@ import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 import Button from "@/components/ui/Button";
 import { apiErrorMessage } from "@/services/api";
 import { resendVerification, verifyEmail } from "@/services/auth";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
 const CODE_LENGTH = 6;
@@ -183,9 +183,9 @@ const styles = StyleSheet.create({
   pinCodeContainer: {
     width: 46,
     height: 54,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.border,
-    borderRadius: 6,
+    borderRadius: radii.md,
     backgroundColor: colors.white,
   },
   activePinCodeContainer: {

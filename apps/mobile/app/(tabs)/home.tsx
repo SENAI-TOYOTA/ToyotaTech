@@ -1,15 +1,16 @@
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
 import Button from "@/components/ui/Button";
 import InteractivePressable from "@/components/ui/InteractivePressable";
+import Screen from "@/components/ui/Screen";
 import Skeleton from "@/components/ui/Skeleton";
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGarage } from "@/hooks/useGarage";
-import { colors, fonts, spacing } from "@/theme";
+import { borders, colors, fonts, spacing } from "@/theme";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
 const mainCarImage = require("@/assets/images/corolla-main.jpg");
@@ -56,169 +57,149 @@ export default function HomeScreen() {
   const shouldUseVehicleImage = canUseCorollaAltisImage(vehicle?.model);
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
+    <Screen>
+      <Animated.Text
+        entering={FadeInDown.duration(600).springify()}
+        style={styles.welcomeText}
       >
-        <Animated.Text
-          entering={FadeInDown.duration(600).springify()}
-          style={styles.welcomeText}
-        >
-          Bem-vindo, {firstName}!
-        </Animated.Text>
+        Bem-vindo, {firstName}!
+      </Animated.Text>
 
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(600).springify()}
-          style={styles.showcaseContainer}
-        >
-          {isLoading && !garage ? (
-            <Skeleton
-              accessibilityLabel="Carregando veículo"
-              height={300}
-              borderRadius={0}
-            />
-          ) : shouldUseVehicleImage ? (
-            <>
-              <Image
-                source={mainCarImage}
-                style={styles.mainImage}
-                resizeMode="cover"
-              />
-              <View style={styles.carLabel}>
-                <Text style={styles.carLabelText}>{vehicleLabel}</Text>
-              </View>
-            </>
-          ) : (
-            <VehicleFallback
-              model={vehicle?.model}
-              version={vehicle?.version}
-              color={vehicle?.color}
-              chassi={vehicle?.chassi}
-              variant="hero"
-            />
-          )}
-        </Animated.View>
-
-        {error ? (
-          <Animated.View
-            entering={FadeInDown.delay(250).duration(600)}
-            style={styles.garageErrorContainer}
-          >
-            <Text style={styles.garageErrorText}>{error}</Text>
-            <InteractivePressable
-              style={[
-                styles.garageRetryButton,
-                isLoading && styles.garageRetryButtonDisabled,
-              ]}
-              onPress={reload}
-              disabled={isLoading}
-            >
-              <Text style={styles.garageRetryText}>
-                {isLoading ? "Carregando..." : "Tentar novamente"}
-              </Text>
-            </InteractivePressable>
-          </Animated.View>
-        ) : null}
-
-        <Animated.View
-          entering={FadeInDown.delay(300).duration(600).springify()}
-        >
-          <Button
-            variant="primary"
-            layout="row"
-            title="Verificar Status"
-            icon={
-              <ArrowRight size={26} strokeWidth={2.4} color={colors.white} />
-            }
-            onPress={() => router.push("/tracking")}
-            style={styles.statusButton}
+      <Animated.View
+        entering={FadeInDown.delay(200).duration(600).springify()}
+        style={styles.showcaseContainer}
+      >
+        {isLoading && !garage ? (
+          <Skeleton
+            accessibilityLabel="Carregando veículo"
+            height={300}
+            borderRadius={0}
           />
-        </Animated.View>
+        ) : shouldUseVehicleImage ? (
+          <>
+            <Image
+              source={mainCarImage}
+              style={styles.mainImage}
+              resizeMode="cover"
+            />
+            <View style={styles.carLabel}>
+              <Text style={styles.carLabelText}>{vehicleLabel}</Text>
+            </View>
+          </>
+        ) : (
+          <VehicleFallback
+            model={vehicle?.model}
+            version={vehicle?.version}
+            color={vehicle?.color}
+            chassi={vehicle?.chassi}
+            variant="hero"
+          />
+        )}
+      </Animated.View>
 
+      {error ? (
+        <Animated.View
+          entering={FadeInDown.delay(250).duration(600)}
+          style={styles.garageErrorContainer}
+        >
+          <Text style={styles.garageErrorText}>{error}</Text>
+          <InteractivePressable
+            style={[
+              styles.garageRetryButton,
+              isLoading && styles.garageRetryButtonDisabled,
+            ]}
+            onPress={reload}
+            disabled={isLoading}
+          >
+            <Text style={styles.garageRetryText}>
+              {isLoading ? "Carregando..." : "Tentar novamente"}
+            </Text>
+          </InteractivePressable>
+        </Animated.View>
+      ) : null}
+
+      <Animated.View entering={FadeInDown.delay(300).duration(600).springify()}>
+        <Button
+          variant="primary"
+          layout="row"
+          title="Verificar Status"
+          icon={<ArrowRight size={26} strokeWidth={2.4} color={colors.white} />}
+          onPress={() => router.push("/tracking")}
+          style={styles.statusButton}
+        />
+      </Animated.View>
+
+      <Animated.Text
+        entering={FadeInDown.delay(400).duration(600)}
+        style={styles.sectionTitle}
+      >
+        Novidades
+      </Animated.Text>
+      <Animated.ScrollView
+        entering={FadeInRight.delay(500).duration(600)}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.highlightContent}
+        style={styles.highlightScroll}
+      >
+        {highlightCards.map((card) => (
+          <View key={card.id} style={styles.highlightCard}>
+            <Image
+              source={card.image}
+              style={styles.highlightImage}
+              resizeMode="cover"
+            />
+            <View style={styles.highlightLabel}>
+              <Text style={styles.highlightLabelText}>{card.title}</Text>
+            </View>
+          </View>
+        ))}
+      </Animated.ScrollView>
+
+      <View style={styles.newsHeaderRow}>
         <Animated.Text
-          entering={FadeInDown.delay(400).duration(600)}
+          entering={FadeInDown.delay(600).duration(600)}
           style={styles.sectionTitle}
         >
-          Novidades
+          Guias e Notícias
         </Animated.Text>
-        <Animated.ScrollView
-          entering={FadeInRight.delay(500).duration(600)}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.highlightContent}
-          style={styles.highlightScroll}
-        >
-          {highlightCards.map((card) => (
-            <View key={card.id} style={styles.highlightCard}>
-              <Image
-                source={card.image}
-                style={styles.highlightImage}
-                resizeMode="cover"
-              />
-              <View style={styles.highlightLabel}>
-                <Text style={styles.highlightLabelText}>{card.title}</Text>
-              </View>
-            </View>
-          ))}
-        </Animated.ScrollView>
+        <Animated.View entering={FadeInDown.delay(600).duration(600)}>
+          <View style={styles.newsHeaderButton}>
+            <Text style={styles.newsHeaderText}>Ver todos</Text>
+            <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
+          </View>
+        </Animated.View>
+      </View>
 
-        <View style={styles.newsHeaderRow}>
-          <Animated.Text
-            entering={FadeInDown.delay(600).duration(600)}
-            style={styles.sectionTitle}
+      <View style={styles.newsList}>
+        {toyotaTips.map((tip, index) => (
+          <Animated.View
+            key={tip.id}
+            entering={FadeInDown.delay(700 + index * 100).duration(600)}
           >
-            Guias e Notícias
-          </Animated.Text>
-          <Animated.View entering={FadeInDown.delay(600).duration(600)}>
-            <View style={styles.newsHeaderButton}>
-              <Text style={styles.newsHeaderText}>Ver todos</Text>
-              <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
+            <View style={styles.newsCard}>
+              <Text style={styles.newsMeta}>{tip.category}</Text>
+              <Text style={styles.newsTitle}>{tip.title}</Text>
+              <Text style={styles.newsDescription} numberOfLines={2}>
+                {tip.description}
+              </Text>
             </View>
           </Animated.View>
-        </View>
+        ))}
+      </View>
 
-        <View style={styles.newsList}>
-          {toyotaTips.map((tip, index) => (
-            <Animated.View
-              key={tip.id}
-              entering={FadeInDown.delay(700 + index * 100).duration(600)}
-            >
-              <View style={styles.newsCard}>
-                <Text style={styles.newsMeta}>{tip.category}</Text>
-                <Text style={styles.newsTitle}>{tip.title}</Text>
-                <Text style={styles.newsDescription} numberOfLines={2}>
-                  {tip.description}
-                </Text>
-              </View>
-            </Animated.View>
-          ))}
-        </View>
-
-        <Animated.View
-          entering={FadeInDown.delay(1000).duration(600)}
-          style={styles.footer}
-        >
-          <View style={styles.footerDivider} />
-          <Text style={styles.footerText}>
-            Sempre o melhor para a sua Toyota
-          </Text>
-        </Animated.View>
-      </ScrollView>
-    </View>
+      <Animated.View
+        entering={FadeInDown.delay(1000).duration(600)}
+        style={styles.footer}
+      >
+        <View style={styles.footerDivider} />
+        <Text style={styles.footerText}>Sempre o melhor para a sua Toyota</Text>
+      </Animated.View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  contentContainer: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg + 3,
-    paddingBottom: spacing.xl,
-  },
   welcomeText: {
     marginTop: spacing.xl + spacing.sm,
     fontFamily: fonts.semiBold,
@@ -238,7 +219,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 15,
     bottom: 25,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: 10,
@@ -251,7 +232,7 @@ const styles = StyleSheet.create({
   },
   garageErrorContainer: {
     marginTop: spacing.sm,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     padding: spacing.sm,
@@ -269,7 +250,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.primary,
   },
@@ -301,7 +282,7 @@ const styles = StyleSheet.create({
   highlightCard: {
     width: 180,
     aspectRatio: 1,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     overflow: "hidden",
@@ -314,7 +295,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: spacing.sm,
     bottom: spacing.sm,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: spacing.sm,
@@ -333,7 +314,7 @@ const styles = StyleSheet.create({
   },
   newsHeaderButton: {
     height: 28,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     paddingHorizontal: spacing.sm,
     flexDirection: "row",
@@ -350,7 +331,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   newsCard: {
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     paddingHorizontal: spacing.sm + 2,

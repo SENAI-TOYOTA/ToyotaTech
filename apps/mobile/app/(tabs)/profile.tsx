@@ -1,15 +1,16 @@
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import Button from "@/components/ui/Button";
+import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Skeleton from "@/components/ui/Skeleton";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileForm } from "@/hooks/useProfileForm";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { colors, fontSize, fonts, radii, sizes, spacing } from "@/theme";
 
 const profileFieldIds = ["fullName", "birthDate", "cpf", "email", "password"];
 
@@ -35,136 +36,123 @@ export default function ProfileScreen() {
   const password = "********";
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        <Animated.View entering={FadeInDown.duration(600).springify()}>
-          <ScreenSectionHeader
-            title="Perfil"
-            subtitle="Suas informações pessoais"
-            style={styles.sectionHeader}
-          />
-        </Animated.View>
+    <Screen contentStyle={styles.contentContainer}>
+      <Animated.View entering={FadeInDown.duration(600).springify()}>
+        <ScreenSectionHeader
+          title="Perfil"
+          subtitle="Suas informações pessoais"
+          style={styles.sectionHeader}
+        />
+      </Animated.View>
 
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(600).springify()}
-          style={styles.formContainer}
-        >
-          {isLoadingProfile ? (
-            profileFieldIds.map((fieldId, index) => (
-              <Skeleton
-                key={fieldId}
-                height={50}
-                borderRadius={0}
-                accessibilityLabel={
-                  index === 0 ? "Carregando perfil" : undefined
-                }
-              />
-            ))
-          ) : (
-            <>
-              <TextInput
-                placeholder="Nome completo"
-                value={fullName}
-                onChangeText={setFullName}
-                containerStyle={styles.inputContainer}
-                style={styles.inputText}
-              />
-              <TextInput
-                placeholder="Data de nascimento (DD/MM/AAAA)"
-                value={birthDate}
-                onChangeText={(text) => setBirthDate(formatBirthDate(text))}
-                keyboardType="numeric"
-                maxLength={10}
-                containerStyle={styles.inputContainer}
-                style={styles.inputText}
-              />
-              <TextInput
-                placeholder="CPF"
-                value={cpf}
-                onChangeText={(text) => setCpf(formatCpf(text))}
-                keyboardType="numeric"
-                maxLength={14}
-                editable={!isCpfLocked}
-                containerStyle={styles.inputContainer}
-                style={styles.inputText}
-              />
-              <TextInput
-                placeholder="Email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                editable={false}
-                containerStyle={styles.inputContainer}
-                style={styles.inputText}
-              />
-              <TextInput
-                placeholder="Senha"
-                secureTextEntry
-                value={password}
-                editable={false}
-                containerStyle={styles.inputContainer}
-                style={styles.inputText}
-              />
-              {formError ? (
-                <Text style={styles.formErrorText}>{formError}</Text>
-              ) : null}
-              {sessionPersistence !== "persistent" ? (
-                <Text style={styles.formErrorText}>
-                  Não foi possível salvar sua sessão neste dispositivo. Você
-                  precisará entrar novamente ao reabrir o app.
-                </Text>
-              ) : null}
-            </>
-          )}
-        </Animated.View>
-        <Animated.View
-          entering={FadeInDown.delay(400).duration(600).springify()}
-          style={styles.actionContainer}
-        >
-          <Button
-            title="Sair"
-            variant="outline"
-            style={styles.logoutButton}
-            onPress={async () => {
-              await signOut();
-              router.replace("/");
-            }}
-          />
-          <Button
-            title="Salvar"
-            loading={isSaving}
-            style={styles.saveButton}
-            icon={
-              <ArrowRight
-                size={36}
-                strokeWidth={3}
-                color={colors.white}
-                strokeLinecap="butt"
-                strokeLinejoin="round"
-              />
-            }
-            disabled={isSaving || isLoadingProfile || !token}
-            onPress={async () => {
-              await saveProfile();
-            }}
-          />
-        </Animated.View>
-      </ScrollView>
-    </View>
+      <Animated.View
+        entering={FadeInDown.delay(200).duration(600).springify()}
+        style={styles.formContainer}
+      >
+        {isLoadingProfile ? (
+          profileFieldIds.map((fieldId, index) => (
+            <Skeleton
+              key={fieldId}
+              height={50}
+              borderRadius={0}
+              accessibilityLabel={index === 0 ? "Carregando perfil" : undefined}
+            />
+          ))
+        ) : (
+          <>
+            <TextInput
+              placeholder="Nome completo"
+              value={fullName}
+              onChangeText={setFullName}
+              containerStyle={styles.inputContainer}
+              style={styles.inputText}
+            />
+            <TextInput
+              placeholder="Data de nascimento (DD/MM/AAAA)"
+              value={birthDate}
+              onChangeText={(text) => setBirthDate(formatBirthDate(text))}
+              keyboardType="numeric"
+              maxLength={10}
+              containerStyle={styles.inputContainer}
+              style={styles.inputText}
+            />
+            <TextInput
+              placeholder="CPF"
+              value={cpf}
+              onChangeText={(text) => setCpf(formatCpf(text))}
+              keyboardType="numeric"
+              maxLength={14}
+              editable={!isCpfLocked}
+              containerStyle={styles.inputContainer}
+              style={styles.inputText}
+            />
+            <TextInput
+              placeholder="Email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              editable={false}
+              containerStyle={styles.inputContainer}
+              style={styles.inputText}
+            />
+            <TextInput
+              placeholder="Senha"
+              secureTextEntry
+              value={password}
+              editable={false}
+              containerStyle={styles.inputContainer}
+              style={styles.inputText}
+            />
+            {formError ? (
+              <Text style={styles.formErrorText}>{formError}</Text>
+            ) : null}
+            {sessionPersistence !== "persistent" ? (
+              <Text style={styles.formErrorText}>
+                Não foi possível salvar sua sessão neste dispositivo. Você
+                precisará entrar novamente ao reabrir o app.
+              </Text>
+            ) : null}
+          </>
+        )}
+      </Animated.View>
+      <Animated.View
+        entering={FadeInDown.delay(400).duration(600).springify()}
+        style={styles.actionContainer}
+      >
+        <Button
+          title="Sair"
+          variant="outline"
+          style={styles.logoutButton}
+          onPress={async () => {
+            await signOut();
+            router.replace("/");
+          }}
+        />
+        <Button
+          title="Salvar"
+          loading={isSaving}
+          style={styles.saveButton}
+          icon={
+            <ArrowRight
+              size={36}
+              strokeWidth={3}
+              color={colors.white}
+              strokeLinecap="butt"
+              strokeLinejoin="round"
+            />
+          }
+          disabled={isSaving || isLoadingProfile || !token}
+          onPress={async () => {
+            await saveProfile();
+          }}
+        />
+      </Animated.View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   contentContainer: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg + 3,
     paddingBottom: spacing.xxl + spacing.xxl + spacing.xl,
   },
   sectionHeader: {
@@ -175,10 +163,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   inputContainer: {
-    height: 50,
+    height: sizes.inputField,
     paddingVertical: 0,
     paddingHorizontal: spacing.md - 2,
-    borderRadius: 0,
+    borderRadius: radii.none,
     backgroundColor: colors.white,
   },
   inputText: {

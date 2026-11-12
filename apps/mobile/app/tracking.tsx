@@ -9,7 +9,7 @@ import Skeleton from "@/components/ui/Skeleton";
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchTrackingStatus } from "@/services/tracking";
-import { colors, fonts, spacing } from "@/theme";
+import { borders, colors, fonts, radii, spacing } from "@/theme";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacing.xs,
-    borderRadius: 999,
+    borderRadius: radii.pill,
   },
   headerTitle: {
     fontFamily: fonts.bold,
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   },
   carCard: {
     marginTop: spacing.md,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     padding: spacing.md,
@@ -314,8 +314,8 @@ const styles = StyleSheet.create({
   indicator: {
     width: 24,
     height: 24,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: radii.lg,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     justifyContent: "center",
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   innerCircle: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: radii.md,
     backgroundColor: colors.primary,
   },
   connector: {
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   backButton: {
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,

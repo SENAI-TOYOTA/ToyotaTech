@@ -1,12 +1,14 @@
 import { ArrowRight } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Skeleton from "@/components/ui/Skeleton";
 import { useGarage } from "@/hooks/useGarage";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
 
 export default function FinancingScreen() {
   const { garage, isLoading, error } = useGarage();
@@ -21,24 +23,20 @@ export default function FinancingScreen() {
   const boletoAvailable = financing?.boletoAvailable ?? false;
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        <Animated.View entering={FadeInDown.duration(600).springify()}>
-          <ScreenSectionHeader
-            title="Financiamento"
-            subtitle="Acompanhe o seu financiamento"
-            style={styles.sectionHeader}
-          />
-        </Animated.View>
+    <Screen>
+      <Animated.View entering={FadeInDown.duration(600).springify()}>
+        <ScreenSectionHeader
+          title="Financiamento"
+          subtitle="Acompanhe o seu financiamento"
+          style={styles.sectionHeader}
+        />
+      </Animated.View>
 
-        {garage && financing ? (
-          <Animated.View
-            entering={FadeInDown.delay(200).duration(600).springify()}
-            style={styles.financeCard}
-          >
+      {garage && financing ? (
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+        >
+          <Card style={styles.financeCard}>
             <Text style={styles.carTitle}>{vehicleTitle}</Text>
 
             <View style={styles.installmentRow}>
@@ -64,30 +62,31 @@ export default function FinancingScreen() {
               Parcela {financing.installmentAmount} | Vencimento{" "}
               {financing.nextDueDate}
             </Text>
-          </Animated.View>
-        ) : isLoading ? (
-          <Skeleton
-            accessibilityLabel="Carregando financiamento"
-            height={160}
-            borderRadius={0}
-            style={styles.financeCard}
-          />
-        ) : (
-          <Animated.View
-            entering={FadeInDown.delay(200).duration(600).springify()}
-            style={styles.emptyCard}
-          >
-            <Text style={styles.emptyText}>
-              {error ?? "Financiamento ainda não vinculado."}
-            </Text>
-          </Animated.View>
-        )}
+          </Card>
+        </Animated.View>
+      ) : isLoading ? (
+        <Skeleton
+          accessibilityLabel="Carregando financiamento"
+          height={160}
+          borderRadius={0}
+          style={styles.financeCard}
+        />
+      ) : (
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+          style={styles.emptyCard}
+        >
+          <Text style={styles.emptyText}>
+            {error ?? "Financiamento ainda não vinculado."}
+          </Text>
+        </Animated.View>
+      )}
 
-        {garage && financing ? (
-          <Animated.View
-            entering={FadeInDown.delay(400).duration(600).springify()}
-            style={styles.invoiceCard}
-          >
+      {garage && financing ? (
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(600).springify()}
+        >
+          <Card style={styles.invoiceCard}>
             <Text style={styles.invoiceTitle}>2° Via do boleto</Text>
             <Text style={styles.invoiceDescription}>
               Baixe seus boletos e carnês com facilidade
@@ -103,37 +102,27 @@ export default function FinancingScreen() {
               disabled={!boletoAvailable}
               style={styles.invoiceButton}
             />
-          </Animated.View>
-        ) : isLoading ? (
-          <Skeleton
-            accessibilityLabel="Carregando boleto"
-            height={142}
-            borderRadius={0}
-            style={styles.invoiceCard}
-          />
-        ) : null}
-      </ScrollView>
-    </View>
+          </Card>
+        </Animated.View>
+      ) : isLoading ? (
+        <Skeleton
+          accessibilityLabel="Carregando boleto"
+          height={142}
+          borderRadius={0}
+          style={styles.invoiceCard}
+        />
+      ) : null}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  contentContainer: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg + 3,
-    paddingBottom: spacing.xxl + spacing.xxl,
-  },
   sectionHeader: {
     marginTop: spacing.lg,
   },
   financeCard: {
     marginTop: spacing.xl + spacing.md - 1,
-    borderWidth: 1,
-    borderColor: colors.black,
+    borderRadius: radii.none,
     minHeight: 160,
     paddingHorizontal: spacing.sm + 5,
     paddingTop: spacing.sm,
@@ -166,14 +155,14 @@ const styles = StyleSheet.create({
     left: 3,
     right: -3,
     bottom: -3,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: "transparent",
   },
   installmentBadge: {
     width: "100%",
     height: "100%",
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.primary,
     alignItems: "center",
@@ -201,7 +190,7 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     marginTop: spacing.xl + spacing.md - 1,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     minHeight: 96,
     paddingHorizontal: spacing.sm + 5,
@@ -215,8 +204,7 @@ const styles = StyleSheet.create({
   },
   invoiceCard: {
     marginTop: spacing.xl + spacing.xs + 1,
-    borderWidth: 1,
-    borderColor: colors.black,
+    borderRadius: radii.none,
     minHeight: 142,
     paddingHorizontal: spacing.sm + 5,
     paddingTop: spacing.sm,

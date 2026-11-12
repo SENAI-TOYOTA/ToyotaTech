@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfileForm } from "@/hooks/useProfileForm";
 import { validatePassword } from "@/profileValidation";
 import { apiErrorMessage } from "@/services/api";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { colors, fontSize, fonts, radii, spacing } from "@/theme";
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     height: 50,
     paddingVertical: 0,
     paddingHorizontal: spacing.md - 2,
-    borderRadius: 0,
+    borderRadius: radii.none,
     backgroundColor: colors.white,
   },
   inputText: {
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     height: 50,
     paddingVertical: 0,
     paddingHorizontal: spacing.md - 2,
-    borderRadius: 0,
+    borderRadius: radii.none,
     backgroundColor: colors.white,
   },
   visibilityRow: {
