@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleProp,
   StyleSheet,
@@ -19,6 +20,8 @@ interface ScreenProps {
   keyboardAvoiding?: boolean;
   edges?: Edge[];
   contentStyle?: StyleProp<ViewStyle>;
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 export default function Screen({
@@ -29,11 +32,23 @@ export default function Screen({
   keyboardAvoiding = false,
   edges = [],
   contentStyle,
+  refreshing = false,
+  onRefresh,
 }: ScreenProps) {
   const body = scroll ? (
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.content, contentStyle]}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        ) : undefined
+      }
     >
       {children}
     </ScrollView>

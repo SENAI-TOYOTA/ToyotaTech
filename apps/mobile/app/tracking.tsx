@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowLeft, Check } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 import InteractivePressable from "@/components/ui/InteractivePressable";
@@ -8,19 +8,31 @@ import Screen from "@/components/ui/Screen";
 import Skeleton from "@/components/ui/Skeleton";
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchTrackingStatus } from "@/services/tracking";
+import {
+  fetchTrackingStatus,
+  formatUpdatedAt,
+  hasTrackingData,
+  resolveTrackingError,
+  TrackingErrorState,
+} from "@/services/tracking";
 import { borders, colors, fonts, radii, spacing } from "@/theme";
 import { TrackingInfo, TrackingStep } from "@/types/tracking";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
 const mainCarImage = require("@/assets/images/corolla-main.jpg");
 const trackingStepIds = ["step-1", "step-2", "step-3", "step-4", "step-5"];
+const refreshCooldownMs = 15000;
 
 export default function TrackingScreen() {
   const router = useRouter();
   const { token } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [trackingData, setTrackingData] = useState<TrackingInfo | null>(null);
+  const [errorState, setErrorState] = useState<TrackingErrorState | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const inFlightRef = useRef(false);
+  const lastFetchedAtRef = useRef<number | null>(null);
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -29,6 +41,54 @@ export default function TrackingScreen() {
       router.replace("/home");
     }
   };
+
+  const loadTracking = useCallback(
+    async (force: boolean) => {
+      if (!token) {
+        setIsInitialLoading(false);
+        return;
+      }
+      if (inFlightRef.current) {
+        return;
+      }
+
+      const now = Date.now();
+      if (
+        !force &&
+        lastFetchedAtRef.current !== null &&
+        now - lastFetchedAtRef.current < refreshCooldownMs
+      ) {
+        setIsInitialLoading(false);
+        return;
+      }
+
+      inFlightRef.current = true;
+      if (force) {
+        setIsRefreshing(true);
+      }
+
+      try {
+        const data = await fetchTrackingStatus(token);
+        setTrackingData(data);
+        setErrorState(null);
+        setUpdatedAt(Date.now());
+        lastFetchedAtRef.current = Date.now();
+      } catch (error) {
+        setErrorState(resolveTrackingError(error));
+      } finally {
+        inFlightRef.current = false;
+        setIsInitialLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [token]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadTracking(false);
+    }, [loadTracking])
+  );
 
   const header = (
     <View style={styles.header}>
@@ -45,26 +105,14 @@ export default function TrackingScreen() {
     </View>
   );
 
-  useEffect(() => {
-    const loadData = async () => {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const data = await fetchTrackingStatus(token);
-        setTrackingData(data);
-      } catch (error) {
-        console.warn("Falha ao carregar os dados de rastreamento", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const handleRefresh = () => {
+    void loadTracking(true);
+  };
 
-    void loadData();
-  }, [token]);
+  const steps = Array.isArray(trackingData?.steps) ? trackingData.steps : [];
+  const showSkeleton = isInitialLoading && !trackingData && !errorState;
 
-  if (loading) {
+  if (showSkeleton) {
     return (
       <Screen
         edges={["top", "bottom"]}
@@ -97,12 +145,26 @@ export default function TrackingScreen() {
     );
   }
 
-  if (!trackingData) {
+  if (!trackingData && errorState) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>
-          Não foi possível carregar o status do veículo.
-        </Text>
+      <Screen
+        edges={["top", "bottom"]}
+        header={header}
+        scroll={false}
+        contentStyle={styles.errorContainer}
+      >
+        <Text style={styles.errorTitle}>{errorState.title}</Text>
+        <Text style={styles.errorDescription}>{errorState.description}</Text>
+        {errorState.retryable ? (
+          <InteractivePressable
+            style={styles.retryButton}
+            onPress={handleRefresh}
+            accessibilityRole="button"
+            accessibilityLabel="Tentar novamente"
+          >
+            <Text style={styles.retryButtonText}>Tentar novamente</Text>
+          </InteractivePressable>
+        ) : null}
         <InteractivePressable
           style={styles.backButton}
           onPress={handleBack}
@@ -111,7 +173,41 @@ export default function TrackingScreen() {
         >
           <Text style={styles.backButtonText}>Voltar</Text>
         </InteractivePressable>
-      </View>
+      </Screen>
+    );
+  }
+
+  if (trackingData && !hasTrackingData(trackingData)) {
+    return (
+      <Screen
+        edges={["top", "bottom"]}
+        header={header}
+        scroll={false}
+        contentStyle={styles.errorContainer}
+        refreshing={isRefreshing}
+      >
+        <Text style={styles.errorTitle}>Aguardando atualização da fábrica</Text>
+        <Text style={styles.errorDescription}>
+          Seu veículo está vinculado, mas ainda não há etapas de produção
+          registradas.
+        </Text>
+        <InteractivePressable
+          style={styles.retryButton}
+          onPress={handleRefresh}
+          accessibilityRole="button"
+          accessibilityLabel="Atualizar"
+        >
+          <Text style={styles.retryButtonText}>Atualizar</Text>
+        </InteractivePressable>
+        <InteractivePressable
+          style={styles.backButton}
+          onPress={handleBack}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
+        >
+          <Text style={styles.backButtonText}>Voltar</Text>
+        </InteractivePressable>
+      </Screen>
     );
   }
 
@@ -120,10 +216,12 @@ export default function TrackingScreen() {
       edges={["top", "bottom"]}
       header={header}
       contentStyle={styles.contentContainer}
+      refreshing={isRefreshing}
+      onRefresh={handleRefresh}
     >
       <View style={styles.carCard}>
         <View style={styles.carImageContainer}>
-          {canUseCorollaAltisImage(trackingData.model) ? (
+          {canUseCorollaAltisImage(trackingData?.model) ? (
             <Image
               source={mainCarImage}
               style={styles.carImage}
@@ -131,32 +229,34 @@ export default function TrackingScreen() {
             />
           ) : (
             <VehicleFallback
-              model={trackingData.model}
-              version={trackingData.version}
-              color={trackingData.color}
+              model={trackingData?.model}
+              version={trackingData?.version}
+              color={trackingData?.color}
               variant="card"
             />
           )}
         </View>
         <View style={styles.carDetails}>
-          <Text style={styles.carModel}>{trackingData.model}</Text>
+          <Text style={styles.carModel}>{trackingData?.model}</Text>
           <Text style={styles.carSpecs}>
-            {trackingData.version} • {trackingData.color}
+            {trackingData?.version} • {trackingData?.color}
           </Text>
           <Text style={styles.carSpecs}>
-            {trackingData.year} • {trackingData.engine}
+            {trackingData?.year} • {trackingData?.engine}
           </Text>
         </View>
       </View>
 
+      <Text style={styles.updatedText}>{formatUpdatedAt(updatedAt)}</Text>
+
       <Text style={styles.sectionTitle}>Rastreamento</Text>
 
       <View style={styles.timelineContainer}>
-        {trackingData.steps.map((step, index) => (
+        {steps.map((step, index) => (
           <TimelineStep
             key={step.id}
             step={step}
-            isLast={index === trackingData.steps.length - 1}
+            isLast={index === steps.length - 1}
           />
         ))}
       </View>
@@ -219,11 +319,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: spacing.xl,
   },
-  errorText: {
+  errorTitle: {
     fontFamily: fonts.semiBold,
     fontSize: 18,
     color: colors.black,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
+    textAlign: "center",
+  },
+  errorDescription: {
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    textAlign: "center",
+  },
+  retryButton: {
+    borderWidth: borders.thin,
+    borderColor: colors.black,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.primary,
+    marginBottom: spacing.sm,
+  },
+  retryButtonText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 16,
+    color: colors.white,
+  },
+  updatedText: {
+    marginTop: spacing.sm,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   header: {
     flexDirection: "row",
