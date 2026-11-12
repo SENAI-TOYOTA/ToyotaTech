@@ -49,7 +49,10 @@ export default function VehicleManagementScreen() {
       <View style={styles.documentList}>
         {documents.length ? (
           documents.map((document, index) => {
-            const documentTitle = getDocumentDisplayTitle(document.title);
+            const documentTitle =
+              document.id === "manual"
+                ? "Manual do Toyota"
+                : getDocumentDisplayTitle(document.title);
 
             return (
               <Animated.View

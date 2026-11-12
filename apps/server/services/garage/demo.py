@@ -99,7 +99,6 @@ def build_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> l
     digest = hashlib.sha1(
         (validation.coerce_text(seed) or "toyotatech").encode("utf-8")
     ).hexdigest()
-    vehicle_model = validation.coerce_text(vehicle.get("model")) or "Toyota"
     return [
         {
             "id": "invoice",
@@ -121,7 +120,7 @@ def build_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> l
         },
         {
             "id": "manual",
-            "title": f"Manual do {vehicle_model}",
+            "title": "Manual do Toyota",
             "date": purchase_date,
             "status": "available",
         },
