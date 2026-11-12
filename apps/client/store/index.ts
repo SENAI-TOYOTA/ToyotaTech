@@ -8,6 +8,7 @@ import {
 
 import { api } from "@/store/api";
 import authReducer from "@/store/slices/authSlice";
+import engagementReducer from "@/store/slices/engagementSlice";
 import garageReducer from "@/store/slices/garageSlice";
 import productionTrackingReducer from "@/store/slices/productionTrackingSlice";
 
@@ -16,6 +17,7 @@ export function makeStore() {
     reducer: {
       [api.reducerPath]: api.reducer,
       auth: authReducer,
+      engagement: engagementReducer,
       garage: garageReducer,
       productionTracking: productionTrackingReducer,
     },
@@ -45,6 +47,22 @@ export {
   useLoginMutation,
   useRegisterMutation,
 } from "@/store/slices/authSlice";
+export {
+  addBooking,
+  addToCart,
+  BOOKING_REWARD_POINTS,
+  cancelBooking,
+  cartTotal,
+  changeQuantity,
+  checkout,
+  ENGAGEMENT_STORAGE_KEY,
+  hydrateEngagement,
+  redeemReward,
+  type CartItem,
+  type EngagementState,
+  type ServiceBooking,
+  type Voucher,
+} from "@/store/slices/engagementSlice";
 export {
   clearGarageData,
   garageApi,

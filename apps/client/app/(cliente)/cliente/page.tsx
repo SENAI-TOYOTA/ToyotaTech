@@ -16,6 +16,10 @@ const shortcutDescriptions: Record<string, string> = {
   "/cliente/acompanhamento": "Acompanhe cada etapa da entrega",
   "/cliente/garagem": "Documentos digitais e recalls",
   "/cliente/financiamento": "Parcelas, vencimentos e boletos",
+  "/cliente/servicos": "Revisões, garantia e assistência 24h",
+  "/cliente/loja": "Acessórios originais Toyota",
+  "/cliente/recompensas": "Seus pontos, selos e vouchers",
+  "/cliente/noticias": "Vídeos de como seu Toyota é feito",
   "/cliente/perfil": "Seus dados pessoais e preferências",
 };
 

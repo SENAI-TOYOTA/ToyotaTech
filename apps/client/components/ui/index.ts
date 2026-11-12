@@ -7,6 +7,7 @@ export {
   type ButtonVariant,
 } from "./Button";
 export { default as Card, type CardProps } from "./Card";
+export { default as Chip, type ChipProps } from "./Chip";
 export {
   default as ChatbotWidget,
   type ChatbotActionLink,

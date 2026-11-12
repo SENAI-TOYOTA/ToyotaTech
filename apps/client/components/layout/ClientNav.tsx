@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/cn";
 
-import { clientNavItems, isNavItemActive } from "./client-nav";
+import { clientNavItems, clientTabBarItems, isNavItemActive } from "./client-nav";
 
 /** Menu lateral (telas largas, ≥ 960px). */
 export function ClientSidebar() {
@@ -63,7 +63,7 @@ export function ClientTabBar() {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] shadow-bar wide:hidden"
     >
       <ul className="mx-auto grid h-17 max-w-content grid-cols-5">
-        {clientNavItems.map((item) => {
+        {clientTabBarItems.map((item) => {
           const isActive = isNavItemActive(item, pathname);
           const Icon = item.icon;
 

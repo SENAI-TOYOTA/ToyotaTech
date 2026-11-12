@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import Viewer360 from "@/components/financing/Viewer360";
 import PageHeader from "@/components/layout/PageHeader";
 import {
   Badge,
@@ -151,6 +152,7 @@ function InvoiceCard({
   amount: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [invoiceNotice, setInvoiceNotice] = useState(false);
 
   const handleCopyBarcode = async () => {
     try {
@@ -164,7 +166,7 @@ function InvoiceCard({
 
   const handleAccessInvoice = () => {
     if (!available) return;
-    window.open("/pdf/J.pdf", "_blank", "noopener,noreferrer");
+    setInvoiceNotice(true);
   };
 
   return (
@@ -228,6 +230,12 @@ function InvoiceCard({
         >
           Acessar boleto
         </Button>
+        {invoiceNotice ? (
+          <p role="status" className="mt-3 text-sm text-fg-secondary">
+            O PDF do boleto com vencimento em {dueDate} é emitido pelo banco. Use a linha
+            digitável acima para pagar pelo app do seu banco.
+          </p>
+        ) : null}
       </div>
     </Card>
   );
@@ -384,6 +392,8 @@ export default function FinanciamentoPage() {
           />
         </Card>
       )}
+
+      <Viewer360 model={garage?.vehicle.model ?? "Toyota"} />
     </div>
   );
 }

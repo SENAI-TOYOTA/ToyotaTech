@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import ClientFooter from "@/components/layout/ClientFooter";
 import ClientHeader from "@/components/layout/ClientHeader";
 import { ClientSidebar, ClientTabBar } from "@/components/layout/ClientNav";
 import { ChatbotWidget } from "@/components/ui";
@@ -25,13 +26,14 @@ export default async function ClienteLayout({
     <div className="flex min-h-full flex-1 flex-col bg-surface-muted">
       <ClientHeader user={user} />
 
-      <div className="mx-auto flex w-full max-w-content flex-1 gap-8 px-gutter pt-6 pb-28 wide:pt-8 wide:pb-12">
+      <div className="mx-auto flex w-full max-w-content flex-1 gap-8 px-gutter pt-6 pb-10 wide:pt-8 wide:pb-12">
         <ClientSidebar />
         <main id="conteudo" className="min-w-0 flex-1">
           {children}
         </main>
       </div>
 
+      <ClientFooter />
       <ChatbotWidget />
       <ClientTabBar />
     </div>

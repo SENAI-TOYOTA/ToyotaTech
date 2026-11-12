@@ -12,6 +12,14 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { cn } from "@/lib/cn";
 import { MOCK_GARAGE_DATA } from "@/lib/mocks/garage";
+import {
+  CURRENT_MILEAGE,
+  DEALERSHIPS,
+  formatCurrency,
+  formatNumber,
+  getNextMaintenance,
+  ROADSIDE_PHONE,
+} from "@/lib/mocks/aftersales";
 import { API_BASE_URL, resolveAuthToken } from "@/store/api";
 import { useGetVeiculoQuery } from "@/store/slices/garageSlice";
 import type { VeiculoData } from "@/types/garage";
@@ -88,7 +96,56 @@ function buildContextualBotReply(
   if (q.includes("garantia") || q.includes("cobertura") || q.includes("bateria")) {
     return {
       text: `Seu ${model} possui Garantia de Fábrica de 5 anos (sem limite de quilometragem para uso particular) e cobertura de 8 anos ou 200.000 km para o sistema híbrido (bateria, inversor e módulo de controle).`,
-      actions: [{ label: "Consultar Certificado", href: "/cliente/garagem" }],
+      actions: [
+        { label: "Detalhes da garantia", href: "/cliente/servicos/garantia" },
+        { label: "Consultar Certificado", href: "/cliente/garagem" },
+      ],
+    };
+  }
+
+  if (q.includes("concessionaria") || q.includes("endereco") || q.includes("mapa")) {
+    return {
+      text: `Há ${DEALERSHIPS.length} concessionárias Toyota disponíveis para serviço, incluindo a ${DEALERSHIPS[0].name} (${DEALERSHIPS[0].city}). Veja o mapa e a rota até a mais próxima.`,
+      actions: [{ label: "Ver concessionárias", href: "/cliente/concessionarias" }],
+    };
+  }
+
+  if (q.includes("agend") || q.includes("revis") || q.includes("oleo") || q.includes("manutenc")) {
+    const next = getNextMaintenance();
+    return {
+      text: `Sua próxima revisão programada é a ${next.title.toLowerCase()}, em cerca de ${formatNumber(Math.max(next.mileage - CURRENT_MILEAGE, 0))} km ou ${next.months} meses. Preço estimado: ${formatCurrency(next.price)}. Agendando pelo portal você ganha 100 pontos.`,
+      actions: [
+        { label: "Agendar serviço", href: "/cliente/servicos/agendamento" },
+        { label: "Plano de revisões", href: "/cliente/servicos/revisoes" },
+      ],
+    };
+  }
+
+  if (q.includes("guincho") || q.includes("socorro") || q.includes("pane") || q.includes("pneu") || q.includes("assistencia")) {
+    return {
+      text: `A assistência 24h Toyota funciona 24 horas por dia, 7 dias por semana. Ligue para ${ROADSIDE_PHONE} e informe o chassi ${chassi}.`,
+      actions: [{ label: "Assistência 24h", href: "/cliente/servicos/assistencia" }],
+    };
+  }
+
+  if (q.includes("ponto") || q.includes("recompensa") || q.includes("selo") || q.includes("voucher")) {
+    return {
+      text: "Você acumula pontos ao fazer revisões em dia, agendar pelo portal e comprar na Loja Toyota, e pode trocá-los por lavagem, alinhamento, descontos e mais.",
+      actions: [{ label: "Ver recompensas", href: "/cliente/recompensas" }],
+    };
+  }
+
+  if (q.includes("loja") || q.includes("acessorio") || q.includes("comprar") || q.includes("produto")) {
+    return {
+      text: "Na Loja Toyota você encontra acessórios originais, produtos de cuidado e a coleção Toyota, com retirada na concessionária. Cada R$ 1 gasto vira 1 ponto.",
+      actions: [{ label: "Abrir a loja", href: "/cliente/loja" }],
+    };
+  }
+
+  if (q.includes("video") || q.includes("noticia") || q.includes("fabricado")) {
+    return {
+      text: "Separei vídeos sobre como seu Toyota é fabricado, inspecionado e entregue.",
+      actions: [{ label: "Notícias e vídeos", href: "/cliente/noticias" }],
     };
   }
 
