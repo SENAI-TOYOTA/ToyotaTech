@@ -28,6 +28,7 @@ export function AuthScreenLayout({
   return (
     <Screen
       scroll={false}
+      keyboardAvoiding
       edges={["top", "bottom"]}
       contentStyle={styles.container}
     >

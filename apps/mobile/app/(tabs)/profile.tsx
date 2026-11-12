@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Skeleton from "@/components/ui/Skeleton";
-import TextInput from "@/components/ui/TextInput";
+import TextField from "@/components/ui/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileForm } from "@/hooks/useProfileForm";
 import { colors, fontSize, fonts, radii, sizes, spacing } from "@/theme";
@@ -36,7 +36,7 @@ export default function ProfileScreen() {
   const password = "********";
 
   return (
-    <Screen contentStyle={styles.contentContainer}>
+    <Screen keyboardAvoiding contentStyle={styles.contentContainer}>
       <Animated.View entering={FadeInDown.duration(600).springify()}>
         <ScreenSectionHeader
           title="Perfil"
@@ -60,15 +60,16 @@ export default function ProfileScreen() {
           ))
         ) : (
           <>
-            <TextInput
-              placeholder="Nome completo"
+            <TextField
+              label="Nome completo"
               value={fullName}
               onChangeText={setFullName}
               containerStyle={styles.inputContainer}
               style={styles.inputText}
             />
-            <TextInput
-              placeholder="Data de nascimento (DD/MM/AAAA)"
+            <TextField
+              label="Data de nascimento"
+              placeholder="DD/MM/AAAA"
               value={birthDate}
               onChangeText={(text) => setBirthDate(formatBirthDate(text))}
               keyboardType="numeric"
@@ -76,8 +77,8 @@ export default function ProfileScreen() {
               containerStyle={styles.inputContainer}
               style={styles.inputText}
             />
-            <TextInput
-              placeholder="CPF"
+            <TextField
+              label="CPF"
               value={cpf}
               onChangeText={(text) => setCpf(formatCpf(text))}
               keyboardType="numeric"
@@ -86,8 +87,8 @@ export default function ProfileScreen() {
               containerStyle={styles.inputContainer}
               style={styles.inputText}
             />
-            <TextInput
-              placeholder="Email"
+            <TextField
+              label="Email"
               keyboardType="email-address"
               autoCapitalize="none"
               value={email}
@@ -95,8 +96,8 @@ export default function ProfileScreen() {
               containerStyle={styles.inputContainer}
               style={styles.inputText}
             />
-            <TextInput
-              placeholder="Senha"
+            <TextField
+              label="Senha"
               secureTextEntry
               value={password}
               editable={false}

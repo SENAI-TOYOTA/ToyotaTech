@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Screen from "@/components/ui/Screen";
@@ -43,9 +44,11 @@ export default function FinancingScreen() {
               <Text style={styles.installmentLabel}>Parcelas pagas:</Text>
               <View style={styles.installmentBadgeWrapper}>
                 <View style={styles.installmentBadgeShadow} />
-                <View style={styles.installmentBadge}>
-                  <Text style={styles.installmentText}>{paidInstallments}</Text>
-                </View>
+                <Badge
+                  label={paidInstallments}
+                  style={styles.installmentBadge}
+                  textStyle={styles.installmentText}
+                />
               </View>
             </View>
 

@@ -7,7 +7,7 @@ import Button from "@/components/ui/Button";
 import InteractivePressable from "@/components/ui/InteractivePressable";
 import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
-import TextInput from "@/components/ui/TextInput";
+import TextField from "@/components/ui/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileForm } from "@/hooks/useProfileForm";
 import { validatePassword } from "@/profileValidation";
@@ -71,6 +71,7 @@ export default function ProfileSetupScreen() {
 
   return (
     <Screen
+      keyboardAvoiding
       contentStyle={styles.contentContainer}
       footer={
         <View style={styles.saveButtonContainer}>
@@ -100,15 +101,16 @@ export default function ProfileSetupScreen() {
       />
 
       <View style={styles.formContainer}>
-        <TextInput
-          placeholder="Nome completo"
+        <TextField
+          label="Nome completo"
           value={fullName}
           onChangeText={setFullName}
           containerStyle={styles.inputContainer}
           style={styles.inputText}
         />
-        <TextInput
-          placeholder="Data de nascimento (DD/MM/AAAA)"
+        <TextField
+          label="Data de nascimento"
+          placeholder="DD/MM/AAAA"
           value={birthDate}
           onChangeText={(text) => setBirthDate(formatBirthDate(text))}
           keyboardType="numeric"
@@ -116,8 +118,8 @@ export default function ProfileSetupScreen() {
           containerStyle={styles.inputContainer}
           style={styles.inputText}
         />
-        <TextInput
-          placeholder="CPF"
+        <TextField
+          label="CPF"
           value={cpf}
           onChangeText={(text) => setCpf(formatCpf(text))}
           keyboardType="numeric"
@@ -136,8 +138,8 @@ export default function ProfileSetupScreen() {
               botão do Google.
             </Text>
 
-            <TextInput
-              placeholder="NOVA SENHA"
+            <TextField
+              label="Nova senha"
               secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPasswordValue}

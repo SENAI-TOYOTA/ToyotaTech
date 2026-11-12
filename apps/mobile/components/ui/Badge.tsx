@@ -1,15 +1,23 @@
 import { borders, radii, semantic, spacing, textStyles } from "@/theme";
-import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
+import {
+  StyleProp,
+  StyleSheet,
+  Text,
+  TextStyle,
+  View,
+  ViewStyle,
+} from "react-native";
 
 interface BadgeProps {
   label: string;
   style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 }
 
-export default function Badge({ label, style }: BadgeProps) {
+export default function Badge({ label, style, textStyle }: BadgeProps) {
   return (
     <View style={[styles.badge, style]}>
-      <Text style={textStyles.badge}>{label}</Text>
+      <Text style={[textStyles.badge, textStyle]}>{label}</Text>
     </View>
   );
 }

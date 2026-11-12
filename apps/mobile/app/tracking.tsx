@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   },
   indicatorCurrent: {
     borderColor: colors.primary,
-    borderWidth: 2,
+    borderWidth: borders.strong,
   },
   innerCircle: {
     width: 10,
