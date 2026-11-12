@@ -71,7 +71,7 @@ export default function FinancingScreen() {
         <Skeleton
           accessibilityLabel="Carregando financiamento"
           height={160}
-          borderRadius={0}
+          borderRadius={radii.sm}
           style={styles.financeCard}
         />
       ) : (
@@ -111,7 +111,7 @@ export default function FinancingScreen() {
         <Skeleton
           accessibilityLabel="Carregando boleto"
           height={142}
-          borderRadius={0}
+          borderRadius={radii.sm}
           style={styles.invoiceCard}
         />
       ) : null}
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   },
   financeCard: {
     marginTop: spacing.xl + spacing.md - 1,
-    borderRadius: radii.none,
+    borderRadius: radii.sm,
     minHeight: 160,
     paddingHorizontal: spacing.sm + 5,
     paddingTop: spacing.sm,
@@ -167,7 +167,10 @@ const styles = StyleSheet.create({
     height: "100%",
     borderWidth: borders.thin,
     borderColor: colors.black,
+    borderRadius: radii.sm,
     backgroundColor: colors.primary,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -195,6 +198,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl + spacing.md - 1,
     borderWidth: borders.thin,
     borderColor: colors.black,
+    borderRadius: radii.sm,
     minHeight: 96,
     paddingHorizontal: spacing.sm + 5,
     paddingVertical: spacing.md,
@@ -207,7 +211,7 @@ const styles = StyleSheet.create({
   },
   invoiceCard: {
     marginTop: spacing.xl + spacing.xs + 1,
-    borderRadius: radii.none,
+    borderRadius: radii.sm,
     minHeight: 142,
     paddingHorizontal: spacing.sm + 5,
     paddingTop: spacing.sm,

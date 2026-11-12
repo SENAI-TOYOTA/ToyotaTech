@@ -54,7 +54,7 @@ export default function ProfileScreen() {
             <Skeleton
               key={fieldId}
               height={50}
-              borderRadius={0}
+              borderRadius={radii.sm}
               accessibilityLabel={index === 0 ? "Carregando perfil" : undefined}
             />
           ))
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     height: sizes.inputField,
     paddingVertical: 0,
     paddingHorizontal: spacing.md - 2,
-    borderRadius: radii.none,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
   },
   inputText: {

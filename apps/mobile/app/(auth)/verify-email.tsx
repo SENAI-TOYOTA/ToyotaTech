@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     height: 54,
     borderWidth: borders.thin,
     borderColor: colors.border,
-    borderRadius: radii.md,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
   },
   activePinCodeContainer: {

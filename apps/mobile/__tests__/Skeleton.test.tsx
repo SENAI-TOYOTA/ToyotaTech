@@ -1,5 +1,5 @@
 import Skeleton from "@/components/ui/Skeleton";
-import { colors } from "@/theme";
+import { colors, radii } from "@/theme";
 import { describe, expect, it } from "@jest/globals";
 import { render } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
@@ -31,7 +31,7 @@ describe("Skeleton", () => {
     const style = StyleSheet.flatten(getByRole("progressbar").props.style);
 
     expect(style.width).toBe("100%");
-    expect(style.borderRadius).toBe(8);
+    expect(style.borderRadius).toBe(radii.sm);
   });
 
   it("fica oculto do leitor de tela sem rotulo de acessibilidade", async () => {

@@ -10,7 +10,7 @@ import Skeleton from "@/components/ui/Skeleton";
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGarage } from "@/hooks/useGarage";
-import { borders, colors, fonts, spacing } from "@/theme";
+import { borders, colors, fonts, radii, spacing } from "@/theme";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
 const mainCarImage = require("@/assets/images/corolla-main.jpg");
@@ -73,7 +73,7 @@ export default function HomeScreen() {
           <Skeleton
             accessibilityLabel="Carregando veículo"
             height={300}
-            borderRadius={0}
+            borderRadius={radii.sm}
           />
         ) : shouldUseVehicleImage ? (
           <>
@@ -209,6 +209,7 @@ const styles = StyleSheet.create({
   showcaseContainer: {
     marginTop: spacing.sm,
     height: 300,
+    borderRadius: radii.sm,
     overflow: "hidden",
   },
   mainImage: {
@@ -284,6 +285,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderWidth: borders.thin,
     borderColor: colors.black,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
     overflow: "hidden",
   },
@@ -333,6 +335,7 @@ const styles = StyleSheet.create({
   newsCard: {
     borderWidth: borders.thin,
     borderColor: colors.black,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.sm,

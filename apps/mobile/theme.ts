@@ -37,11 +37,10 @@ export const fontSize = {
 };
 
 export const radii = {
-  none: 0,
-  sm: 2,
+  button: 1,
+  sm: 1,
   md: 6,
   lg: 12,
-  pill: 999,
 };
 
 export const borders = {

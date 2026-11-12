@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: borders.thin,
     borderColor: colors.black,
-    borderRadius: radii.sm,
+    borderRadius: radii.button,
   },
   shadowLayerInactive: {
     borderColor: colors.grayLight,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingVertical: 8,
     paddingHorizontal: spacing.lg,
-    borderRadius: radii.sm,
+    borderRadius: radii.button,
   },
   baseRow: {
     height: "100%",

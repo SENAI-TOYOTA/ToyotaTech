@@ -1,4 +1,4 @@
-import { colors } from "@/theme";
+import { colors, radii } from "@/theme";
 import { useEffect, useRef } from "react";
 import {
   Animated,
@@ -24,7 +24,7 @@ const pulseMaxOpacity = 0.9;
 export default function Skeleton({
   height,
   width = "100%",
-  borderRadius = 8,
+  borderRadius = radii.sm,
   accessibilityLabel,
   style,
 }: SkeletonProps) {

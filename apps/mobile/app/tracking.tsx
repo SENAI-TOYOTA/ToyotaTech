@@ -122,13 +122,13 @@ export default function TrackingScreen() {
         <Skeleton
           accessibilityLabel="Carregando status do veículo"
           height={300}
-          borderRadius={0}
+          borderRadius={radii.sm}
           style={styles.carCard}
         />
         <Skeleton
           height={24}
           width={140}
-          borderRadius={0}
+          borderRadius={radii.sm}
           style={styles.sectionTitle}
         />
         <View style={styles.timelineContainer}>
@@ -136,7 +136,7 @@ export default function TrackingScreen() {
             <Skeleton
               key={stepId}
               height={70}
-              borderRadius={0}
+              borderRadius={radii.sm}
               style={styles.stepWrapper}
             />
           ))}
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacing.xs,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
   },
   headerTitle: {
     fontFamily: fonts.bold,
@@ -380,6 +380,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     borderWidth: borders.thin,
     borderColor: colors.black,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
     padding: spacing.md,
   },

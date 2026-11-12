@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     borderWidth: borders.thin,
     borderColor: borders.color,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     backgroundColor: semantic.surface,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs - 2,

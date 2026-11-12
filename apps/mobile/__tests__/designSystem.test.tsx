@@ -30,7 +30,7 @@ describe("Badge", () => {
     const style = StyleSheet.flatten(toJSON()?.props.style);
 
     expect(getByText("Disponível")).toBeTruthy();
-    expect(style.borderRadius).toBe(radii.pill);
+    expect(style.borderRadius).toBe(radii.sm);
   });
 });
 

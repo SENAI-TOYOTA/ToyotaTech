@@ -8,7 +8,7 @@ import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Skeleton from "@/components/ui/Skeleton";
 import { useGarage } from "@/hooks/useGarage";
-import { borders, colors, fontSize, fonts, spacing } from "@/theme";
+import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
 
 const documentSkeletonIds = [
   "document-1",
@@ -81,7 +81,7 @@ export default function VehicleManagementScreen() {
             <Skeleton
               key={documentSkeletonId}
               height={40}
-              borderRadius={0}
+              borderRadius={radii.sm}
               accessibilityLabel={
                 index === 0 ? "Carregando documentos" : undefined
               }
@@ -111,7 +111,7 @@ export default function VehicleManagementScreen() {
                 </View>
               ))
             ) : isLoading ? (
-              <Skeleton height={44} borderRadius={0} />
+              <Skeleton height={44} borderRadius={radii.sm} />
             ) : (
               <Text style={styles.recallEmptyText}>
                 Nenhum recall registrado.
@@ -163,6 +163,7 @@ const styles = StyleSheet.create({
   recallItem: {
     borderWidth: borders.thin,
     borderColor: colors.black,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.sm,

@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     height: 50,
     paddingVertical: 0,
     paddingHorizontal: spacing.md - 2,
-    borderRadius: radii.none,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
   },
   inputText: {
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     height: 50,
     paddingVertical: 0,
     paddingHorizontal: spacing.md - 2,
-    borderRadius: radii.none,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
   },
   visibilityRow: {
