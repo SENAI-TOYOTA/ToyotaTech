@@ -6,7 +6,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
 import {
   SafeAreaView,
@@ -15,7 +14,7 @@ import {
 
 import Logo from "@/components/Logo";
 import InteractivePressable from "@/components/ui/InteractivePressable";
-import { colors, fontSize, fonts, radii, spacing } from "@/theme";
+import { colors, fontSize, fonts, spacing } from "@/theme";
 
 const iconSize = 20;
 const iconStrokeWidth = 1.8;
@@ -49,32 +48,25 @@ const TabIcon = React.memo(function TabIcon({
   Icon: typeof Home;
 }) {
   const scale = useSharedValue(1);
-  const pillOpacity = useSharedValue(0);
 
   useEffect(() => {
     scale.value = withSpring(focused ? 1.05 : 1, {
       damping: 15,
       stiffness: 150,
     });
-    pillOpacity.value = withTiming(focused ? 1 : 0, { duration: 200 });
-  }, [focused, scale, pillOpacity]);
+  }, [focused, scale]);
 
   const animatedIconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  const animatedPillStyle = useAnimatedStyle(() => ({
-    opacity: pillOpacity.value,
-  }));
-
   return (
     <View style={styles.tabIconWrapper}>
-      <Animated.View style={[styles.tabPill, animatedPillStyle]} />
       <Animated.View style={animatedIconStyle}>
         <Icon
           size={iconSize}
           strokeWidth={iconStrokeWidth}
-          color={focused ? colors.white : (color as string)}
+          color={focused ? colors.primary : (color as string)}
         />
       </Animated.View>
     </View>
@@ -196,12 +188,5 @@ const styles = StyleSheet.create({
     height: 28,
     alignItems: "center",
     justifyContent: "center",
-  },
-  tabPill: {
-    position: "absolute",
-    width: 44,
-    height: 26,
-    borderRadius: radii.lg,
-    backgroundColor: colors.primary,
   },
 });
