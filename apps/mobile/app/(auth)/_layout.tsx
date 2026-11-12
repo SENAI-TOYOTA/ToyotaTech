@@ -1,3 +1,6 @@
+import Logo from "@/components/Logo";
+import Screen from "@/components/ui/Screen";
+import { colors, fonts, fontSize, layout, spacing } from "@/theme";
 import { Stack } from "expo-router";
 import { ReactNode } from "react";
 import {
@@ -8,10 +11,6 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
-import Logo from "@/components/Logo";
-import { colors, fonts, fontSize, spacing } from "@/theme";
 
 interface AuthScreenLayoutProps {
   children: ReactNode;
@@ -27,30 +26,32 @@ export function AuthScreenLayout({
   footerTextColor,
 }: AuthScreenLayoutProps) {
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.topSection}>
-          <View style={styles.logoContainer}>
-            <Logo size={fontSize.logo} />
-          </View>
-          <View style={[styles.contentSection, contentSectionStyle]}>
-            {children}
-          </View>
+    <Screen
+      scroll={false}
+      edges={["top", "bottom"]}
+      contentStyle={styles.container}
+    >
+      <View style={styles.topSection}>
+        <View style={styles.logoContainer}>
+          <Logo size={fontSize.logo} />
         </View>
-
-        <View style={styles.bottomSection}>
-          {bottomContent}
-          <Text
-            style={[
-              styles.footerText,
-              footerTextColor ? { color: footerTextColor } : null,
-            ]}
-          >
-            todos os direitos reservados © 2026
-          </Text>
+        <View style={[styles.contentSection, contentSectionStyle]}>
+          {children}
         </View>
       </View>
-    </SafeAreaView>
+
+      <View style={styles.bottomSection}>
+        {bottomContent}
+        <Text
+          style={[
+            styles.footerText,
+            footerTextColor ? { color: footerTextColor } : null,
+          ]}
+        >
+          todos os direitos reservados © 2026
+        </Text>
+      </View>
+    </Screen>
   );
 }
 
@@ -59,16 +60,12 @@ export default function AuthLayout() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   container: {
     flex: 1,
     justifyContent: "space-between",
-    paddingHorizontal: 55,
-    paddingTop: 48,
-    paddingBottom: 48,
+    paddingHorizontal: layout.authPadding,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl,
   },
   topSection: {
     width: "100%",

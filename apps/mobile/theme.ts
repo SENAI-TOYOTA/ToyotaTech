@@ -65,6 +65,7 @@ export const elevation = {
 
 export const layout = {
   screenPadding: spacing.lg + 3,
+  authPadding: 55,
   sectionGap: spacing.xl + spacing.sm,
   formGap: spacing.md,
   readingWidth: 640,

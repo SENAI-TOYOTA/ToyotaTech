@@ -1,10 +1,10 @@
 import { useRouter } from "expo-router";
 import { ArrowLeft, Check } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 import InteractivePressable from "@/components/ui/InteractivePressable";
+import Screen from "@/components/ui/Screen";
 import Skeleton from "@/components/ui/Skeleton";
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,6 +30,21 @@ export default function TrackingScreen() {
     }
   };
 
+  const header = (
+    <View style={styles.header}>
+      <InteractivePressable
+        onPress={handleBack}
+        style={styles.backIcon}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Voltar"
+      >
+        <ArrowLeft size={22} color={colors.black} strokeWidth={1.8} />
+      </InteractivePressable>
+      <Text style={styles.headerTitle}>Status do pedido</Text>
+    </View>
+  );
+
   useEffect(() => {
     const loadData = async () => {
       if (!token) {
@@ -51,44 +66,34 @@ export default function TrackingScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
-        <View style={styles.header}>
-          <InteractivePressable
-            onPress={handleBack}
-            style={styles.backIcon}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-          >
-            <ArrowLeft size={22} color={colors.black} strokeWidth={1.8} />
-          </InteractivePressable>
-          <Text style={styles.headerTitle}>Status do pedido</Text>
+      <Screen
+        edges={["top", "bottom"]}
+        header={header}
+        contentStyle={styles.contentContainer}
+      >
+        <Skeleton
+          accessibilityLabel="Carregando status do veículo"
+          height={300}
+          borderRadius={0}
+          style={styles.carCard}
+        />
+        <Skeleton
+          height={24}
+          width={140}
+          borderRadius={0}
+          style={styles.sectionTitle}
+        />
+        <View style={styles.timelineContainer}>
+          {trackingStepIds.map((stepId) => (
+            <Skeleton
+              key={stepId}
+              height={70}
+              borderRadius={0}
+              style={styles.stepWrapper}
+            />
+          ))}
         </View>
-        <View style={styles.contentContainer}>
-          <Skeleton
-            accessibilityLabel="Carregando status do veículo"
-            height={300}
-            borderRadius={0}
-            style={styles.carCard}
-          />
-          <Skeleton
-            height={24}
-            width={140}
-            borderRadius={0}
-            style={styles.sectionTitle}
-          />
-          <View style={styles.timelineContainer}>
-            {trackingStepIds.map((stepId) => (
-              <Skeleton
-                key={stepId}
-                height={70}
-                borderRadius={0}
-                style={styles.stepWrapper}
-              />
-            ))}
-          </View>
-        </View>
-      </SafeAreaView>
+      </Screen>
     );
   }
 
@@ -111,65 +116,51 @@ export default function TrackingScreen() {
   }
 
   return (
-    <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
-      <View style={styles.header}>
-        <InteractivePressable
-          onPress={handleBack}
-          style={styles.backIcon}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-        >
-          <ArrowLeft size={22} color={colors.black} strokeWidth={1.8} />
-        </InteractivePressable>
-        <Text style={styles.headerTitle}>Status do pedido</Text>
+    <Screen
+      edges={["top", "bottom"]}
+      header={header}
+      contentStyle={styles.contentContainer}
+    >
+      <View style={styles.carCard}>
+        <View style={styles.carImageContainer}>
+          {canUseCorollaAltisImage(trackingData.model) ? (
+            <Image
+              source={mainCarImage}
+              style={styles.carImage}
+              resizeMode="contain"
+            />
+          ) : (
+            <VehicleFallback
+              model={trackingData.model}
+              version={trackingData.version}
+              color={trackingData.color}
+              variant="card"
+            />
+          )}
+        </View>
+        <View style={styles.carDetails}>
+          <Text style={styles.carModel}>{trackingData.model}</Text>
+          <Text style={styles.carSpecs}>
+            {trackingData.version} • {trackingData.color}
+          </Text>
+          <Text style={styles.carSpecs}>
+            {trackingData.year} • {trackingData.engine}
+          </Text>
+        </View>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        <View style={styles.carCard}>
-          <View style={styles.carImageContainer}>
-            {canUseCorollaAltisImage(trackingData.model) ? (
-              <Image
-                source={mainCarImage}
-                style={styles.carImage}
-                resizeMode="contain"
-              />
-            ) : (
-              <VehicleFallback
-                model={trackingData.model}
-                version={trackingData.version}
-                color={trackingData.color}
-                variant="card"
-              />
-            )}
-          </View>
-          <View style={styles.carDetails}>
-            <Text style={styles.carModel}>{trackingData.model}</Text>
-            <Text style={styles.carSpecs}>
-              {trackingData.version} • {trackingData.color}
-            </Text>
-            <Text style={styles.carSpecs}>
-              {trackingData.year} • {trackingData.engine}
-            </Text>
-          </View>
-        </View>
+      <Text style={styles.sectionTitle}>Rastreamento</Text>
 
-        <Text style={styles.sectionTitle}>Rastreamento</Text>
-
-        <View style={styles.timelineContainer}>
-          {trackingData.steps.map((step, index) => (
-            <TimelineStep
-              key={step.id}
-              step={step}
-              isLast={index === trackingData.steps.length - 1}
-            />
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <View style={styles.timelineContainer}>
+        {trackingData.steps.map((step, index) => (
+          <TimelineStep
+            key={step.id}
+            step={step}
+            isLast={index === trackingData.steps.length - 1}
+          />
+        ))}
+      </View>
+    </Screen>
   );
 }
 
@@ -222,10 +213,6 @@ function TimelineStep({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   errorContainer: {
     flex: 1,
     justifyContent: "center",

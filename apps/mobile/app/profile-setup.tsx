@@ -1,10 +1,11 @@
 import { useRouter } from "expo-router";
 import { ArrowRight, Eye } from "lucide-react-native";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
 import InteractivePressable from "@/components/ui/InteractivePressable";
+import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,121 +70,113 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        <ScreenSectionHeader
-          title="Complete seu perfil"
-          subtitle="Informe seus dados para continuar"
-          style={styles.sectionHeader}
-        />
-
-        <View style={styles.formContainer}>
-          <TextInput
-            placeholder="Nome completo"
-            value={fullName}
-            onChangeText={setFullName}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          <TextInput
-            placeholder="Data de nascimento (DD/MM/AAAA)"
-            value={birthDate}
-            onChangeText={(text) => setBirthDate(formatBirthDate(text))}
-            keyboardType="numeric"
-            maxLength={10}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          <TextInput
-            placeholder="CPF"
-            value={cpf}
-            onChangeText={(text) => setCpf(formatCpf(text))}
-            keyboardType="numeric"
-            maxLength={14}
-            editable={!isCpfLocked}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          {isFederatedUser ? (
-            <View style={styles.passwordSection}>
-              <Text style={styles.passwordSectionTitle}>
-                CRIAR SENHA (OPCIONAL)
-              </Text>
-              <Text style={styles.passwordSectionSubtitle}>
-                Defina uma senha para entrar com email e senha também, sem usar
-                o botão do Google.
-              </Text>
-
-              <TextInput
-                placeholder="NOVA SENHA"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPasswordValue}
-                containerStyle={styles.passwordInputContainer}
-                style={styles.inputText}
+    <Screen
+      contentStyle={styles.contentContainer}
+      footer={
+        <View style={styles.saveButtonContainer}>
+          <Button
+            title="Salvar e continuar"
+            loading={isSaving}
+            style={styles.saveButton}
+            icon={
+              <ArrowRight
+                size={36}
+                strokeWidth={3}
+                color={colors.white}
+                strokeLinecap="butt"
+                strokeLinejoin="round"
               />
-              <InteractivePressable
-                style={styles.visibilityRow}
-                onPress={() => setShowPassword((current) => !current)}
-              >
-                <Eye size={18} strokeWidth={1.8} color={colors.black} />
-                <Text style={styles.visibilityText}>
-                  {showPassword ? "OCULTAR" : "EXIBIR"}
-                </Text>
-              </InteractivePressable>
-
-              <Text style={styles.passwordHintText}>
-                Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
-                minúscula e um número.
-              </Text>
-
-              {passwordSuccess ? (
-                <Text style={styles.passwordSuccessText}>
-                  Senha definida com sucesso!
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-
-          {formError ? (
-            <Text style={styles.formErrorText}>{formError}</Text>
-          ) : null}
+            }
+            disabled={isSaving || isLoadingProfile || !token}
+            onPress={handleSave}
+          />
         </View>
-      </ScrollView>
+      }
+    >
+      <ScreenSectionHeader
+        title="Complete seu perfil"
+        subtitle="Informe seus dados para continuar"
+        style={styles.sectionHeader}
+      />
 
-      <View style={styles.saveButtonContainer}>
-        <Button
-          title="Salvar e continuar"
-          loading={isSaving}
-          style={styles.saveButton}
-          icon={
-            <ArrowRight
-              size={36}
-              strokeWidth={3}
-              color={colors.white}
-              strokeLinecap="butt"
-              strokeLinejoin="round"
-            />
-          }
-          disabled={isSaving || isLoadingProfile || !token}
-          onPress={handleSave}
+      <View style={styles.formContainer}>
+        <TextInput
+          placeholder="Nome completo"
+          value={fullName}
+          onChangeText={setFullName}
+          containerStyle={styles.inputContainer}
+          style={styles.inputText}
         />
+        <TextInput
+          placeholder="Data de nascimento (DD/MM/AAAA)"
+          value={birthDate}
+          onChangeText={(text) => setBirthDate(formatBirthDate(text))}
+          keyboardType="numeric"
+          maxLength={10}
+          containerStyle={styles.inputContainer}
+          style={styles.inputText}
+        />
+        <TextInput
+          placeholder="CPF"
+          value={cpf}
+          onChangeText={(text) => setCpf(formatCpf(text))}
+          keyboardType="numeric"
+          maxLength={14}
+          editable={!isCpfLocked}
+          containerStyle={styles.inputContainer}
+          style={styles.inputText}
+        />
+        {isFederatedUser ? (
+          <View style={styles.passwordSection}>
+            <Text style={styles.passwordSectionTitle}>
+              CRIAR SENHA (OPCIONAL)
+            </Text>
+            <Text style={styles.passwordSectionSubtitle}>
+              Defina uma senha para entrar com email e senha também, sem usar o
+              botão do Google.
+            </Text>
+
+            <TextInput
+              placeholder="NOVA SENHA"
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPasswordValue}
+              containerStyle={styles.passwordInputContainer}
+              style={styles.inputText}
+            />
+            <InteractivePressable
+              style={styles.visibilityRow}
+              onPress={() => setShowPassword((current) => !current)}
+            >
+              <Eye size={18} strokeWidth={1.8} color={colors.black} />
+              <Text style={styles.visibilityText}>
+                {showPassword ? "OCULTAR" : "EXIBIR"}
+              </Text>
+            </InteractivePressable>
+
+            <Text style={styles.passwordHintText}>
+              Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
+              minúscula e um número.
+            </Text>
+
+            {passwordSuccess ? (
+              <Text style={styles.passwordSuccessText}>
+                Senha definida com sucesso!
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {formError ? (
+          <Text style={styles.formErrorText}>{formError}</Text>
+        ) : null}
       </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
   contentContainer: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg + 3,
     paddingBottom: spacing.xxl + spacing.xxl + spacing.xl,
   },
   sectionHeader: {

@@ -14,6 +14,7 @@ import { Edge, SafeAreaView } from "react-native-safe-area-context";
 interface ScreenProps {
   children: ReactNode;
   header?: ReactNode;
+  footer?: ReactNode;
   scroll?: boolean;
   keyboardAvoiding?: boolean;
   edges?: Edge[];
@@ -23,6 +24,7 @@ interface ScreenProps {
 export default function Screen({
   children,
   header,
+  footer,
   scroll = true,
   keyboardAvoiding = false,
   edges = [],
@@ -52,6 +54,7 @@ export default function Screen({
       ) : (
         body
       )}
+      {footer}
     </SafeAreaView>
   );
 }
