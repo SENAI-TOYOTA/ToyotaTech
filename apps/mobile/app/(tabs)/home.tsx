@@ -5,6 +5,7 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
 import Button from "@/components/ui/Button";
 import InteractivePressable from "@/components/ui/InteractivePressable";
+import Skeleton from "@/components/ui/Skeleton";
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGarage } from "@/hooks/useGarage";
@@ -71,7 +72,13 @@ export default function HomeScreen() {
           entering={FadeInDown.delay(200).duration(600).springify()}
           style={styles.showcaseContainer}
         >
-          {shouldUseVehicleImage ? (
+          {isLoading && !garage ? (
+            <Skeleton
+              accessibilityLabel="Carregando veículo"
+              height={300}
+              borderRadius={0}
+            />
+          ) : shouldUseVehicleImage ? (
             <>
               <Image
                 source={mainCarImage}

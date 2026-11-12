@@ -4,8 +4,18 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import Button from "@/components/ui/Button";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
+import Skeleton from "@/components/ui/Skeleton";
 import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, fontSize, spacing } from "@/theme";
+
+const documentSkeletonIds = [
+  "document-1",
+  "document-2",
+  "document-3",
+  "document-4",
+  "document-5",
+  "document-6",
+];
 
 const documentDatePattern =
   /(?:\s*[-|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
@@ -19,7 +29,7 @@ function getDocumentDisplayTitle(title: string) {
 }
 
 export default function VehicleManagementScreen() {
-  const { garage } = useGarage();
+  const { garage, isLoading } = useGarage();
 
   const documents = garage?.documents ?? [];
   const recalls = garage?.recalls ?? [];
@@ -65,6 +75,17 @@ export default function VehicleManagementScreen() {
                 </Animated.View>
               );
             })
+          ) : isLoading ? (
+            documentSkeletonIds.map((documentSkeletonId, index) => (
+              <Skeleton
+                key={documentSkeletonId}
+                height={40}
+                borderRadius={0}
+                accessibilityLabel={
+                  index === 0 ? "Carregando documentos" : undefined
+                }
+              />
+            ))
           ) : (
             <Text style={styles.emptyStateText}>
               Nenhum documento vinculado.
@@ -92,6 +113,8 @@ export default function VehicleManagementScreen() {
                   ) : null}
                 </View>
               ))
+            ) : isLoading ? (
+              <Skeleton height={44} borderRadius={0} />
             ) : (
               <Text style={styles.recallEmptyText}>
                 Nenhum recall registrado.

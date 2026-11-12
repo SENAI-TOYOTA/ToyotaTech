@@ -1,17 +1,11 @@
 import { useRouter } from "expo-router";
 import { ArrowLeft, Check } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import InteractivePressable from "@/components/ui/InteractivePressable";
+import Skeleton from "@/components/ui/Skeleton";
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchTrackingStatus } from "@/services/tracking";
@@ -20,6 +14,7 @@ import { TrackingInfo, TrackingStep } from "@/types/tracking";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
 const mainCarImage = require("@/assets/images/corolla-main.jpg");
+const trackingStepIds = ["step-1", "step-2", "step-3", "step-4", "step-5"];
 
 export default function TrackingScreen() {
   const router = useRouter();
@@ -56,9 +51,44 @@ export default function TrackingScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+        <View style={styles.header}>
+          <InteractivePressable
+            onPress={handleBack}
+            style={styles.backIcon}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar"
+          >
+            <ArrowLeft size={22} color={colors.black} strokeWidth={1.8} />
+          </InteractivePressable>
+          <Text style={styles.headerTitle}>Status do pedido</Text>
+        </View>
+        <View style={styles.contentContainer}>
+          <Skeleton
+            accessibilityLabel="Carregando status do veículo"
+            height={300}
+            borderRadius={0}
+            style={styles.carCard}
+          />
+          <Skeleton
+            height={24}
+            width={140}
+            borderRadius={0}
+            style={styles.sectionTitle}
+          />
+          <View style={styles.timelineContainer}>
+            {trackingStepIds.map((stepId) => (
+              <Skeleton
+                key={stepId}
+                height={70}
+                borderRadius={0}
+                style={styles.stepWrapper}
+              />
+            ))}
+          </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -194,12 +224,6 @@ function TimelineStep({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: colors.background,
   },
   errorContainer: {

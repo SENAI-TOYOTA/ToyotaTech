@@ -5,10 +5,13 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import Button from "@/components/ui/Button";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
+import Skeleton from "@/components/ui/Skeleton";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileForm } from "@/hooks/useProfileForm";
 import { colors, fonts, fontSize, spacing } from "@/theme";
+
+const profileFieldIds = ["fullName", "birthDate", "cpf", "email", "password"];
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -49,58 +52,73 @@ export default function ProfileScreen() {
           entering={FadeInDown.delay(200).duration(600).springify()}
           style={styles.formContainer}
         >
-          <TextInput
-            placeholder="Nome completo"
-            value={fullName}
-            onChangeText={setFullName}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          <TextInput
-            placeholder="Data de nascimento (DD/MM/AAAA)"
-            value={birthDate}
-            onChangeText={(text) => setBirthDate(formatBirthDate(text))}
-            keyboardType="numeric"
-            maxLength={10}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          <TextInput
-            placeholder="CPF"
-            value={cpf}
-            onChangeText={(text) => setCpf(formatCpf(text))}
-            keyboardType="numeric"
-            maxLength={14}
-            editable={!isCpfLocked}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          <TextInput
-            placeholder="Email"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            editable={false}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          <TextInput
-            placeholder="Senha"
-            secureTextEntry
-            value={password}
-            editable={false}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          {formError ? (
-            <Text style={styles.formErrorText}>{formError}</Text>
-          ) : null}
-          {sessionPersistence !== "persistent" ? (
-            <Text style={styles.formErrorText}>
-              Não foi possível salvar sua sessão neste dispositivo. Você
-              precisará entrar novamente ao reabrir o app.
-            </Text>
-          ) : null}
+          {isLoadingProfile ? (
+            profileFieldIds.map((fieldId, index) => (
+              <Skeleton
+                key={fieldId}
+                height={50}
+                borderRadius={0}
+                accessibilityLabel={
+                  index === 0 ? "Carregando perfil" : undefined
+                }
+              />
+            ))
+          ) : (
+            <>
+              <TextInput
+                placeholder="Nome completo"
+                value={fullName}
+                onChangeText={setFullName}
+                containerStyle={styles.inputContainer}
+                style={styles.inputText}
+              />
+              <TextInput
+                placeholder="Data de nascimento (DD/MM/AAAA)"
+                value={birthDate}
+                onChangeText={(text) => setBirthDate(formatBirthDate(text))}
+                keyboardType="numeric"
+                maxLength={10}
+                containerStyle={styles.inputContainer}
+                style={styles.inputText}
+              />
+              <TextInput
+                placeholder="CPF"
+                value={cpf}
+                onChangeText={(text) => setCpf(formatCpf(text))}
+                keyboardType="numeric"
+                maxLength={14}
+                editable={!isCpfLocked}
+                containerStyle={styles.inputContainer}
+                style={styles.inputText}
+              />
+              <TextInput
+                placeholder="Email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                editable={false}
+                containerStyle={styles.inputContainer}
+                style={styles.inputText}
+              />
+              <TextInput
+                placeholder="Senha"
+                secureTextEntry
+                value={password}
+                editable={false}
+                containerStyle={styles.inputContainer}
+                style={styles.inputText}
+              />
+              {formError ? (
+                <Text style={styles.formErrorText}>{formError}</Text>
+              ) : null}
+              {sessionPersistence !== "persistent" ? (
+                <Text style={styles.formErrorText}>
+                  Não foi possível salvar sua sessão neste dispositivo. Você
+                  precisará entrar novamente ao reabrir o app.
+                </Text>
+              ) : null}
+            </>
+          )}
         </Animated.View>
         <Animated.View
           entering={FadeInDown.delay(400).duration(600).springify()}

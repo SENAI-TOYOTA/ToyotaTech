@@ -4,6 +4,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 
 import Button from "@/components/ui/Button";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
+import Skeleton from "@/components/ui/Skeleton";
 import { useGarage } from "@/hooks/useGarage";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 
@@ -64,15 +65,20 @@ export default function FinancingScreen() {
               {financing.nextDueDate}
             </Text>
           </Animated.View>
+        ) : isLoading ? (
+          <Skeleton
+            accessibilityLabel="Carregando financiamento"
+            height={160}
+            borderRadius={0}
+            style={styles.financeCard}
+          />
         ) : (
           <Animated.View
             entering={FadeInDown.delay(200).duration(600).springify()}
             style={styles.emptyCard}
           >
             <Text style={styles.emptyText}>
-              {isLoading
-                ? "Carregando financiamento..."
-                : (error ?? "Financiamento ainda não vinculado.")}
+              {error ?? "Financiamento ainda não vinculado."}
             </Text>
           </Animated.View>
         )}
@@ -98,6 +104,13 @@ export default function FinancingScreen() {
               style={styles.invoiceButton}
             />
           </Animated.View>
+        ) : isLoading ? (
+          <Skeleton
+            accessibilityLabel="Carregando boleto"
+            height={142}
+            borderRadius={0}
+            style={styles.invoiceCard}
+          />
         ) : null}
       </ScrollView>
     </View>
