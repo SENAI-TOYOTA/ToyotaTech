@@ -1,5 +1,6 @@
 import hmac
 import os
+import time
 from typing import Any, Dict, Optional
 
 import boto3
@@ -9,8 +10,10 @@ from .responses import ApiError
 
 INGEST_KEY_PARAMETER_NAME = os.environ.get("INGEST_KEY_PARAMETER_NAME", "").strip()
 INGEST_KEY_HEADER = "x-ingest-key"
+INGEST_KEY_CACHE_SECONDS = 300
 
 _cached_key: Optional[str] = None
+_cached_at: Optional[float] = None
 
 
 def presented_ingest_key(event: Dict[str, Any]) -> str:
@@ -24,8 +27,12 @@ def presented_ingest_key(event: Dict[str, Any]) -> str:
 
 
 def load_ingest_key() -> str:
-    global _cached_key
-    if _cached_key is not None:
+    global _cached_key, _cached_at
+    if (
+        _cached_key is not None
+        and _cached_at is not None
+        and time.monotonic() - _cached_at < INGEST_KEY_CACHE_SECONDS
+    ):
         return _cached_key
 
     if not INGEST_KEY_PARAMETER_NAME:
@@ -43,11 +50,14 @@ def load_ingest_key() -> str:
         raise ApiError(500, "Chave de ingest vazia no SSM.")
 
     _cached_key = value
+    _cached_at = time.monotonic()
     return value
 
 
 def require_ingest_key(event: Dict[str, Any]) -> None:
     expected = load_ingest_key()
     presented = presented_ingest_key(event)
-    if not presented or not hmac.compare_digest(presented, expected):
+    if not presented or not hmac.compare_digest(
+        presented.encode("utf-8"), expected.encode("utf-8")
+    ):
         raise ApiError(401, "Chave de ingest inválida.")

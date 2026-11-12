@@ -1,3 +1,4 @@
+import math
 import re
 import time
 import unicodedata
@@ -87,7 +88,7 @@ TRACKING_STEP_KEYS = (
     "currentStageIndex",
     "progressStep",
 )
-TRACKING_FUTURE_SKEW_SECONDS = 300
+TRACKING_FUTURE_SKEW_SECONDS = 60
 
 
 def slugify_tracking_token(value: Any) -> str:
@@ -286,18 +287,23 @@ def parse_event_timestamp(payload: Dict[str, Any], now: Optional[int] = None) ->
         return current
 
     require(not isinstance(raw, bool), 400, "Timestamp de tracking inválido.")
+    require(
+        not isinstance(raw, float) or math.isfinite(raw),
+        400,
+        "Timestamp de tracking inválido.",
+    )
 
     epoch: Optional[int] = None
     if isinstance(raw, (int, float)):
         epoch = int(raw)
     else:
         text = coerce_text(raw)
-        if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", text):
+        if re.fullmatch(r"[+-]?\d{1,15}(?:\.\d{1,9})?", text):
             epoch = int(float(text))
         else:
             try:
                 parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-            except ValueError:
+            except (ValueError, OverflowError):
                 parsed = None
             if parsed is not None:
                 if parsed.tzinfo is None:
@@ -440,7 +446,7 @@ def process_ingest(payload: Dict[str, Any]) -> Dict[str, Any]:
     tracking = normalize_factory_tracking(payload, garage)
     tracking["vehicleId"] = vehicle_ref
 
-    if event_timestamp < tracking_updated_at:
+    if event_timestamp <= tracking_updated_at:
         return {"tracking": stored_tracking or tracking}
 
     stage = coerce_text(payload.get("stage"))

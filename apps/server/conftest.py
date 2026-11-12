@@ -110,8 +110,10 @@ def reset_ingest_key():
     import common.ingest_key as ingest_key
 
     ingest_key._cached_key = None
+    ingest_key._cached_at = None
     yield
     ingest_key._cached_key = None
+    ingest_key._cached_at = None
 
 
 def _create_profiles_table(resource):

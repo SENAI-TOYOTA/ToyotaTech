@@ -17,6 +17,8 @@ from common.responses import (
 )
 from common.validation import coerce_text
 
+MAX_INGEST_BODY_BYTES = 16384
+
 
 def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
@@ -54,6 +56,9 @@ def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
 
 def receive_ingest(event: Dict[str, Any]) -> Dict[str, Any]:
     require_ingest_key(event)
+    body = event.get("body")
+    if isinstance(body, str) and len(body.encode("utf-8")) > MAX_INGEST_BODY_BYTES:
+        raise ApiError(413, "Payload de tracking muito grande.")
     payload = ingest.coerce_iot_tracking_payload(parse_body(event))
     require(bool(payload), 400, "Payload de tracking inválido.")
     vehicle_ref = coerce_text(

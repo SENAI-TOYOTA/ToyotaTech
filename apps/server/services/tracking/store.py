@@ -1,5 +1,7 @@
+import json
 import os
 import time
+from decimal import Decimal
 from typing import Any, Dict, Optional
 
 from boto3.dynamodb.conditions import Key
@@ -53,7 +55,7 @@ def save_event(
         "timestamp": timestamp,
         "stage": stage,
         "status": status,
-        "payload": payload,
+        "payload": json.loads(json.dumps(payload), parse_float=Decimal),
         "receivedAt": now,
     }
     try:
