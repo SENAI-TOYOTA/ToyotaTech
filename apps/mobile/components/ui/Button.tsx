@@ -61,7 +61,7 @@ export default function Button({
 
   const isRow = layout === "row";
   const isInactive = disabled || loading;
-  const isInteractive = Boolean(onPress) && !isInactive;
+  const hasPressFeedback = !isInactive;
   const hasShadow = variant !== "outline";
 
   const animatePress = (toValue: number) => {
@@ -77,7 +77,7 @@ export default function Button({
     <AnimatedTouchableOpacity
       accessibilityRole={onPress ? "button" : undefined}
       accessibilityLabel={accessibilityLabel ?? title}
-      accessibilityState={{ disabled: !isInteractive }}
+      accessibilityState={{ disabled: isInactive }}
       activeOpacity={1}
       hitSlop={
         isRow
@@ -87,7 +87,7 @@ export default function Button({
             }
           : undefined
       }
-      disabled={!isInteractive}
+      disabled={isInactive}
       style={[
         styles.base,
         isRow && styles.baseRow,
@@ -112,12 +112,12 @@ export default function Button({
         surfaceStyle,
       ]}
       onPressIn={() => {
-        if (isInteractive) {
+        if (hasPressFeedback) {
           animatePress(1);
         }
       }}
       onPressOut={() => {
-        if (isInteractive) {
+        if (hasPressFeedback) {
           animatePress(0);
         }
       }}

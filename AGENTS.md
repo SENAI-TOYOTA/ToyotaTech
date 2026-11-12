@@ -112,6 +112,14 @@ O projeto não possui frontend desacoplado ou backend independente: **Mobile e C
   - Detalhe/Financiamento: um bloco por card, repetindo `minHeight` do card real (`160`, `142`).
 - **Acessibilidade**: skeleton com `accessibilityLabel` vira `progressbar`; sem rótulo fica oculto do leitor de tela. Um rótulo por seção, não por bloco.
 
+### 6. PERMISSÃO ANTES DE ALTERAR (OBRIGATÓRIO)
+- **Nenhuma alteração fora da ordem textual e exata do Senhor.** Se o pedido citar um arquivo, comportamento ou componente, altere **apenas aquilo**.
+- Antes de qualquer edição, **liste os arquivos que serão tocados e o que muda em cada um**, e **aguarde permissão explícita**. Se a implementação exigir tocar em algo não solicitado, **pare e peça autorização** — nunca decida por conta própria.
+- **Proibido substituir, reordenar, mover, inverter, redimensionar ou "padronizar"** elementos existentes (botões, ícones, sombras, lados, cores) sem ordem explícita para aquele elemento.
+- **Proibida varredura automática** (regex, script, find/replace) sobre pastas inteiras. Toda edição é cirúrgica, arquivo por arquivo, revisada antes de aplicar.
+- Se um commit anterior alterou algo não autorizado, **avise imediatamente** e proponha o revert; não siga trabalhando em cima.
+
+
 ---
 
 ## 4. Como Validar as Alterações (Gates de CI)
