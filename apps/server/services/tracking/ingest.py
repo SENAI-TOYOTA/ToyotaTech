@@ -1,4 +1,5 @@
 import re
+import time
 import unicodedata
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
@@ -69,6 +70,24 @@ TRACKING_STAGE_ALIASES = {
         "pickup_ready",
     },
 }
+
+
+VEHICLE_REF_PATTERN = re.compile(r"^(?:[A-HJ-NPR-Z0-9]{17}|CHASSI_\d{3,5})$")
+VALID_TRACKING_STAGES = frozenset().union(*TRACKING_STAGE_ALIASES.values())
+TRACKING_TIMESTAMP_KEYS = (
+    "eventTime",
+    "timestamp",
+    "lastUpdate",
+    "measuredAt",
+    "time",
+)
+TRACKING_STEP_KEYS = (
+    "currentStepIndex",
+    "stepIndex",
+    "currentStageIndex",
+    "progressStep",
+)
+TRACKING_FUTURE_SKEW_SECONDS = 300
 
 
 def slugify_tracking_token(value: Any) -> str:
@@ -211,6 +230,89 @@ def extract_step_dates(payload: Dict[str, Any]) -> Dict[int, str]:
     return step_dates
 
 
+def validate_vehicle_ref(value: Any) -> str:
+    vehicle_ref = coerce_text(value).upper()
+    require(bool(vehicle_ref), 400, "Tracking sem identificador do veículo.")
+    require(
+        bool(VEHICLE_REF_PATTERN.fullmatch(vehicle_ref)),
+        400,
+        "Chassi do veículo inválido.",
+    )
+    return vehicle_ref
+
+
+def validate_tracking_stage(payload: Dict[str, Any]) -> None:
+    stage = coerce_text(payload.get("stage"))
+    if stage:
+        require(
+            slugify_tracking_token(stage) in VALID_TRACKING_STAGES,
+            400,
+            "Etapa de tracking inválida.",
+        )
+
+    for key in TRACKING_STEP_KEYS:
+        value = payload.get(key)
+        if value is None or value == "":
+            continue
+        parsed = parse_tracking_int(value)
+        require(
+            parsed is not None and 0 <= parsed < len(TRACKING_FLOW_STEPS),
+            400,
+            "Etapa de tracking inválida.",
+        )
+
+    progress = payload.get("progress")
+    if progress is None or progress == "":
+        return
+    parsed_progress = parse_tracking_int(progress)
+    require(
+        parsed_progress is not None and 0 <= parsed_progress <= 100,
+        400,
+        "Etapa de tracking inválida.",
+    )
+
+
+def parse_event_timestamp(payload: Dict[str, Any], now: Optional[int] = None) -> int:
+    current = int(time.time()) if now is None else int(now)
+    raw: Any = None
+    for key in TRACKING_TIMESTAMP_KEYS:
+        candidate = payload.get(key)
+        if candidate is None or candidate == "":
+            continue
+        raw = candidate
+        break
+
+    if raw is None:
+        return current
+
+    require(not isinstance(raw, bool), 400, "Timestamp de tracking inválido.")
+
+    epoch: Optional[int] = None
+    if isinstance(raw, (int, float)):
+        epoch = int(raw)
+    else:
+        text = coerce_text(raw)
+        if re.fullmatch(r"[+-]?\d+(?:\.\d+)?", text):
+            epoch = int(float(text))
+        else:
+            try:
+                parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+            except ValueError:
+                parsed = None
+            if parsed is not None:
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                epoch = int(parsed.timestamp())
+
+    require(epoch is not None and epoch > 0, 400, "Timestamp de tracking inválido.")
+    require(
+        epoch <= current + TRACKING_FUTURE_SKEW_SECONDS,
+        400,
+        "Timestamp de tracking no futuro.",
+    )
+    return epoch
+
+
 def coerce_iot_tracking_payload(payload: Any) -> Optional[Dict[str, Any]]:
     if not isinstance(payload, dict):
         return None
@@ -322,17 +424,29 @@ def normalize_factory_tracking(
 
 
 def process_ingest(payload: Dict[str, Any]) -> Dict[str, Any]:
-    vehicle_ref = coerce_text(
+    vehicle_ref = validate_vehicle_ref(
         payload.get("chassi") or payload.get("vehicleId") or payload.get("vin")
     )
-    require(bool(vehicle_ref), 400, "Tracking sem identificador do veículo.")
+    validate_tracking_stage(payload)
+    event_timestamp = parse_event_timestamp(payload)
 
     garage = store.find_garage_by_chassi(vehicle_ref)
     require(isinstance(garage, dict), 404, "Veículo não vinculado.")
 
+    stored_tracking = (
+        garage.get("tracking") if isinstance(garage.get("tracking"), dict) else {}
+    )
+    tracking_updated_at = parse_tracking_int(garage.get("trackingUpdatedAt")) or 0
     tracking = normalize_factory_tracking(payload, garage)
-    vehicle_id = tracking.get("vehicleId") or vehicle_ref
+    tracking["vehicleId"] = vehicle_ref
+
+    if event_timestamp < tracking_updated_at:
+        return {"tracking": stored_tracking or tracking}
+
     stage = coerce_text(payload.get("stage"))
     status = coerce_text(payload.get("status"))
-    store.save_event(vehicle_id, payload, stage, status)
+    store.save_event(vehicle_ref, payload, stage, status, event_timestamp)
+    user_id = coerce_text(garage.get("userId"))
+    if not store.update_garage_tracking(user_id, tracking, event_timestamp):
+        return {"tracking": stored_tracking or tracking}
     return {"tracking": tracking}

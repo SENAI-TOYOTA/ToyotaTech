@@ -1,5 +1,6 @@
 import importlib
 import json
+import time
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
 from unittest.mock import patch
@@ -22,6 +23,18 @@ def ssm(value: str = INGEST_KEY, error: Any = None):
 TABLES: Dict[str, Any] = {}
 
 
+def conditional_error(operation: str) -> ClientError:
+    return ClientError(
+        {
+            "Error": {
+                "Code": "ConditionalCheckFailedException",
+                "Message": "conditional request failed",
+            }
+        },
+        operation,
+    )
+
+
 class FakeTable:
     def __init__(
         self,
@@ -33,6 +46,7 @@ class FakeTable:
         self.scan_items = list(scan_items or [])
         self.query_items = list(query_items or [])
         self.put_item_calls: List[Dict[str, Any]] = []
+        self.update_item_calls: List[Dict[str, Any]] = []
         self.get_item_calls: List[Dict[str, Any]] = []
         self.scan_calls: List[Dict[str, Any]] = []
         self.query_calls: List[Dict[str, Any]] = []
@@ -44,8 +58,39 @@ class FakeTable:
                 return {"Item": item}
         return {}
 
-    def put_item(self, Item: Dict[str, Any], **_kwargs: Any) -> Dict[str, Any]:
+    def put_item(self, Item: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         self.put_item_calls.append(Item)
+        if "ConditionExpression" in kwargs:
+            duplicate = any(
+                item.get("vehicleId") == Item.get("vehicleId")
+                and item.get("timestamp") == Item.get("timestamp")
+                for item in self.items
+            )
+            if duplicate:
+                raise conditional_error("PutItem")
+        self.items.append(dict(Item))
+        return {}
+
+    def update_item(self, **kwargs: Any) -> Dict[str, Any]:
+        self.update_item_calls.append(kwargs)
+        key = kwargs.get("Key") or {}
+        target = None
+        for item in (*self.items, *self.query_items):
+            if all(item.get(name) == value for name, value in key.items()):
+                target = item
+                break
+        if target is None:
+            return {}
+
+        values = kwargs.get("ExpressionAttributeValues") or {}
+        new_updated_at = int(values.get(":trackingUpdatedAt") or 0)
+        current_updated_at = int(target.get("trackingUpdatedAt") or 0)
+        if kwargs.get("ConditionExpression") and current_updated_at > new_updated_at:
+            raise conditional_error("UpdateItem")
+
+        target["tracking"] = values.get(":tracking")
+        target["trackingUpdatedAt"] = new_updated_at
+        target["updatedAt"] = values.get(":updatedAt")
         return {}
 
     def scan(self, **kwargs: Any) -> Dict[str, Any]:
@@ -283,7 +328,7 @@ def test_ingest_veiculo_nao_vinculado() -> None:
                 api_event(
                     "POST",
                     "/garage/ingest",
-                    body={"chassi": "CHASSI_INEXISTENTE"},
+                    body={"chassi": "9BWZZZ377VT999999"},
                     key=INGEST_KEY,
                 ),
                 None,
@@ -385,7 +430,7 @@ def test_ingest_rejeitado_registra_o_veiculo_no_log() -> None:
                     api_event(
                         "POST",
                         "/garage/ingest",
-                        body={"chassi": "CHASSI_INEXISTENTE"},
+                        body={"chassi": "9BWZZZ377VT999999"},
                         key=INGEST_KEY,
                     ),
                     None,
@@ -395,7 +440,7 @@ def test_ingest_rejeitado_registra_o_veiculo_no_log() -> None:
     log.assert_called_once()
     message, kwargs = log.call_args
     assert message[0] == "Tracking ingest rejeitado."
-    assert kwargs["vehicleRef"] == "CHASSI_INEXISTENTE"
+    assert kwargs["vehicleRef"] == "9BWZZZ377VT999999"
 
 
 def test_ingest_sem_chave_retorna_401_e_nao_grava() -> None:
@@ -621,3 +666,228 @@ def test_status_nao_exige_a_chave_de_ingest() -> None:
 
     assert result["statusCode"] == 200
     assert fake.calls == []
+
+
+def test_ingest_vin17_atualiza_tracking_da_garage() -> None:
+    tracking_table = FakeTable()
+    garage = garage_item()
+    garage_table = FakeTable(query_items=[garage])
+    wire_tables(tracking_table, garage_table)
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={
+                        "chassi": "9BWZZZ377VT004251",
+                        "stage": "pintura",
+                        "timestamp": 1773568800,
+                    },
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 200
+    body = json.loads(result["body"])
+    assert body["tracking"]["vehicleId"] == "9BWZZZ377VT004251"
+    assert body["tracking"]["currentStepIndex"] == 1
+    assert tracking_table.put_item_calls[0]["timestamp"] == 1773568800
+    assert garage["tracking"] == body["tracking"]
+    assert garage["trackingUpdatedAt"] == 1773568800
+
+
+def test_ingest_chassi_invalido_retorna_400() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_INEXISTENTE", "stage": "pintura"},
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 400
+    assert json.loads(result["body"])["message"] == "Chassi do veículo inválido."
+    assert tracking_table.put_item_calls == []
+
+
+def test_ingest_stage_fora_do_enum_retorna_400() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_123", "stage": "etapa_inexistente"},
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 400
+    assert json.loads(result["body"])["message"] == "Etapa de tracking inválida."
+    assert tracking_table.put_item_calls == []
+
+
+def test_ingest_indice_de_etapa_fora_da_faixa_retorna_400() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_123", "currentStepIndex": 9},
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 400
+    assert json.loads(result["body"])["message"] == "Etapa de tracking inválida."
+    assert tracking_table.put_item_calls == []
+
+
+def test_ingest_timestamp_no_futuro_retorna_400() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={
+                        "chassi": "CHASSI_123",
+                        "stage": "pintura",
+                        "timestamp": int(time.time()) + 3600,
+                    },
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 400
+    assert json.loads(result["body"])["message"] == "Timestamp de tracking no futuro."
+    assert tracking_table.put_item_calls == []
+
+
+def test_ingest_timestamp_invalido_retorna_400() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={
+                        "chassi": "CHASSI_123",
+                        "stage": "pintura",
+                        "eventTime": "data-invalida",
+                    },
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 400
+    assert json.loads(result["body"])["message"] == "Timestamp de tracking inválido."
+    assert tracking_table.put_item_calls == []
+
+
+def test_ingest_timestamp_iso8601_e_persistido() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={
+                        "chassi": "CHASSI_123",
+                        "stage": "pintura",
+                        "eventTime": "2026-03-15T10:00:00Z",
+                    },
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 200
+    assert tracking_table.put_item_calls[0]["timestamp"] == 1773568800
+
+
+def test_ingest_evento_duplicado_nao_cria_segundo_item() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+    body = {
+        "chassi": "CHASSI_123",
+        "stage": "pintura",
+        "timestamp": 1773568800,
+    }
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            first = handler.lambda_handler(
+                api_event("POST", "/garage/ingest", body=body, key=INGEST_KEY),
+                None,
+            )
+            second = handler.lambda_handler(
+                api_event("POST", "/garage/ingest", body=body, key=INGEST_KEY),
+                None,
+            )
+
+    assert first["statusCode"] == 200
+    assert second["statusCode"] == 200
+    assert len(tracking_table.items) == 1
+    assert len(tracking_table.put_item_calls) == 2
+
+
+def test_ingest_evento_atrasado_nao_regride_a_garage() -> None:
+    garage = garage_item()
+    garage["trackingUpdatedAt"] = 2000
+    garage["tracking"] = {**garage["tracking"], "currentStepIndex": 3}
+    tracking_table = FakeTable()
+    garage_table = FakeTable(query_items=[garage])
+    wire_tables(tracking_table, garage_table)
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={
+                        "chassi": "CHASSI_123",
+                        "stage": "inicio",
+                        "timestamp": 1500,
+                    },
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 200
+    assert json.loads(result["body"])["tracking"]["currentStepIndex"] == 3
+    assert tracking_table.put_item_calls == []
+    assert garage_table.update_item_calls == []
+    assert garage["trackingUpdatedAt"] == 2000

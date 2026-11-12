@@ -40,19 +40,67 @@ def find_garage_by_chassi(chassi: str) -> Optional[Dict[str, Any]]:
 
 
 def save_event(
-    vehicle_id: str, payload: Dict[str, Any], stage: str, status: str
+    vehicle_id: str,
+    payload: Dict[str, Any],
+    stage: str,
+    status: str,
+    event_timestamp: Optional[int] = None,
 ) -> Dict[str, Any]:
     now = int(time.time())
+    timestamp = now if event_timestamp is None else int(event_timestamp)
     event = {
         "vehicleId": vehicle_id,
-        "timestamp": now,
+        "timestamp": timestamp,
         "stage": stage,
         "status": status,
         "payload": payload,
         "receivedAt": now,
     }
-    get_table(TRACKING_TABLE_NAME).put_item(Item=event)
+    try:
+        get_table(TRACKING_TABLE_NAME).put_item(
+            Item=event,
+            ConditionExpression="attribute_not_exists(#timestamp)",
+            ExpressionAttributeNames={"#timestamp": "timestamp"},
+        )
+    except ClientError as error:
+        code, _ = error_body(error)
+        if code != "ConditionalCheckFailedException":
+            raise
     return event
+
+
+def update_garage_tracking(
+    user_id: str, tracking: Dict[str, Any], tracking_updated_at: int
+) -> bool:
+    normalized = user_id.strip()
+    if not normalized:
+        return False
+
+    try:
+        get_table(GARAGE_TABLE_NAME).update_item(
+            Key={"userId": normalized},
+            UpdateExpression=(
+                "SET #tracking = :tracking, "
+                "trackingUpdatedAt = :trackingUpdatedAt, "
+                "updatedAt = :updatedAt"
+            ),
+            ConditionExpression=(
+                "attribute_not_exists(trackingUpdatedAt) "
+                "OR trackingUpdatedAt <= :trackingUpdatedAt"
+            ),
+            ExpressionAttributeNames={"#tracking": "tracking"},
+            ExpressionAttributeValues={
+                ":tracking": tracking,
+                ":trackingUpdatedAt": int(tracking_updated_at),
+                ":updatedAt": int(time.time()),
+            },
+        )
+    except ClientError as error:
+        code, _ = error_body(error)
+        if code != "ConditionalCheckFailedException":
+            raise
+        return False
+    return True
 
 
 def latest_event(vehicle_id: str) -> Optional[Dict[str, Any]]:
