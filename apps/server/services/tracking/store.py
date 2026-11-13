@@ -8,7 +8,7 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from common.ddb import get_table
-from common.responses import error_body
+from common.responses import ApiError, error_body
 
 TRACKING_TABLE_NAME = os.environ.get("TRACKING_TABLE_NAME", "").strip()
 GARAGE_TABLE_NAME = os.environ.get("GARAGE_TABLE_NAME", "").strip()
@@ -50,12 +50,19 @@ def save_event(
 ) -> Dict[str, Any]:
     now = int(time.time())
     timestamp = now if event_timestamp is None else int(event_timestamp)
+    try:
+        stored_payload = json.loads(
+            json.dumps(payload, allow_nan=False), parse_float=Decimal
+        )
+    except (TypeError, ValueError) as error:
+        raise ApiError(400, "Payload de tracking inválido.") from error
+
     event = {
         "vehicleId": vehicle_id,
         "timestamp": timestamp,
         "stage": stage,
         "status": status,
-        "payload": json.loads(json.dumps(payload), parse_float=Decimal),
+        "payload": stored_payload,
         "receivedAt": now,
     }
     try:
@@ -88,7 +95,7 @@ def update_garage_tracking(
             ),
             ConditionExpression=(
                 "attribute_not_exists(trackingUpdatedAt) "
-                "OR trackingUpdatedAt <= :trackingUpdatedAt"
+                "OR trackingUpdatedAt < :trackingUpdatedAt"
             ),
             ExpressionAttributeNames={"#tracking": "tracking"},
             ExpressionAttributeValues={

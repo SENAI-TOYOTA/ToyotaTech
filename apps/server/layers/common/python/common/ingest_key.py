@@ -58,6 +58,7 @@ def require_ingest_key(event: Dict[str, Any]) -> None:
     expected = load_ingest_key()
     presented = presented_ingest_key(event)
     if not presented or not hmac.compare_digest(
-        presented.encode("utf-8"), expected.encode("utf-8")
+        presented.encode("utf-8", "surrogatepass"),
+        expected.encode("utf-8", "surrogatepass"),
     ):
         raise ApiError(401, "Chave de ingest inválida.")

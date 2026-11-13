@@ -63,7 +63,7 @@ def receive_ingest(event: Dict[str, Any]) -> Dict[str, Any]:
     require(bool(payload), 400, "Payload de tracking inválido.")
     vehicle_ref = coerce_text(
         payload.get("chassi") or payload.get("vehicleId") or payload.get("vin")
-    )
+    )[:64]
     try:
         result = ingest.process_ingest(payload)
     except ApiError:

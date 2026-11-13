@@ -3,6 +3,7 @@ import re
 import time
 import unicodedata
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Any, Dict, Optional
 
 import store
@@ -128,7 +129,7 @@ def parse_tracking_int(value: Any) -> Optional[int]:
 def format_tracking_date(value: Any) -> str:
     if value is None:
         return ""
-    if isinstance(value, (int, float)):
+    if isinstance(value, (int, float, Decimal)):
         dt = datetime.fromtimestamp(float(value), tz=timezone.utc)
         return dt.strftime("%d/%m/%Y")
     raw = coerce_text(value)

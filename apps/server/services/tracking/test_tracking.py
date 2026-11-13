@@ -86,7 +86,7 @@ class FakeTable:
         values = kwargs.get("ExpressionAttributeValues") or {}
         new_updated_at = int(values.get(":trackingUpdatedAt") or 0)
         current_updated_at = int(target.get("trackingUpdatedAt") or 0)
-        if kwargs.get("ConditionExpression") and current_updated_at > new_updated_at:
+        if kwargs.get("ConditionExpression") and current_updated_at >= new_updated_at:
             raise conditional_error("UpdateItem")
 
         target["tracking"] = values.get(":tracking")
@@ -1066,3 +1066,67 @@ def test_ingest_key_cache_expira_apos_o_ttl() -> None:
             )
 
     assert len(fake.calls) == 2
+
+
+def test_ingest_payload_com_nan_retorna_400() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={
+                        "chassi": "CHASSI_123",
+                        "stage": "pintura",
+                        "timestamp": 1773568800,
+                        "temperatura": float("nan"),
+                    },
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 400
+    assert json.loads(result["body"])["message"] == "Payload de tracking inválido."
+    assert tracking_table.put_item_calls == []
+
+
+def test_ingest_header_com_surrogate_retorna_401() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={"chassi": "CHASSI_123", "stage": "pintura"},
+                    key=chr(0xD800),
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 401
+    assert json.loads(result["body"])["message"] == "Chave de ingest inválida."
+    assert tracking_table.put_item_calls == []
+
+
+def test_update_garage_tracking_nao_sobrescreve_mesmo_timestamp() -> None:
+    store = importlib.import_module("store")
+    garage = {"userId": "user-1", "trackingUpdatedAt": 2000}
+    TABLES["GarageTable"] = FakeTable(items=[garage])
+
+    tracking = {"currentStepIndex": 9}
+    with patch("store.get_table", get_table_mock):
+        assert store.update_garage_tracking("user-1", tracking, 2000) is False
+        assert store.update_garage_tracking("user-1", tracking, 2001) is True
+
+    assert garage["trackingUpdatedAt"] == 2001
+
+
+def test_format_tracking_date_aceita_decimal() -> None:
+    assert handler.ingest.format_tracking_date(Decimal("1773568800")) == "15/03/2026"
