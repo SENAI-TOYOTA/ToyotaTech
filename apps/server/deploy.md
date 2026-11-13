@@ -17,7 +17,7 @@ No modo guided, responda:
 
 | Prompt | Valor |
 |---|---|
-| Stack Name | toyotatech-server |
+| Stack Name | toyotatech |
 | AWS Region | us-east-1 (região do lab) |
 | Parameter StackSet bucket / S3 bucket | aceitar o bucket sugerido pelo SAM (do Academy) |
 | Confirm changeset | Y |
@@ -31,7 +31,7 @@ Obtenha os valores dos Outputs da stack:
 
 ```bash
 aws cloudformation describe-stacks \
-  --stack-name toyotatech-server \
+  --stack-name toyotatech \
   --query "Stacks[0].Outputs" \
   --output table
 ```
@@ -48,5 +48,5 @@ AWS_REGION=<região do deploy>
 ## Cleanup
 
 ```bash
-sam delete --stack-name toyotatech-server
+sam delete --stack-name toyotatech
 ```
