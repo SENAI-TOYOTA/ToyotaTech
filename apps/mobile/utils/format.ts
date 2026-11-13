@@ -35,6 +35,10 @@ export function formatCpf(value: string) {
   return result;
 }
 
+export function isValidBoletoBarcode(value: string) {
+  return /^\d{47}$/.test(value);
+}
+
 export function formatBoletoBarcode(value: string) {
   const digits = value.replace(/\D/g, "");
   if (digits.length !== 47) {

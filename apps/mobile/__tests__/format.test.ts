@@ -1,5 +1,16 @@
-import { formatBoletoBarcode } from "@/utils/format";
+import { formatBoletoBarcode, isValidBoletoBarcode } from "@/utils/format";
 import { describe, expect, it } from "@jest/globals";
+
+describe("isValidBoletoBarcode", () => {
+  it("aceita exatamente 47 digitos", () => {
+    expect(isValidBoletoBarcode("1".repeat(47))).toBe(true);
+  });
+
+  it("rejeita tamanho diferente ou caractere nao numerico", () => {
+    expect(isValidBoletoBarcode("1".repeat(46))).toBe(false);
+    expect(isValidBoletoBarcode("1".repeat(46) + "a")).toBe(false);
+  });
+});
 
 describe("formatBoletoBarcode", () => {
   it("formata a linha digitavel com 47 digitos", () => {

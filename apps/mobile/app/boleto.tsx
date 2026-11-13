@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { ArrowLeft, Share2 } from "lucide-react-native";
+import { useState } from "react";
 import { Share, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
@@ -21,10 +22,9 @@ import {
   textStyles,
   touch,
 } from "@/theme";
-import { formatBoletoBarcode } from "@/utils/format";
+import { formatBoletoBarcode, isValidBoletoBarcode } from "@/utils/format";
 
 const boletoCardHeight = 160;
-const boletoBarcodeLength = 47;
 const iconSize = fontSize.lg;
 const iconStrokeWidth = borders.strong;
 
@@ -32,11 +32,11 @@ export default function BoletoScreen() {
   const router = useRouter();
   const { garage, isLoading, error } = useGarage();
 
+  const [shareError, setShareError] = useState<string | null>(null);
   const financing = garage?.financing;
   const barcode = financing?.boletoBarcode ?? "";
   const hasBoleto =
-    Boolean(financing?.boletoAvailable) &&
-    barcode.length === boletoBarcodeLength;
+    Boolean(financing?.boletoAvailable) && isValidBoletoBarcode(barcode);
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -46,8 +46,13 @@ export default function BoletoScreen() {
     }
   };
 
-  const handleShare = () => {
-    void Share.share({ message: barcode });
+  const handleShare = async () => {
+    setShareError(null);
+    try {
+      await Share.share({ message: barcode });
+    } catch {
+      setShareError("Não foi possível compartilhar a linha digitável.");
+    }
   };
 
   const header = (
@@ -160,7 +165,9 @@ export default function BoletoScreen() {
           variant="primary"
           layout="row"
           title="Compartilhar"
-          onPress={handleShare}
+          onPress={() => {
+            void handleShare();
+          }}
           icon={
             <Share2
               size={iconSize}
@@ -170,6 +177,9 @@ export default function BoletoScreen() {
           }
           style={styles.shareButton}
         />
+        {shareError ? (
+          <Text style={styles.shareError}>{shareError}</Text>
+        ) : null}
       </Card>
     </Screen>
   );
@@ -242,6 +252,12 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     marginTop: spacing.md,
+  },
+  shareError: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
   },
   feedbackContainer: {
     flex: 1,

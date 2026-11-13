@@ -11,6 +11,7 @@ import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Skeleton from "@/components/ui/Skeleton";
 import { useGarage } from "@/hooks/useGarage";
 import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
+import { isValidBoletoBarcode } from "@/utils/format";
 
 export default function FinancingScreen() {
   const router = useRouter();
@@ -23,7 +24,9 @@ export default function FinancingScreen() {
   const paidInstallments = financing
     ? `${financing.paidInstallments} / ${financing.totalInstallments}`
     : "";
-  const boletoAvailable = financing?.boletoAvailable ?? false;
+  const boletoBarcode = financing?.boletoBarcode ?? "";
+  const boletoAvailable =
+    Boolean(financing?.boletoAvailable) && isValidBoletoBarcode(boletoBarcode);
 
   return (
     <Screen>
