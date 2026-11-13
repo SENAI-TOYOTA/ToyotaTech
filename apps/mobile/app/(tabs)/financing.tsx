@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -12,6 +13,7 @@ import { useGarage } from "@/hooks/useGarage";
 import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
 
 export default function FinancingScreen() {
+  const router = useRouter();
   const { garage, isLoading, error } = useGarage();
 
   const financing = garage?.financing;
@@ -103,8 +105,16 @@ export default function FinancingScreen() {
                 <ArrowRight size={26} strokeWidth={2.4} color={colors.white} />
               }
               disabled={!boletoAvailable}
+              onPress={
+                boletoAvailable ? () => router.push("/boleto") : undefined
+              }
               style={styles.invoiceButton}
             />
+            {!boletoAvailable ? (
+              <Text style={styles.boletoUnavailableText}>
+                O boleto não está disponível para este contrato no momento.
+              </Text>
+            ) : null}
           </Card>
         </Animated.View>
       ) : isLoading ? (
@@ -231,5 +241,11 @@ const styles = StyleSheet.create({
   invoiceButton: {
     width: 219,
     marginTop: spacing.md - 1,
+  },
+  boletoUnavailableText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
   },
 });

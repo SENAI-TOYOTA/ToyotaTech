@@ -34,3 +34,17 @@ export function formatCpf(value: string) {
   }
   return result;
 }
+
+export function formatBoletoBarcode(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length !== 47) {
+    return digits;
+  }
+  return [
+    `${digits.slice(0, 5)}.${digits.slice(5, 10)}`,
+    `${digits.slice(10, 15)}.${digits.slice(15, 21)}`,
+    `${digits.slice(21, 26)}.${digits.slice(26, 32)}`,
+    digits.slice(32, 33),
+    digits.slice(33, 47),
+  ].join(" ");
+}

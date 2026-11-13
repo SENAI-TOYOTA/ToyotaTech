@@ -73,6 +73,11 @@ def format_next_due_date(seed: str) -> str:
     return f"{due_day:02d}/{month:02d}/{year:04d}"
 
 
+def build_boleto_barcode(digest: str) -> str:
+    stream = digest + hashlib.sha1(digest.encode("utf-8")).hexdigest()
+    return "".join(str(int(char, 16) % 10) for char in stream)[:47]
+
+
 def build_financing(seed: str) -> Dict[str, Any]:
     digest = hashlib.sha1(
         (validation.coerce_text(seed) or "toyotatech").encode("utf-8")
@@ -91,6 +96,7 @@ def build_financing(seed: str) -> Dict[str, Any]:
         "installmentAmount": format_brl_cents(amount_cents),
         "nextDueDate": format_next_due_date(seed),
         "boletoAvailable": True,
+        "boletoBarcode": build_boleto_barcode(digest),
         "status": "active",
     }
 

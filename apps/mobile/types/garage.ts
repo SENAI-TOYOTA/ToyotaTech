@@ -25,6 +25,7 @@ export interface GarageFinancing {
   installmentAmount: string;
   nextDueDate: string;
   boletoAvailable: boolean;
+  boletoBarcode?: string;
   status?: string;
 }
 

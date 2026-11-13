@@ -274,3 +274,17 @@ def test_link_compra_ja_vinculada_retorna_409(dynamodb, service_loader):
 
     assert result["statusCode"] == 409
     assert response_body(result)["message"] == "Compra já vinculada a outro usuário."
+
+
+def test_build_financing_gera_boleto_deterministico(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        financing = modules["demo"].build_financing(CPF)
+        repeated = modules["demo"].build_financing(CPF)
+        other = modules["demo"].build_financing(OTHER_CPF)
+
+    barcode = financing["boletoBarcode"]
+    assert financing["boletoAvailable"] is True
+    assert barcode.isdigit()
+    assert len(barcode) == 47
+    assert repeated["boletoBarcode"] == barcode
+    assert other["boletoBarcode"] != barcode
