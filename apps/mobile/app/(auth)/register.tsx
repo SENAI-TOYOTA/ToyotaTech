@@ -57,7 +57,7 @@ export default function RegisterScreen() {
     try {
       const result = await signUp(normalizedEmail, password);
       if (result.requiresEmailVerification) {
-        setPendingRegistrationPassword(password);
+        setPendingRegistrationPassword(normalizedEmail, password);
         router.push({
           pathname: "/(auth)/verify-email",
           params: { email: normalizedEmail },

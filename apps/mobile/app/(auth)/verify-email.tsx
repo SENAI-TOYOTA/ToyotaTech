@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 
@@ -28,6 +28,12 @@ export default function VerifyEmailScreen() {
   const [isResending, setIsResending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  useEffect(() => {
+    return () => {
+      clearPendingRegistrationPassword();
+    };
+  }, []);
+
   const handleVerifyPress = async () => {
     if (verificationCode.length !== CODE_LENGTH) {
       setFormError("Digite o código completo.");
@@ -47,7 +53,7 @@ export default function VerifyEmailScreen() {
         email: normalizedEmail,
         code: verificationCode,
       });
-      const password = consumePendingRegistrationPassword();
+      const password = consumePendingRegistrationPassword(normalizedEmail);
       if (!password) {
         clearPendingRegistrationPassword();
         router.replace({
