@@ -1,3 +1,4 @@
+import base64
 import json
 from typing import Any, Dict
 
@@ -18,6 +19,20 @@ from common.responses import (
 from common.validation import coerce_text
 
 MAX_INGEST_BODY_BYTES = 16384
+
+
+def _body_size(event: Dict[str, Any]) -> int:
+    body = event.get("body")
+    if not isinstance(body, str):
+        return 0
+    if len(body) > MAX_INGEST_BODY_BYTES * 2:
+        return MAX_INGEST_BODY_BYTES + 1
+    if event.get("isBase64Encoded"):
+        try:
+            return len(base64.b64decode(body))
+        except ValueError:
+            return 0
+    return len(body.encode("utf-8"))
 
 
 def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -44,20 +59,23 @@ def read_status(event: Dict[str, Any]) -> Dict[str, Any]:
 
     event_item = store.latest_event(vehicle_id)
     if event_item:
-        received_at = int(event_item.get("receivedAt") or 0)
+        event_timestamp = ingest.parse_tracking_int(event_item.get("timestamp"))
+        if event_timestamp is None:
+            event_timestamp = int(event_item.get("receivedAt") or 0)
         tracking_updated_at = int(garage.get("trackingUpdatedAt") or 0)
-        if received_at >= tracking_updated_at:
+        if event_timestamp > tracking_updated_at or not tracking:
             tracking = ingest.normalize_factory_tracking(
                 event_item.get("payload") or {}, garage
             )
+            if event_timestamp > tracking_updated_at:
+                store.update_garage_tracking(user_id, tracking, event_timestamp)
 
     return {"tracking": tracking}
 
 
 def receive_ingest(event: Dict[str, Any]) -> Dict[str, Any]:
     require_ingest_key(event)
-    body = event.get("body")
-    if isinstance(body, str) and len(body.encode("utf-8")) > MAX_INGEST_BODY_BYTES:
+    if _body_size(event) > MAX_INGEST_BODY_BYTES:
         raise ApiError(413, "Payload de tracking muito grande.")
     payload = ingest.coerce_iot_tracking_payload(parse_body(event))
     require(bool(payload), 400, "Payload de tracking inválido.")

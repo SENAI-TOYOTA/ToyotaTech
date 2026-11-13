@@ -1,3 +1,4 @@
+import base64
 import importlib
 import json
 import time
@@ -49,12 +50,14 @@ class FakeTable:
         self.put_item_calls: List[Dict[str, Any]] = []
         self.update_item_calls: List[Dict[str, Any]] = []
         self.get_item_calls: List[Dict[str, Any]] = []
+        self.get_item_kwargs: List[Dict[str, Any]] = []
         self.scan_calls: List[Dict[str, Any]] = []
         self.query_calls: List[Dict[str, Any]] = []
 
-    def get_item(self, Key: Dict[str, Any]) -> Dict[str, Any]:
+    def get_item(self, Key: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         self.get_item_calls.append(Key)
-        for item in self.items:
+        self.get_item_kwargs.append(kwargs)
+        for item in (*self.items, *self.query_items):
             if all(item.get(key) == value for key, value in Key.items()):
                 return {"Item": item}
         return {}
@@ -126,6 +129,7 @@ def cognito_user(sub: str = "user-1") -> Dict[str, Any]:
 def garage_item() -> Dict[str, Any]:
     return {
         "userId": "user-1",
+        "chassi": "CHASSI_123",
         "tracking": {
             "vehicleId": "CHASSI_123",
             "model": "Corolla",
@@ -673,6 +677,9 @@ def test_status_nao_exige_a_chave_de_ingest() -> None:
 def test_ingest_vin17_atualiza_tracking_da_garage() -> None:
     tracking_table = FakeTable()
     garage = garage_item()
+    garage["chassi"] = "9BWZZZ377VT004251"
+    garage["vehicle"] = {**garage["vehicle"], "chassi": "9BWZZZ377VT004251"}
+    garage["tracking"] = {**garage["tracking"], "vehicleId": "9BWZZZ377VT004251"}
     garage_table = FakeTable(query_items=[garage])
     wire_tables(tracking_table, garage_table)
 
@@ -1130,3 +1137,136 @@ def test_update_garage_tracking_nao_sobrescreve_mesmo_timestamp() -> None:
 
 def test_format_tracking_date_aceita_decimal() -> None:
     assert handler.ingest.format_tracking_date(Decimal("1773568800")) == "15/03/2026"
+
+
+def test_find_garage_by_chassi_retorna_none_quando_base_sumiu() -> None:
+    store = importlib.import_module("store")
+
+    class MissingBaseTable(FakeTable):
+        def get_item(self, Key: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+            return {}
+
+    TABLES["GarageTable"] = MissingBaseTable(query_items=[garage_item()])
+
+    with patch("store.get_table", get_table_mock):
+        found = store.find_garage_by_chassi("CHASSI_123")
+
+    assert found is None
+
+
+def test_find_garage_by_chassi_usa_leitura_consistente_da_tabela_base() -> None:
+    store = importlib.import_module("store")
+    stale = garage_item()
+    fresh = {**garage_item(), "trackingUpdatedAt": 5000}
+    garage_table = FakeTable(items=[fresh], query_items=[stale])
+    TABLES["GarageTable"] = garage_table
+
+    with patch("store.get_table", get_table_mock):
+        found = store.find_garage_by_chassi("CHASSI_123")
+
+    assert found == fresh
+    assert garage_table.get_item_calls == [{"userId": "user-1"}]
+    assert garage_table.get_item_kwargs == [{"ConsistentRead": True}]
+
+
+def test_status_repara_garage_com_evento_mais_recente() -> None:
+    garage = garage_item()
+    garage["trackingUpdatedAt"] = 100
+    event = {
+        "vehicleId": "CHASSI_123",
+        "timestamp": 200,
+        "receivedAt": 300,
+        "payload": {"chassi": "CHASSI_123", "currentStepIndex": 4},
+    }
+    tracking_table = FakeTable(query_items=[event])
+    garage_table = FakeTable(items=[garage])
+    wire_tables(tracking_table, garage_table)
+
+    with (
+        patch("store.get_table", get_table_mock),
+        patch("services.tracking.store.get_table", get_table_mock),
+        patch("common.auth.get_user_by_access_token", return_value=cognito_user()),
+    ):
+        result = handler.lambda_handler(
+            api_event("GET", "/garage/status", token="token"), None
+        )
+
+    assert result["statusCode"] == 200
+    assert json.loads(result["body"])["tracking"]["currentStepIndex"] == 4
+    assert garage["trackingUpdatedAt"] == 200
+    assert garage["tracking"]["currentStepIndex"] == 4
+
+
+def test_ingest_validation_exception_vira_400() -> None:
+    class InvalidTable(FakeTable):
+        def put_item(self, Item: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
+            raise ClientError(
+                {
+                    "Error": {
+                        "Code": "ValidationException",
+                        "Message": "number overflow",
+                    }
+                },
+                "PutItem",
+            )
+
+    tracking_table = InvalidTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(
+                api_event(
+                    "POST",
+                    "/garage/ingest",
+                    body={
+                        "chassi": "CHASSI_123",
+                        "stage": "pintura",
+                        "timestamp": 1773568800,
+                    },
+                    key=INGEST_KEY,
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 400
+    assert json.loads(result["body"])["message"] == "Payload de tracking inválido."
+
+
+def test_ingest_body_base64_usa_tamanho_decodificado() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+    payload = {
+        "chassi": "CHASSI_123",
+        "stage": "pintura",
+        "timestamp": 1773568800,
+        "padding": "x" * 14000,
+    }
+    encoded = base64.b64encode(json.dumps(payload).encode("utf-8")).decode("ascii")
+    assert len(encoded) > 16384
+
+    event = api_event("POST", "/garage/ingest", key=INGEST_KEY)
+    event["body"] = encoded
+    event["isBase64Encoded"] = True
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(event, None)
+
+    assert result["statusCode"] == 200
+
+
+def test_ingest_body_base64_gigante_retorna_413() -> None:
+    tracking_table = FakeTable()
+    wire_tables(tracking_table, FakeTable(query_items=[garage_item()]))
+
+    event = api_event("POST", "/garage/ingest", key=INGEST_KEY)
+    event["body"] = "A" * 40000
+    event["isBase64Encoded"] = True
+
+    with ssm():
+        with patch("store.get_table", get_table_mock):
+            result = handler.lambda_handler(event, None)
+
+    assert result["statusCode"] == 413
+    assert tracking_table.put_item_calls == []

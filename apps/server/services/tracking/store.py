@@ -16,7 +16,9 @@ CHASSI_INDEX_NAME = "chassi-index"
 
 
 def get_garage(user_id: str) -> Optional[Dict[str, Any]]:
-    result = get_table(GARAGE_TABLE_NAME).get_item(Key={"userId": user_id})
+    result = get_table(GARAGE_TABLE_NAME).get_item(
+        Key={"userId": user_id}, ConsistentRead=True
+    )
     item = result.get("Item")
     return item if isinstance(item, dict) else None
 
@@ -33,7 +35,20 @@ def find_garage_by_chassi(chassi: str) -> Optional[Dict[str, Any]]:
             Limit=1,
         )
         items = result.get("Items", [])
-        return items[0] if items else None
+        if not items:
+            return None
+
+        item = items[0]
+        user_id = item.get("userId")
+        if not isinstance(user_id, str) or not user_id:
+            return item
+
+        consistent = table.get_item(Key={"userId": user_id}, ConsistentRead=True).get(
+            "Item"
+        )
+        if isinstance(consistent, dict) and consistent.get("chassi") == normalized:
+            return consistent
+        return None
     except ClientError as error:
         code, _ = error_body(error)
         if code in {"ValidationException", "ResourceNotFoundException"}:
@@ -73,8 +88,11 @@ def save_event(
         )
     except ClientError as error:
         code, _ = error_body(error)
-        if code != "ConditionalCheckFailedException":
-            raise
+        if code == "ConditionalCheckFailedException":
+            return event
+        if code == "ValidationException":
+            raise ApiError(400, "Payload de tracking inválido.") from error
+        raise
     return event
 
 
@@ -119,6 +137,7 @@ def latest_event(vehicle_id: str) -> Optional[Dict[str, Any]]:
         KeyConditionExpression=Key("vehicleId").eq(vehicle_id),
         ScanIndexForward=False,
         Limit=1,
+        ConsistentRead=True,
     )
     items = result.get("Items", [])
     return items[0] if items else None
