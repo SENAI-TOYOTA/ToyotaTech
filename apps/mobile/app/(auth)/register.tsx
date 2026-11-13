@@ -9,6 +9,10 @@ import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { validatePassword } from "@/profileValidation";
 import { apiErrorMessage } from "@/services/api";
+import {
+  clearPendingRegistrationPassword,
+  setPendingRegistrationPassword,
+} from "@/services/pendingRegistration";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
@@ -53,11 +57,13 @@ export default function RegisterScreen() {
     try {
       const result = await signUp(normalizedEmail, password);
       if (result.requiresEmailVerification) {
+        setPendingRegistrationPassword(password);
         router.push({
           pathname: "/(auth)/verify-email",
           params: { email: normalizedEmail },
         });
       } else {
+        clearPendingRegistrationPassword();
         router.replace({
           pathname: "/(auth)/login",
           params: { email: normalizedEmail },

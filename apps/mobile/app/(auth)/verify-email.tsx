@@ -5,8 +5,13 @@ import { Platform, StyleSheet, Text, View } from "react-native";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/contexts/AuthContext";
 import { apiErrorMessage } from "@/services/api";
 import { resendVerification, verifyEmail } from "@/services/auth";
+import {
+  clearPendingRegistrationPassword,
+  consumePendingRegistrationPassword,
+} from "@/services/pendingRegistration";
 import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
@@ -15,6 +20,7 @@ const CODE_LENGTH = 6;
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const { email = "" } = useLocalSearchParams<{ email?: string }>();
+  const { signIn } = useAuth();
   const otpRef = useRef<OtpInputRef>(null);
   const [verificationCode, setVerificationCode] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -35,15 +41,31 @@ export default function VerifyEmailScreen() {
     }
 
     setIsSubmitting(true);
+    const normalizedEmail = String(email).toLowerCase();
     try {
       await verifyEmail({
-        email: String(email).toLowerCase(),
+        email: normalizedEmail,
         code: verificationCode,
       });
-      router.replace({
-        pathname: "/(auth)/login",
-        params: { email: String(email).toLowerCase() },
-      });
+      const password = consumePendingRegistrationPassword();
+      if (!password) {
+        clearPendingRegistrationPassword();
+        router.replace({
+          pathname: "/(auth)/login",
+          params: { email: normalizedEmail },
+        });
+        return;
+      }
+      try {
+        await signIn(normalizedEmail, password);
+        router.replace("/home");
+      } catch {
+        clearPendingRegistrationPassword();
+        router.replace({
+          pathname: "/(auth)/login",
+          params: { email: normalizedEmail },
+        });
+      }
     } catch (error) {
       setFormError(
         apiErrorMessage(
