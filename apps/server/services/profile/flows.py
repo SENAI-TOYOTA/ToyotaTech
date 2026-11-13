@@ -157,6 +157,9 @@ def _persist_profile(user_id: str, profile: Dict[str, str], existing_cpf: str) -
             raise ApiError(409, "CPF já vinculado a outro usuário.")
         raise
 
+    cpf_condition = (
+        "attribute_not_exists(cpf) OR cpf = :expected_cpf OR cpf = :target_cpf"
+    )
     try:
         table.put_item(
             Item={
@@ -164,15 +167,27 @@ def _persist_profile(user_id: str, profile: Dict[str, str], existing_cpf: str) -
                 **profile,
                 "updatedAt": updated_at,
             },
-            ConditionExpression=condition,
-            ExpressionAttributeValues={":expected_cpf": existing_cpf},
+            ConditionExpression=cpf_condition,
+            ExpressionAttributeValues={
+                ":expected_cpf": existing_cpf,
+                ":target_cpf": profile["cpf"],
+            },
         )
-    except ClientError:
+    except ClientError as error:
         if created_reservation:
-            try:
-                _release_cpf(table, profile["cpf"], user_id)
-            except ClientError:
-                pass
+            code, _ = error_body(error)
+            if code == "ConditionalCheckFailedException":
+                try:
+                    current = (
+                        table.get_item(
+                            Key={"userId": user_id}, ConsistentRead=True
+                        ).get("Item")
+                        or {}
+                    )
+                    if validation.normalize_cpf(current.get("cpf")) != profile["cpf"]:
+                        _release_cpf(table, profile["cpf"], user_id)
+                except ClientError:
+                    pass
         raise
 
 

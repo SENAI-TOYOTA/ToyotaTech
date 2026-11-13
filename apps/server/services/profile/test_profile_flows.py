@@ -2,6 +2,9 @@ import json
 from typing import Any, Dict, Optional
 from unittest.mock import patch
 
+import pytest
+from botocore.exceptions import ClientError
+
 PROFILE_MODULES = ("flows", "handler", "validation")
 
 CPF = "52998224725"
@@ -372,3 +375,93 @@ def test_profile_put_preserva_reserva_existente_em_falha(dynamodb, service_loade
     assert result["statusCode"] == 409
     reservation = dynamodb.Table("ProfileTable").get_item(Key={"userId": f"cpf#{CPF}"})
     assert reservation["Item"]["ownerUserId"] == USER["sub"]
+
+
+class TransientFailureTable:
+    def __init__(self) -> None:
+        self.put_calls = 0
+        self.delete_calls = []
+
+    def put_item(self, **kwargs: Any) -> Dict[str, Any]:
+        self.put_calls += 1
+        if self.put_calls == 1:
+            return {}
+        raise ClientError(
+            {
+                "Error": {
+                    "Code": "ProvisionedThroughputExceededException",
+                    "Message": "transient",
+                }
+            },
+            "PutItem",
+        )
+
+    def delete_item(self, **kwargs: Any) -> None:
+        self.delete_calls.append(kwargs)
+
+
+def test_profile_put_nao_libera_reserva_em_falha_transitoria(service_loader):
+    table = TransientFailureTable()
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        with patch.object(modules["flows"], "get_table", return_value=table):
+            with pytest.raises(ClientError):
+                modules["flows"]._persist_profile(
+                    USER["sub"],
+                    {
+                        "fullName": "Maria Silva",
+                        "birthDate": "01/02/1990",
+                        "cpf": CPF,
+                    },
+                    "",
+                )
+
+    assert table.delete_calls == []
+
+
+def test_profile_put_cpf_concorrente_do_mesmo_usuario_preserva_reserva(
+    dynamodb, service_loader
+):
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        flows = modules["flows"]
+        table = dynamodb.Table("ProfileTable")
+        original_reserve = flows._reserve_cpf
+
+        def reserve_and_simulate_parallel_success(table_arg, cpf, user_id, created_at):
+            created = original_reserve(table_arg, cpf, user_id, created_at)
+            table.put_item(
+                Item={
+                    "userId": user_id,
+                    "fullName": "Maria Silva",
+                    "birthDate": "01/02/1990",
+                    "cpf": cpf,
+                }
+            )
+            return created
+
+        with patch.object(
+            flows,
+            "_reserve_cpf",
+            side_effect=reserve_and_simulate_parallel_success,
+        ):
+            flows._persist_profile(
+                USER["sub"],
+                {
+                    "fullName": "Maria Silva",
+                    "birthDate": "01/02/1990",
+                    "cpf": CPF,
+                },
+                "",
+            )
+
+        reservation = table.get_item(Key={"userId": f"cpf#{CPF}"})
+        assert reservation["Item"]["ownerUserId"] == USER["sub"]
+
+        with patch.object(
+            modules["flows"], "authenticated_user", return_value=SECOND_USER
+        ):
+            result = modules["handler"].lambda_handler(
+                api_event("PUT", "/profile", body={"cpf": CPF}, token="token"),
+                None,
+            )
+
+    assert result["statusCode"] == 409
