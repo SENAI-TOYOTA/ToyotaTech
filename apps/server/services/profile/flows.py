@@ -91,16 +91,7 @@ def save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     try:
-        table = get_table(PROFILE_TABLE_NAME)
-        table.put_item(
-            Item={
-                "userId": user_id,
-                **profile,
-                "updatedAt": int(time.time()),
-            },
-            ConditionExpression="attribute_not_exists(cpf) OR cpf = :expected_cpf",
-            ExpressionAttributeValues={":expected_cpf": existing_cpf},
-        )
+        _persist_profile(user_id, profile, existing_cpf)
         return {"profile": profile}
     except ClientError as error:
         code, _ = error_body(error)
@@ -110,6 +101,78 @@ def save_profile(event: Dict[str, Any]) -> Dict[str, Any]:
             raise ApiError(
                 409, "CPF não pode ser alterado depois de vinculado ao perfil."
             )
+        raise
+
+
+def _reserve_cpf(table: Any, cpf: str, user_id: str, created_at: int) -> bool:
+    result = table.put_item(
+        Item={
+            "userId": f"cpf#{cpf}",
+            "ownerUserId": user_id,
+            "cpf": cpf,
+            "createdAt": created_at,
+        },
+        ConditionExpression="attribute_not_exists(userId) OR ownerUserId = :owner",
+        ExpressionAttributeValues={":owner": user_id},
+        ReturnValues="ALL_OLD",
+    )
+    return "Attributes" not in result
+
+
+def _release_cpf(table: Any, cpf: str, user_id: str) -> None:
+    try:
+        table.delete_item(
+            Key={"userId": f"cpf#{cpf}"},
+            ConditionExpression="ownerUserId = :owner",
+            ExpressionAttributeValues={":owner": user_id},
+        )
+    except ClientError as error:
+        code, _ = error_body(error)
+        if code != "ConditionalCheckFailedException":
+            raise
+
+
+def _persist_profile(user_id: str, profile: Dict[str, str], existing_cpf: str) -> None:
+    table = get_table(PROFILE_TABLE_NAME)
+    updated_at = int(time.time())
+    condition = "attribute_not_exists(cpf) OR cpf = :expected_cpf"
+
+    if not profile["cpf"]:
+        table.put_item(
+            Item={
+                "userId": user_id,
+                **profile,
+                "updatedAt": updated_at,
+            },
+            ConditionExpression=condition,
+            ExpressionAttributeValues={":expected_cpf": existing_cpf},
+        )
+        return
+
+    try:
+        created_reservation = _reserve_cpf(table, profile["cpf"], user_id, updated_at)
+    except ClientError as error:
+        code, _ = error_body(error)
+        if code == "ConditionalCheckFailedException":
+            raise ApiError(409, "CPF já vinculado a outro usuário.")
+        raise
+
+    try:
+        table.put_item(
+            Item={
+                "userId": user_id,
+                **profile,
+                "updatedAt": updated_at,
+            },
+            ConditionExpression=condition,
+            ExpressionAttributeValues={":expected_cpf": existing_cpf},
+        )
+    except ClientError:
+        if created_reservation:
+            try:
+                _release_cpf(table, profile["cpf"], user_id)
+            except ClientError:
+                pass
         raise
 
 

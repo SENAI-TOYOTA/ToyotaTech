@@ -12,6 +12,12 @@ USER = {
     "name": "Maria Silva",
     "isVerified": True,
 }
+SECOND_USER = {
+    "sub": "user-2",
+    "email": "second@example.com",
+    "name": "João Souza",
+    "isVerified": True,
+}
 
 
 def api_event(
@@ -34,6 +40,19 @@ def seed_profile(dynamodb: Any, cpf: str = CPF) -> Dict[str, Any]:
         "fullName": "Maria Silva",
         "birthDate": "01/02/1990",
         "cpf": cpf,
+    }
+    dynamodb.Table("ProfileTable").put_item(Item=item)
+    return item
+
+
+def seed_cpf_reservation(
+    dynamodb: Any, cpf: str = CPF, owner: str = USER["sub"]
+) -> Dict[str, Any]:
+    item = {
+        "userId": f"cpf#{cpf}",
+        "ownerUserId": owner,
+        "cpf": cpf,
+        "createdAt": 1,
     }
     dynamodb.Table("ProfileTable").put_item(Item=item)
     return item
@@ -243,3 +262,113 @@ def test_profile_put_nao_sobrescreve_cpf_alterado_em_corrida(dynamodb, service_l
     stored = dynamodb.Table("ProfileTable").get_item(Key={"userId": USER["sub"]})
     assert stored["Item"]["cpf"] == OTHER_CPF
     assert stored["Item"]["fullName"] == "Maria Silva"
+    reservation = dynamodb.Table("ProfileTable").get_item(Key={"userId": f"cpf#{CPF}"})
+    assert "Item" not in reservation
+
+
+def test_profile_put_cpf_duplicado_retorna_409(dynamodb, service_loader):
+    seed_profile(dynamodb)
+    seed_cpf_reservation(dynamodb)
+    second_profile = {
+        "userId": SECOND_USER["sub"],
+        "fullName": "João Souza",
+        "birthDate": "02/03/1991",
+    }
+    dynamodb.Table("ProfileTable").put_item(Item=second_profile)
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        with patch.object(
+            modules["flows"], "authenticated_user", return_value=SECOND_USER
+        ):
+            result = modules["handler"].lambda_handler(
+                api_event("PUT", "/profile", body={"cpf": CPF}, token="token"),
+                None,
+            )
+
+    assert result["statusCode"] == 409
+    assert response_body(result)["message"] == "CPF já vinculado a outro usuário."
+    stored = dynamodb.Table("ProfileTable").get_item(Key={"userId": SECOND_USER["sub"]})
+    assert stored["Item"] == second_profile
+
+
+def test_profile_put_mesmo_cpf_do_usuario_e_idempotente(dynamodb, service_loader):
+    seed_profile(dynamodb)
+    seed_cpf_reservation(dynamodb)
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        with patch.object(modules["flows"], "authenticated_user", return_value=USER):
+            result = modules["handler"].lambda_handler(
+                api_event(
+                    "PUT",
+                    "/profile",
+                    body={"fullName": "Maria Silva", "cpf": "529.982.247-25"},
+                    token="token",
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 200
+    assert response_body(result)["profile"]["cpf"] == CPF
+    stored = dynamodb.Table("ProfileTable").get_item(Key={"userId": USER["sub"]})
+    assert stored["Item"]["cpf"] == CPF
+
+
+def test_profile_put_cpf_legado_cria_reserva(dynamodb, service_loader):
+    seed_profile(dynamodb)
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        with patch.object(modules["flows"], "authenticated_user", return_value=USER):
+            result = modules["handler"].lambda_handler(
+                api_event(
+                    "PUT", "/profile", body={"fullName": "Maria Souza"}, token="token"
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 200
+    assert response_body(result)["profile"]["cpf"] == CPF
+    reservation = dynamodb.Table("ProfileTable").get_item(Key={"userId": f"cpf#{CPF}"})
+    assert reservation["Item"]["ownerUserId"] == USER["sub"]
+    assert reservation["Item"]["cpf"] == CPF
+    assert "createdAt" in reservation["Item"]
+
+
+def test_profile_put_reserva_de_outro_dono_retorna_409(dynamodb, service_loader):
+    seed_profile(dynamodb)
+    seed_cpf_reservation(dynamodb, owner=SECOND_USER["sub"])
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        with patch.object(modules["flows"], "authenticated_user", return_value=USER):
+            result = modules["handler"].lambda_handler(
+                api_event(
+                    "PUT", "/profile", body={"fullName": "Maria Souza"}, token="token"
+                ),
+                None,
+            )
+
+    assert result["statusCode"] == 409
+    assert response_body(result)["message"] == "CPF já vinculado a outro usuário."
+    stored = dynamodb.Table("ProfileTable").get_item(Key={"userId": USER["sub"]})
+    assert stored["Item"]["fullName"] == "Maria Silva"
+    assert stored["Item"]["cpf"] == CPF
+
+
+def test_profile_put_preserva_reserva_existente_em_falha(dynamodb, service_loader):
+    seed_profile(dynamodb)
+    seed_cpf_reservation(dynamodb)
+    dynamodb.Table("ProfileTable").update_item(
+        Key={"userId": USER["sub"]},
+        UpdateExpression="SET cpf = :cpf",
+        ExpressionAttributeValues={":cpf": OTHER_CPF},
+    )
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        with patch.object(modules["flows"], "authenticated_user", return_value=USER):
+            with patch.object(
+                modules["flows"],
+                "_get_profile",
+                return_value={"fullName": "Maria Silva", "birthDate": "", "cpf": CPF},
+            ):
+                result = modules["handler"].lambda_handler(
+                    api_event("PUT", "/profile", body={"fullName": "Maria Souza"}),
+                    None,
+                )
+
+    assert result["statusCode"] == 409
+    reservation = dynamodb.Table("ProfileTable").get_item(Key={"userId": f"cpf#{CPF}"})
+    assert reservation["Item"]["ownerUserId"] == USER["sub"]

@@ -211,6 +211,39 @@ def test_profile_update_returns_profile_shape(contract):
     assert set(body["profile"]) == {"fullName", "birthDate", "cpf"}
 
 
+def test_profile_duplicate_cpf_returns_409(contract):
+    first_email = seed_email(contract, "cpf-duplicado-a")
+    second_email = seed_email(contract, "cpf-duplicado-b")
+    first_token = contract.access_token(first_email)
+    second_token = contract.access_token(second_email)
+    with service_handler("profile") as handler:
+        first_status, _, _ = call(
+            handler,
+            "PUT",
+            "/profile",
+            {
+                "fullName": "Maria Silva",
+                "birthDate": "01/02/1990",
+                "cpf": "52998224725",
+            },
+            token=first_token,
+        )
+        second_status, _, second_body = call(
+            handler,
+            "PUT",
+            "/profile",
+            {
+                "fullName": "João Souza",
+                "birthDate": "02/03/1991",
+                "cpf": "52998224725",
+            },
+            token=second_token,
+        )
+    assert first_status == 200
+    assert second_status == 409
+    assert second_body["message"] == "CPF já vinculado a outro usuário."
+
+
 def test_profile_without_token_returns_401(contract):
     with service_handler("profile") as handler:
         status, _, body = call(handler, "GET", "/profile")
