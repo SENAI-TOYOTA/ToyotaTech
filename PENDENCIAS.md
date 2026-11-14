@@ -12,9 +12,9 @@ O código está em `develop` @ `3b89c74`, CI 5/5 verde, e foi deployado na stack
 - **#296:** auto-login pós-OTP, tratamento de 429 e testes de tela; falta validar em aparelho/web contra Cognito real.
 - **#308:** backfill de `boletoBarcode` em leitura, testes de tela e aviso de demonstração; produção atualizada.
 
-## 2. Remediação de CPF duplicado legado
+## 2. CPF duplicado legado — resolvido em 2026-11-13
 
-O backfill encontrou **2 perfis com o mesmo CPF** (final `9899`). A reserva foi criada para um deles; o outro ficou sem reserva e receberá 409 ao tentar regravar. A decisão de qual conta é legítima (ou remover o CPF da outra) é do Senhor; nenhuma alteração de perfil foi feita.
+Os **2 perfis com o mesmo CPF** (final `9899`) e a reserva `cpf#<cpf>` foram removidos da `ProfilesTable`. As contas Cognito foram preservadas; os usuários voltarão ao `profile-setup`. A compra `demo-56606` (`generated_demo`) permanece na `PurchasesTable` como registro de demonstração.
 
 ## 3. Teste em dispositivo/web
 
