@@ -78,6 +78,19 @@ def build_boleto_barcode(digest: str) -> str:
     return "".join(str(int(char, 16) % 10) for char in stream)[:47]
 
 
+def backfill_boleto(garage: Dict[str, Any], seed: str) -> None:
+    financing = garage.get("financing")
+    if not isinstance(financing, dict) or not financing.get("boletoAvailable"):
+        return
+    barcode = validation.coerce_text(financing.get("boletoBarcode"))
+    if len(barcode) == 47 and barcode.isdigit():
+        return
+    digest = hashlib.sha1(
+        (validation.coerce_text(seed) or "toyotatech").encode("utf-8")
+    ).hexdigest()
+    financing["boletoBarcode"] = build_boleto_barcode(digest)
+
+
 def build_financing(seed: str) -> Dict[str, Any]:
     digest = hashlib.sha1(
         (validation.coerce_text(seed) or "toyotatech").encode("utf-8")

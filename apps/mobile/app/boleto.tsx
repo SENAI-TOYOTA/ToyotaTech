@@ -159,6 +159,9 @@ export default function BoletoScreen() {
           <Text style={styles.barcodeHint}>
             Toque e segure para copiar a linha digitável.
           </Text>
+          <Text style={styles.demoNotice}>
+            Linha digitável demonstrativa, sem validade para pagamento.
+          </Text>
         </View>
 
         <Button
@@ -249,6 +252,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: fontSize.sm,
     color: colors.textSecondary,
+  },
+  demoNotice: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.primary,
   },
   shareButton: {
     marginTop: spacing.md,

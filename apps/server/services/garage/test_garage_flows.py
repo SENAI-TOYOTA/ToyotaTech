@@ -288,3 +288,36 @@ def test_build_financing_gera_boleto_deterministico(service_loader):
     assert len(barcode) == 47
     assert repeated["boletoBarcode"] == barcode
     assert other["boletoBarcode"] != barcode
+
+
+def test_backfill_boleto_preserva_codigo_valido(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        garage = {
+            "financing": {
+                "boletoAvailable": True,
+                "boletoBarcode": "1" * 47,
+            }
+        }
+        modules["demo"].backfill_boleto(garage, CPF)
+
+    assert garage["financing"]["boletoBarcode"] == "1" * 47
+
+
+def test_current_backfill_boleto_em_garagem_legada(dynamodb, service_loader):
+    seed_profile(dynamodb)
+    legacy = {
+        "userId": USER["sub"],
+        "financing": {"boletoAvailable": True, "bank": "Banco Toyota"},
+    }
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        with patch.object(modules["flows"], "authenticated_user", return_value=USER):
+            with patch.object(
+                modules["resolver"], "get_or_create_garage", return_value=legacy
+            ):
+                result = modules["handler"].lambda_handler(
+                    api_event("GET", "/garage/current"), None
+                )
+
+    barcode = response_body(result)["garage"]["financing"]["boletoBarcode"]
+    assert len(barcode) == 47
+    assert barcode.isdigit()
