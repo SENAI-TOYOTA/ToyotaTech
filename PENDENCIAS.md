@@ -4,7 +4,9 @@ Atualizado em 2026-11-13.
 
 ## 1. Deploy da Wave 1 (#295, #296, #308)
 
-O código está em `develop` @ `d781d86` com CI 5/5 verde. A produção AWS continua no código anterior (`78d8720`); nenhum deploy foi feito nesta sessão.
+Os cards #295, #296 e #308 permanecem em **In Progress** por decisão do Senhor; não mover para Done até nova ordem.
+
+O código está em `develop` @ `60fad29` com CI 5/5 verde. A produção AWS continua no código anterior (`78d8720`); nenhum deploy foi feito nesta sessão.
 
 - #295 (unicidade de CPF) e #308 (boleto) dependem de deploy do backend para valer na nuvem.
 - #296 é mobile; depende de build/publicação do app.
