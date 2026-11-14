@@ -105,6 +105,7 @@ Resources:
           COGNITO_USER_POOL_ID: !Ref UserPool
           COGNITO_CLIENT_ID: !Ref UserPoolClient
           PROFILE_TABLE_NAME: !Ref ProfilesTable
+          RATE_LIMIT_TABLE_NAME: !Ref AuthRateLimitTable
       Events:
         GetProfile:
           Type: HttpApi

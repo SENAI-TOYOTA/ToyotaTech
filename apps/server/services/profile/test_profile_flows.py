@@ -465,3 +465,22 @@ def test_profile_put_cpf_concorrente_do_mesmo_usuario_preserva_reserva(
             )
 
     assert result["statusCode"] == 409
+
+
+def test_profile_put_rate_limit_retorna_429(service_loader):
+    from common.responses import ApiError
+
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        with patch.object(
+            modules["handler"],
+            "enforce_rate_limit",
+            side_effect=ApiError(429, "Muitas requisições.", {"retryAfter": 10}),
+        ):
+            result = modules["handler"].lambda_handler(
+                api_event("PUT", "/profile", body={"fullName": "Maria Silva"}),
+                None,
+            )
+
+    assert result["statusCode"] == 429
+    assert result["headers"]["Retry-After"] == "10"
+    assert json.loads(result["body"])["retryAfter"] == 10
