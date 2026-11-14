@@ -1,38 +1,42 @@
 # Pendências
 
-Atualizado em 2026-10-23.
+Atualizado em 2026-11-13.
 
-## 1. Deploy e validação do ingest (`#264`)
+## 1. Deploy da Wave 1 (#295, #296, #308)
 
-O código da chave compartilhada está em `develop` (CI verde), mas não foi ao ar. **O endpoint em produção continua aceitando escrita anônima** — quem souber um chassi sobrescreve o tracking daquele veículo.
+O código está em `develop` @ `d781d86` com CI 5/5 verde. A produção AWS continua no código anterior (`78d8720`); nenhum deploy foi feito nesta sessão.
 
-Orçamento: 4 requests (1 deploy + 3 validações).
+- #295 (unicidade de CPF) e #308 (boleto) dependem de deploy do backend para valer na nuvem.
+- #296 é mobile; depende de build/publicação do app.
+- Deploy exige autorização explícita e orçamento de chamadas (lab AWS Academy, concorrência 9/10).
 
-Validação ao vivo, depois do deploy, com um chassi real:
+## 2. Rate limit no `/profile` (achado MEDIUM)
 
-- 401 sem `X-Ingest-Key` (rodo eu)
-- 401 com `X-Ingest-Key` errada (rodo eu)
-- 200 com a chave correta (roda o usuário, para o segredo não entrar em transcript)
+`PUT /profile` não passa pelo token bucket. O 409 de CPF permite enumeração de CPFs cadastrados e squatting por conta autenticada. Mitigação: token bucket por IP+rota no `ProfileFunction` ou mensagem genérica + rate limit.
 
-## 2. IAM: `ssm:GetParameter` no `LabRole`
+## 3. Reservas de CPF órfãs / LGPD (achado MEDIUM)
 
-A Lambda lê a chave de SSM. A permissão não é verificável daqui: `Pvoclabs1` nega `iam:GetPolicyVersion` e `simulate-principal-policy` não está disponível.
+Itens `cpf#<cpf>` na `ProfilesTable` não têm TTL e não são removidos ao excluir o perfil. Definir rotina de limpeza/TTL e remoção na exclusão.
 
-Se faltar a permissão, o ingest responde 500 `Chave de ingest indisponível no SSM.` — falha fechada, mas o ingest fica fora até ser concedido.
+## 4. Login Google (#288)
 
-## 3. Login Google (`#288`)
+O `UserPoolDomain` e as URLs de OAuth estão no template (#284), mas o `AWS::Cognito::UserPoolIdentityProvider` não existe. Falta insumo externo: projeto no Google Cloud, OAuth consent screen e Client ID/Secret (tipo Web).
 
-O `UserPoolDomain` e as URLs de OAuth estão no template (`#284`), mas o `AWS::Cognito::UserPoolIdentityProvider` não existe. Falta insumo externo: projeto no Google Cloud, OAuth consent screen e Client ID/Secret (tipo Web).
+## 5. Merge de `main` (#280)
 
-## 4. Merge de `main` (`#280`)
+O PR `#294` traz `develop` para `main`, mas está bloqueado pela proteção de `main`, que exige 1 aprovação. Depois do merge, `main` e `develop` ficam alinhadas.
 
-O PR `#294` (`chore/280-reconcile`) traz `develop` para `main`, com 4 checks verdes. Está **bloqueado pela proteção de `main`**, que exige 1 aprovação.
+## 6. Branches remotas antigas
 
-Depois do merge: `main` e `develop` ficam alinhadas e o fluxo passa a ser issue/PR → `develop` → `main`.
+`origin/chatbot-toyota-giza` (1 commit) e `origin/feature/web-restructure` (3 commits) continuam sem merge. A poda exige decisão da equipe.
 
-## 5. Branches remotas antigas
+## 7. Proteção do `develop`
 
-`origin/chatbot-toyota-giza` (1 commit) e `origin/feature/web-restructure` (3 commits) continuam sem merge. A poda exige decisão da equipe (o trabalho pode ser retomado ou descartado).
+O push de `d781d86` reportou bypass de uma regra que espera o check `lint`; os 5 workflows reais passaram. Revisar a required status check configurada para o `develop`.
+
+## 8. Wave 2
+
+#303–#307 (documentos), #310–#312 (conteúdo) e #313 (recall) seguem no Backlog. #288 continua bloqueado por insumo externo.
 
 ---
 

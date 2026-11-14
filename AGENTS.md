@@ -136,13 +136,13 @@ npx tsc --noEmit && npm run check && npm test
 - **Typecheck**: `npx tsc --noEmit`
 - **Lint**: `npm run lint` (`eslint . --max-warnings=0`)
 - **Prettier**: `npm run format:check`
-- **Testes**: `npm test` (Jest - 10 suítes e 102 testes passando)
+- **Testes**: `npm test` (Jest - 12 suítes e 112 testes passando)
 
 ### No Backend & Contratos (`apps/server`):
 ```bash
 # Linter e formatação Python:
 ruff check apps/server && ruff format --check apps/server
 
-# Testes unitários e contratos TypeScript (226 testes passando):
+# Testes unitários e contratos TypeScript (284 testes passando):
 .venv/bin/python -m pytest apps/server -q
 ```
