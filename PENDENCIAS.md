@@ -2,43 +2,55 @@
 
 Atualizado em 2026-11-13.
 
-## 1. Wave 1 (#295, #296, #308) — em In Progress
+## 0. Retomada rápida (outra máquina/sessão)
 
-Os cards #295, #296 e #308 permanecem em **In Progress** por decisão do Senhor; não mover para Done até nova ordem.
+- Repo: `develop` @ `6bccf14` (docs); código deployado: `3b89c74`.
+- CI: **5/5** no último push. Testes: **287 pytest** e **120 Jest**.
+- Cards **#295, #296 e #308**: `In Progress`, issues abertas. **Não mover para Done.**
+- Deploy: stack `toyotatech` em `UPDATE_COMPLETE`; concorrência **9/10**. Nenhuma credencial foi persistida no repo.
+- Board: Project 30 — 80 Done · 3 In Progress · 10 Backlog · total 93.
 
-O código está em `develop` @ `3b89c74`, CI 5/5 verde, e foi deployado na stack `toyotatech` (`UPDATE_COMPLETE` em 2026-11-14). Produção agora tem `ProfileFunction` e `GarageFunction` atualizadas; concorrência segue 9/10.
+Comandos de retomada:
 
-- **#295:** reserva `cpf#<cpf>` + rate limit em `PUT /profile`; backfill executado na `ProfilesTable`.
-- **#296:** auto-login pós-OTP, tratamento de 429 e testes de tela; falta validar em aparelho/web contra Cognito real.
-- **#308:** backfill de `boletoBarcode` em leitura, testes de tela e aviso de demonstração; produção atualizada.
+```bash
+git pull
+ruff check apps/server && ruff format --check apps/server
+.venv/bin/python -m pytest apps/server -q
+cd apps/mobile && npx tsc --noEmit && npm run check && npm test
+```
 
-## 2. CPF duplicado legado — resolvido em 2026-11-13
+Deploy (somente com autorização e orçamento declarado): `sam build` e `sam deploy` em `apps/server`.
 
-Os **2 perfis com o mesmo CPF** (final `9899`) e a reserva `cpf#<cpf>` foram removidos da `ProfilesTable`. As contas Cognito foram preservadas; os usuários voltarão ao `profile-setup`. A compra `demo-56606` (`generated_demo`) permanece na `PurchasesTable` como registro de demonstração.
+## 1. Pendências por card
 
-## 3. Teste em dispositivo/web
+### #295 — CPF único
 
-#296 e #308 têm testes de tela em Jest, mas não foram exercitados em aparelho real ou navegador contra Cognito/API de produção. A validação de ponta a ponta depende de build do app e de uma sessão real.
+- [ ] Opcional: apagar a compra `demo-56606` (`generated_demo`), último resíduo do CPF duplicado; os dois perfis e a reserva já foram removidos.
+- [ ] Definir TTL/rotina de limpeza para reservas `cpf#<cpf>` órfãs (sem TTL hoje).
+- [ ] Opcional: validar o rate limit de `PUT /profile` em produção com uma chamada real.
 
-## 4. Proteção do `develop`
+### #296 — Auto-login após OTP
 
-O push de `3b89c74` reportou bypass de uma regra que espera o check `lint`; os 5 workflows reais passaram. Revisar a required status check configurada para o `develop`.
+- [ ] Validar em aparelho/web contra Cognito real: cadastro → OTP → auto-login; falha 429 → mensagem e botão “Ir para login”.
+- [ ] Confirmar que a sessão persiste e que o guard leva conta nova ao `profile-setup`.
 
-## 5. Login Google (#288)
+### #308 — Boleto
 
-O `UserPoolDomain` e as URLs de OAuth estão no template (#284), mas o `AWS::Cognito::UserPoolIdentityProvider` não existe. Falta insumo externo: projeto no Google Cloud, OAuth consent screen e Client ID/Secret (tipo Web).
+- [ ] Validar em aparelho/web: `/financing` → `/boleto`, linha digitável, cópia/compartilhamento e aviso de demonstração.
+- [ ] Conferir uma garagem antiga sem `boletoBarcode`: o backfill de leitura deve devolver 47 dígitos e habilitar o botão.
 
-## 6. Merge de `main` (#280)
+## 2. Transversal
 
-O PR `#294` traz `develop` para `main`, mas está bloqueado pela proteção de `main`, que exige 1 aprovação. Depois do merge, `main` e `develop` ficam alinhadas.
+- [ ] Revisar a required status check `lint` do `develop` (regra órfã; os 5 workflows reais passam).
+- [ ] Merge de `main` (#280) e poda das branches antigas.
+- [ ] Login Google (#288): bloqueado por insumo externo (Google Cloud/OAuth Client ID/Secret).
+- [ ] Wave 2 (#303–#307, #310–#312, #313): fora do escopo atual; permanece no Backlog.
 
-## 7. Branches remotas antigas
+## 3. Limpeza já executada
 
-`origin/chatbot-toyota-giza` (1 commit) e `origin/feature/web-restructure` (3 commits) continuam sem merge. A poda exige decisão da equipe.
-
-## 8. Wave 2
-
-#303–#307 (documentos), #310–#312 (conteúdo) e #313 (recall) seguem no Backlog. #288 continua bloqueado por insumo externo.
+- Dois perfis com o mesmo CPF (final `9899`) e a reserva `cpf#<cpf>` foram removidos da `ProfilesTable`.
+- Contas Cognito preservadas; os usuários voltarão ao `profile-setup`.
+- A compra `demo-56606` (`generated_demo`) permanece na `PurchasesTable`.
 
 ---
 
