@@ -20,6 +20,7 @@ const CODE_LENGTH = 6;
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const { email = "" } = useLocalSearchParams<{ email?: string }>();
+  const normalizedEmail = String(email).toLowerCase();
   const { signIn } = useAuth();
   const otpRef = useRef<OtpInputRef>(null);
   const [verificationCode, setVerificationCode] = useState<string>("");
@@ -27,6 +28,7 @@ export default function VerifyEmailScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [autoLoginFailed, setAutoLoginFailed] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -41,13 +43,13 @@ export default function VerifyEmailScreen() {
     }
     setFormError(null);
     setFeedback(null);
+    setAutoLoginFailed(false);
 
     if (Platform.OS === "web" && typeof document !== "undefined") {
       (document.activeElement as HTMLElement | null)?.blur();
     }
 
     setIsSubmitting(true);
-    const normalizedEmail = String(email).toLowerCase();
     try {
       await verifyEmail({
         email: normalizedEmail,
@@ -65,12 +67,16 @@ export default function VerifyEmailScreen() {
       try {
         await signIn(normalizedEmail, password);
         router.replace("/home");
-      } catch {
+      } catch (error) {
         clearPendingRegistrationPassword();
-        router.replace({
-          pathname: "/(auth)/login",
-          params: { email: normalizedEmail },
-        });
+        setAutoLoginFailed(true);
+        setFeedback("E-mail verificado. Entre com sua senha para continuar.");
+        setFormError(
+          apiErrorMessage(
+            error,
+            "Não foi possível entrar automaticamente. Faça login."
+          )
+        );
       }
     } catch (error) {
       setFormError(
@@ -156,6 +162,19 @@ export default function VerifyEmailScreen() {
           onPress={handleResendPress}
           disabled={isSubmitting || isResending}
         />
+        {autoLoginFailed ? (
+          <Button
+            title="Ir para login"
+            variant="outline"
+            style={styles.resendButton}
+            onPress={() =>
+              router.replace({
+                pathname: "/(auth)/login",
+                params: { email: normalizedEmail },
+              })
+            }
+          />
+        ) : null}
         {feedback ? <Text style={styles.feedbackText}>{feedback}</Text> : null}
         {formError ? (
           <Text style={styles.formErrorText}>{formError}</Text>
