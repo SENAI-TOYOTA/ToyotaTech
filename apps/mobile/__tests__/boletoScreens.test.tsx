@@ -145,13 +145,13 @@ describe("BoletoScreen", () => {
     setGarage(buildGarage(BARCODE));
   });
 
-  it("exibe a linha digitavel formatada e o aviso de demonstracao", async () => {
+  it("exibe a linha digitavel formatada e a orientacao de pagamento", async () => {
     const screen = await render(<BoletoScreen />);
 
     expect(screen.getByText(FORMATTED)).toBeTruthy();
     expect(
       screen.getByText(
-        "Linha digitável demonstrativa, sem validade para pagamento."
+        "Pague pelo app ou internet banking do seu banco até o vencimento."
       )
     ).toBeTruthy();
   });
@@ -205,7 +205,7 @@ describe("FinancingScreen", () => {
     expect(button.props.accessibilityState.disabled).toBe(true);
     expect(
       screen.getByText(
-        "O boleto não está disponível para este contrato no momento."
+        "A segunda via estará disponível a partir do fechamento da parcela."
       )
     ).toBeTruthy();
   });

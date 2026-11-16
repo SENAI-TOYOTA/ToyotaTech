@@ -95,9 +95,9 @@ export default function FinancingScreen() {
           entering={FadeInDown.delay(400).duration(600).springify()}
         >
           <Card style={styles.invoiceCard}>
-            <Text style={styles.invoiceTitle}>2° Via do boleto</Text>
+            <Text style={styles.invoiceTitle}>2ª via do boleto</Text>
             <Text style={styles.invoiceDescription}>
-              Baixe seus boletos e carnês com facilidade
+              Emita a segunda via e pague pelo app do seu banco
             </Text>
 
             <Button
@@ -115,7 +115,8 @@ export default function FinancingScreen() {
             />
             {!boletoAvailable ? (
               <Text style={styles.boletoUnavailableText}>
-                O boleto não está disponível para este contrato no momento.
+                A segunda via estará disponível a partir do fechamento da
+                parcela.
               </Text>
             ) : null}
           </Card>

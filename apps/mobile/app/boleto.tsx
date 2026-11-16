@@ -104,7 +104,7 @@ export default function BoletoScreen() {
         </Text>
         <Text style={styles.feedbackDescription}>
           {financing
-            ? "A linha digitável ainda não está disponível para este contrato."
+            ? "A segunda via estará disponível a partir do fechamento da parcela."
             : (error ?? "Não foi possível carregar os dados do financiamento.")}
         </Text>
         <Button
@@ -156,11 +156,8 @@ export default function BoletoScreen() {
           >
             {formatBoletoBarcode(barcode)}
           </Text>
-          <Text style={styles.barcodeHint}>
-            Toque e segure para copiar a linha digitável.
-          </Text>
           <Text style={styles.demoNotice}>
-            Linha digitável demonstrativa, sem validade para pagamento.
+            Pague pelo app ou internet banking do seu banco até o vencimento.
           </Text>
         </View>
 
@@ -246,12 +243,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     lineHeight: fontSize.xl,
     color: colors.textPrimary,
-  },
-  barcodeHint: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.regular,
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
   },
   demoNotice: {
     marginTop: spacing.xs,
