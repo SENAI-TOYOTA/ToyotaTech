@@ -4,11 +4,12 @@ Atualizado em 2026-11-16.
 
 ## 0. Retomada rápida (outra máquina/sessão)
 
-- Repo: `develop` @ `6bccf14` (docs); código deployado: `3b89c74`.
-- CI: **5/5** no último push. Testes: **287 pytest** e **120 Jest**.
+- Repo: `develop` @ `f9a19c3`; código deployado: `3b89c74` (sem deploy novo).
+- CI: **5/5** — Backend Lint, Backend Tests, Client Lint, Frontend Lint, Frontend Tests. Testes: **287 pytest** e **120 Jest**.
 - Cards **#295, #296 e #308**: `In Progress`, issues abertas. **Não mover para Done.**
 - Deploy: stack `toyotatech` em `UPDATE_COMPLETE`; concorrência **9/10**. Nenhuma credencial foi persistida no repo.
-- Board: Project 30 — 80 Done · 3 In Progress · 10 Backlog · total 93.
+- Board: Project 30 — 81 Done · 3 In Progress · 10 Backlog · total 94.
+- Base limpa em 2026-11-16: pool Cognito sem usuários e `ProfilesTable`, `PurchasesTable`, `GarageTable` e `TrackingTable` vazias.
 
 Comandos de retomada:
 
@@ -37,7 +38,7 @@ Deploy (somente com autorização e orçamento declarado): `sam build` e `sam de
 
 ### #308 — Boleto
 
-- [ ] Validar em aparelho/web: `/financing` → `/boleto`, linha digitável e cópia/compartilhamento. O aviso de demonstração foi substituído por texto de app real ("Pague pelo app ou internet banking do seu banco até o vencimento.") em 2026-11-16.
+- [x] Validado em aparelho em 2026-11-16: `/financing` → `/boleto`, linha digitável e compartilhamento. O aviso de demonstração foi substituído por texto de app real ("Pague pelo app ou internet banking do seu banco até o vencimento.").
 - [ ] Conferir uma garagem antiga sem `boletoBarcode`: o backfill de leitura deve devolver 47 dígitos e habilitar o botão.
 
 ## 2. Transversal
@@ -51,7 +52,8 @@ Deploy (somente com autorização e orçamento declarado): `sam build` e `sam de
 
 - Dois perfis com o mesmo CPF (final `9899`) e a reserva `cpf#<cpf>` foram removidos da `ProfilesTable`.
 - Contas Cognito preservadas; os usuários voltarão ao `profile-setup`.
-- A compra `demo-56606` (`generated_demo`) permanece na `PurchasesTable` — decisão de 2026-11-16: remoção é cosmética, porque o item é recriado pelo seeding demo.
+- A compra `demo-56606` (`generated_demo`) foi avaliada em 2026-11-16 como cosmética (o seeding a recria) e depois removida no reset de ambiente.
+- Reset de ambiente em 2026-11-16: 2 usuários removidos do pool Cognito (`juliocajuregino@gmail.com`, `timeset13@outlook.com`), 2 itens de `ProfilesTable` (perfil `e4a88448-...` e reserva `cpf#41421269899`), 1 compra (`demo-56606`) e 2 itens de `GarageTable` (`a4f8f448-...`, `e4a88448-...`). `TrackingTable` já estava vazia. Contagens conferidas como zero depois da limpeza.
 
 ---
 
