@@ -1,60 +1,22 @@
 # Pendências
 
-Atualizado em 2026-11-16.
+Só o que falta. Itens concluídos saem daqui.
 
-## 0. Retomada rápida (outra máquina/sessão)
+## #295 — CPF único
 
-- Repo: `develop` @ `f9a19c3`; código deployado: `3b89c74` (sem deploy novo).
-- CI: **5/5** — Backend Lint, Backend Tests, Client Lint, Frontend Lint, Frontend Tests. Testes: **287 pytest** e **120 Jest**.
-- Cards **#295, #296 e #308**: `In Progress`, issues abertas. **Não mover para Done.**
-- Deploy: stack `toyotatech` em `UPDATE_COMPLETE`; concorrência **9/10**. Nenhuma credencial foi persistida no repo.
-- Board: Project 30 — 81 Done · 3 In Progress · 10 Backlog · total 94.
-- Base limpa em 2026-11-16: pool Cognito sem usuários e `ProfilesTable`, `PurchasesTable`, `GarageTable` e `TrackingTable` vazias.
+- [ ] Validar o rate limit do `PUT /profile` em produção (opcional; exige conta de teste com senha).
 
-Comandos de retomada:
+## #296 — Auto-login após OTP
 
-```bash
-git pull
-ruff check apps/server && ruff format --check apps/server
-.venv/bin/python -m pytest apps/server -q
-cd apps/mobile && npx tsc --noEmit && npm run check && npm test
-```
+- [ ] Em aparelho, contra Cognito real: cadastro → OTP → auto-login; falha 429 exibe `retryAfter` e o botão "Ir para login".
+- [ ] Sessão persiste ao reabrir o app e o guard leva a conta nova ao `profile-setup`.
 
-Deploy (somente com autorização e orçamento declarado): `sam build` e `sam deploy` em `apps/server`.
+## #308 — Boleto
 
-## 1. Pendências por card
+- [ ] Garagem sem `boletoBarcode`: o backfill de leitura devolve 47 dígitos e habilita o botão. A base está vazia desde 2026-11-16, então é preciso criar o caso antes.
 
-### #295 — CPF único
+## Transversal
 
-- [x] Compra `demo-56606` (`generated_demo`): remoção concluída como **cosmética**. `resolver.should_re_resolve` devolve `True` para `purchaseId` com prefixo `demo-`, e `purchases.seed_for_profile` regrava o mesmo item no próximo `GET /garage/current`. Remoção definitiva exige parar o seeding demo (novo escopo, precisa de card).
-- [x] TTL/limpeza de reservas `cpf#<cpf>`: **não implementar agora**. TTL nativa é rejeitada — item expirado desaparece enquanto o perfil ainda detém o CPF, reabrindo a duplicidade; não há heartbeat de perfil para renovar `expiresAt`. `TransactWriteItems` é inviável (o `moto` aceita valores nativos no `Item`, o botocore/AWS real exige `AttributeValue`). Gatilho para agir: 409 “CPF já vinculado” para CPF **sem** perfil correspondente. Remédio manual: `scan` em `ProfilesTable` com `begins_with(userId,'cpf#')` e `delete_item` condicional em `ownerUserId` e `createdAt`.
-- [x] Auditoria de 2026-11-16: a reserva `cpf#41421269899` **existe e é legítima** — pertence ao perfil `e4a88448-a0f1-70c8-29cd-65a3852b3d16`, mesmo CPF. Não é órfã; apagá-la reabriria a duplicidade.
-- [ ] Opcional: validar o rate limit de `PUT /profile` em produção com uma chamada real.
-
-### #296 — Auto-login após OTP
-
-- [ ] Validar em aparelho/web contra Cognito real: cadastro → OTP → auto-login; falha 429 → mensagem e botão “Ir para login”.
-- [ ] Confirmar que a sessão persiste e que o guard leva conta nova ao `profile-setup`.
-
-### #308 — Boleto
-
-- [x] Validado em aparelho em 2026-11-16: `/financing` → `/boleto`, linha digitável e compartilhamento. O aviso de demonstração foi substituído por texto de app real ("Pague pelo app ou internet banking do seu banco até o vencimento.").
-- [ ] Conferir uma garagem antiga sem `boletoBarcode`: o backfill de leitura deve devolver 47 dígitos e habilitar o botão.
-
-## 2. Transversal
-
-- [x] Required status check do `develop` (#317): os jobs foram nomeados (`Backend Lint`, `Backend Tests`, `Client Lint`, `Frontend Lint`, `Frontend Tests`) e a proteção passou a exigir os cinco contextos com `strict=true`. Antes os check runs eram `lint` ×3 e `test` ×2, ambíguos.
-- [ ] Merge de `main` (#280) e poda das branches antigas.
-- [ ] Login Google (#288): bloqueado por insumo externo (Google Cloud/OAuth Client ID/Secret).
-- [ ] Wave 2 (#303–#307, #310–#312, #313): fora do escopo atual; permanece no Backlog.
-
-## 3. Limpeza já executada
-
-- Dois perfis com o mesmo CPF (final `9899`) e a reserva `cpf#<cpf>` foram removidos da `ProfilesTable`.
-- Contas Cognito preservadas; os usuários voltarão ao `profile-setup`.
-- A compra `demo-56606` (`generated_demo`) foi avaliada em 2026-11-16 como cosmética (o seeding a recria) e depois removida no reset de ambiente.
-- Reset de ambiente em 2026-11-16: 2 usuários removidos do pool Cognito (`juliocajuregino@gmail.com`, `timeset13@outlook.com`), 2 itens de `ProfilesTable` (perfil `e4a88448-...` e reserva `cpf#41421269899`), 1 compra (`demo-56606`) e 2 itens de `GarageTable` (`a4f8f448-...`, `e4a88448-...`). `TrackingTable` já estava vazia. Contagens conferidas como zero depois da limpeza.
-
----
-
-Detalhes e contexto em [Handoff](https://github.com/SENAI-TOYOTA/ToyotaTech/wiki/Handoff).
+- [ ] Merge de `main` (#280) e poda das branches antigas — decisão do dono; `main` não é tocada até ordem.
+- [ ] Login Google (#288) — bloqueado por insumo externo (Google Cloud / OAuth Client ID e Secret).
+- [ ] Wave 2 (#303–#307, #310–#312, #313) — Backlog.
