@@ -42,7 +42,7 @@ Deploy (somente com autorização e orçamento declarado): `sam build` e `sam de
 
 ## 2. Transversal
 
-- [ ] Required status check do `develop`: o contexto `lint` **existe**, mas é ambíguo — três workflows usam job `lint` (backend/client/frontend) e dois usam `test`, então o check é o mesmo nome repetido. Renomear os jobs (`name:` em cada um) exige push no `develop` e `PATCH` da proteção. **Adiado**: com `strict=true`, um PATCH que falhe (403 sem admin) trava a branch. Antes de qualquer push, confirmar `"admin": true` em `gh api repos/SENAI-TOYOTA/ToyotaTech --jq .permissions`.
+- [x] Required status check do `develop` (#317): os jobs foram nomeados (`Backend Lint`, `Backend Tests`, `Client Lint`, `Frontend Lint`, `Frontend Tests`) e a proteção passou a exigir os cinco contextos com `strict=true`. Antes os check runs eram `lint` ×3 e `test` ×2, ambíguos.
 - [ ] Merge de `main` (#280) e poda das branches antigas.
 - [ ] Login Google (#288): bloqueado por insumo externo (Google Cloud/OAuth Client ID/Secret).
 - [ ] Wave 2 (#303–#307, #310–#312, #313): fora do escopo atual; permanece no Backlog.
