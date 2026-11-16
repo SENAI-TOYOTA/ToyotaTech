@@ -1,6 +1,6 @@
 # Pendências
 
-Atualizado em 2026-11-13.
+Atualizado em 2026-11-16.
 
 ## 0. Retomada rápida (outra máquina/sessão)
 
@@ -25,8 +25,9 @@ Deploy (somente com autorização e orçamento declarado): `sam build` e `sam de
 
 ### #295 — CPF único
 
-- [ ] Opcional: apagar a compra `demo-56606` (`generated_demo`), último resíduo do CPF duplicado; os dois perfis e a reserva já foram removidos.
-- [ ] Definir TTL/rotina de limpeza para reservas `cpf#<cpf>` órfãs (sem TTL hoje).
+- [x] Compra `demo-56606` (`generated_demo`): remoção concluída como **cosmética**. `resolver.should_re_resolve` devolve `True` para `purchaseId` com prefixo `demo-`, e `purchases.seed_for_profile` regrava o mesmo item no próximo `GET /garage/current`. Remoção definitiva exige parar o seeding demo (novo escopo, precisa de card).
+- [x] TTL/limpeza de reservas `cpf#<cpf>`: **não implementar agora**. TTL nativa é rejeitada — item expirado desaparece enquanto o perfil ainda detém o CPF, reabrindo a duplicidade; não há heartbeat de perfil para renovar `expiresAt`. `TransactWriteItems` é inviável (o `moto` aceita valores nativos no `Item`, o botocore/AWS real exige `AttributeValue`). Gatilho para agir: 409 “CPF já vinculado” para CPF **sem** perfil correspondente. Remédio manual: `scan` em `ProfilesTable` com `begins_with(userId,'cpf#')` e `delete_item` condicional em `ownerUserId` e `createdAt`.
+- [x] Auditoria de 2026-11-16: a reserva `cpf#41421269899` **existe e é legítima** — pertence ao perfil `e4a88448-a0f1-70c8-29cd-65a3852b3d16`, mesmo CPF. Não é órfã; apagá-la reabriria a duplicidade.
 - [ ] Opcional: validar o rate limit de `PUT /profile` em produção com uma chamada real.
 
 ### #296 — Auto-login após OTP
@@ -41,7 +42,7 @@ Deploy (somente com autorização e orçamento declarado): `sam build` e `sam de
 
 ## 2. Transversal
 
-- [ ] Revisar a required status check `lint` do `develop` (regra órfã; os 5 workflows reais passam).
+- [ ] Required status check do `develop`: o contexto `lint` **existe**, mas é ambíguo — três workflows usam job `lint` (backend/client/frontend) e dois usam `test`, então o check é o mesmo nome repetido. Renomear os jobs (`name:` em cada um) exige push no `develop` e `PATCH` da proteção. **Adiado**: com `strict=true`, um PATCH que falhe (403 sem admin) trava a branch. Antes de qualquer push, confirmar `"admin": true` em `gh api repos/SENAI-TOYOTA/ToyotaTech --jq .permissions`.
 - [ ] Merge de `main` (#280) e poda das branches antigas.
 - [ ] Login Google (#288): bloqueado por insumo externo (Google Cloud/OAuth Client ID/Secret).
 - [ ] Wave 2 (#303–#307, #310–#312, #313): fora do escopo atual; permanece no Backlog.
@@ -50,7 +51,7 @@ Deploy (somente com autorização e orçamento declarado): `sam build` e `sam de
 
 - Dois perfis com o mesmo CPF (final `9899`) e a reserva `cpf#<cpf>` foram removidos da `ProfilesTable`.
 - Contas Cognito preservadas; os usuários voltarão ao `profile-setup`.
-- A compra `demo-56606` (`generated_demo`) permanece na `PurchasesTable`.
+- A compra `demo-56606` (`generated_demo`) permanece na `PurchasesTable` — decisão de 2026-11-16: remoção é cosmética, porque o item é recriado pelo seeding demo.
 
 ---
 
