@@ -37,7 +37,7 @@ Deploy (somente com autorização e orçamento declarado): `sam build` e `sam de
 
 ### #308 — Boleto
 
-- [ ] Validar em aparelho/web: `/financing` → `/boleto`, linha digitável, cópia/compartilhamento e aviso de demonstração.
+- [ ] Validar em aparelho/web: `/financing` → `/boleto`, linha digitável e cópia/compartilhamento. O aviso de demonstração foi substituído por texto de app real ("Pague pelo app ou internet banking do seu banco até o vencimento.") em 2026-11-16.
 - [ ] Conferir uma garagem antiga sem `boletoBarcode`: o backfill de leitura deve devolver 47 dígitos e habilitar o botão.
 
 ## 2. Transversal
