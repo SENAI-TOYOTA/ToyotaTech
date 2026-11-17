@@ -1,16 +1,18 @@
 import * as AuthSession from "expo-auth-session";
 import { Checkbox } from "expo-checkbox";
 import Constants, { ExecutionEnvironment } from "expo-constants";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
+import FormMessage from "@/components/ui/FormMessage";
 import SocialButton from "@/components/ui/SocialButton";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiErrorMessage } from "@/services/api";
+import { t } from "@/i18n";
+import { ApiError } from "@/services/api";
 import { checkEmail } from "@/services/auth";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
@@ -34,9 +36,8 @@ function useCognitoDiscovery(issuer?: string) {
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { email: emailFromParams } = useLocalSearchParams<{ email?: string }>();
-  const { signInWithTokens } = useAuth();
-  const [email, setEmail] = useState(emailFromParams ?? "");
+  const { signInWithTokens, signInDev } = useAuth();
+  const [email, setEmail] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -101,7 +102,7 @@ export default function LoginScreen() {
 
   const handleContinuePress = async () => {
     if (!canContinue) {
-      setFormError("Informe um email válido e aceite os termos.");
+      setFormError("Enter a valid email and accept the terms.");
       return;
     }
 
@@ -114,11 +115,6 @@ export default function LoginScreen() {
     try {
       const checkResult = await checkEmail(normalizedEmail);
 
-      if (checkResult.isFederated) {
-        setFormError("Esta conta foi criada com Google. Entre com Google.");
-        return;
-      }
-
       router.push({
         pathname:
           checkResult.nextRoute === "/login"
@@ -127,12 +123,27 @@ export default function LoginScreen() {
         params: { email: normalizedEmail },
       });
     } catch (error) {
-      setFormError(
-        apiErrorMessage(
-          error,
-          "Não foi possível validar o email. Tente novamente."
-        )
-      );
+      if (error instanceof ApiError) {
+        setFormError(error.message);
+      } else if (error instanceof Error) {
+        setFormError(error.message);
+      } else {
+        setFormError("Unable to validate email. Try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSkipLogin = async () => {
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      await signInDev();
+      router.replace("/home");
+    } catch (error) {
+      console.error("[Index] Skip sign-in failed:", error);
+      setFormError("Unable to enter demo mode.");
     } finally {
       setIsSubmitting(false);
     }
@@ -144,11 +155,11 @@ export default function LoginScreen() {
         return;
       }
       if (!discovery || !cognitoClientId) {
-        setFormError("Login com Google não configurado.");
+        setFormError("Google sign-in not configured.");
         return;
       }
       if (!request?.codeVerifier) {
-        setFormError("Não foi possível concluir o login com Google.");
+        setFormError("Unable to complete Google sign-in.");
         return;
       }
       setIsGoogleLoading(true);
@@ -181,7 +192,7 @@ export default function LoginScreen() {
         });
       } catch (error) {
         console.error("Google sign-in failed:", error);
-        setFormError("Não foi possível concluir o login com Google.");
+        setFormError("Unable to complete Google sign-in.");
       } finally {
         setIsGoogleLoading(false);
       }
@@ -199,11 +210,11 @@ export default function LoginScreen() {
 
   const handleGooglePress = async () => {
     if (!cognitoDomain || !cognitoClientId) {
-      setFormError("Login com Google não configurado.");
+      setFormError("Google sign-in not configured.");
       return;
     }
     if (!discovery || !request) {
-      setFormError("Login com Google ainda não está disponível.");
+      setFormError("Google sign-in not ready yet.");
       return;
     }
     setFormError(null);
@@ -215,32 +226,31 @@ export default function LoginScreen() {
       }
     } catch (error) {
       console.error("Failed to open Google sign-in:", error);
-      setFormError("Não foi possível abrir o login com Google.");
+      setFormError("Unable to open Google sign-in.");
       setIsGoogleLoading(false);
     }
   };
 
   return (
     <AuthScreenLayout
-      contentSectionStyle={styles.contentSection}
-      footerTextColor={colors.textSecondary}
+      title="Welcome"
+      subtitle="Sign in to follow your Toyota from order to delivery."
       bottomContent={
-        <View style={styles.bottomContentContainer}>
+        <View style={{ gap: spacing.sm }}>
           <Button
-            title={isSubmitting ? "Verificando..." : "Prosseguir"}
-            variant="primary"
+            title={isSubmitting ? "Verifying..." : "Continue"}
+            loading={isSubmitting}
             icon={
-              <ArrowRight
-                size={36}
-                strokeWidth={3}
-                color={colors.white}
-                strokeLinecap="butt"
-                strokeLinejoin="round"
-              />
+              <ArrowRight size={20} strokeWidth={2.4} color={colors.white} />
             }
-            style={styles.continueButton}
             onPress={handleContinuePress}
             disabled={!canContinue}
+          />
+          <Button
+            title={t("Skip sign in (Demo Mode)")}
+            variant="outline"
+            onPress={handleSkipLogin}
+            disabled={isSubmitting}
           />
         </View>
       }
@@ -248,85 +258,95 @@ export default function LoginScreen() {
       <View style={styles.formSection}>
         <SocialButton
           icon={googleIcon}
-          onPress={isGoogleLoading ? undefined : handleGooglePress}
+          label="Continue with Google"
+          loading={isGoogleLoading}
+          onPress={handleGooglePress}
         />
+
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>{t("or use your email")}</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
         <TextInput
-          placeholder="ENDEREÇO DE EMAIL *"
+          label="Email address"
+          placeholder="name@example.com"
           autoCapitalize="none"
+          autoComplete="email"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
+          onSubmitEditing={handleContinuePress}
+          returnKeyType="next"
         />
-        <View style={styles.termsContainer}>
+
+        <Pressable
+          style={styles.termsContainer}
+          onPress={() => setAcceptedTerms((current) => !current)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: acceptedTerms }}
+        >
           <Checkbox
             value={acceptedTerms}
-            onValueChange={setAcceptedTerms}
             style={styles.checkbox}
-            color={acceptedTerms ? colors.black : undefined}
+            color={acceptedTerms ? colors.primary : colors.borderStrong}
           />
           <Text style={styles.termsText}>
-            Ao clicar em prosseguir, você concorda com os{" "}
-            <Text style={styles.termsLink}>Termos e Condições ToyotaTech</Text>.
+            {t("I have read and agree to the")}{" "}
+            <Text style={styles.termsLink}>
+              {t("ToyotaTech Terms and Conditions")}
+            </Text>
+            .
           </Text>
-        </View>
-        {formError ? (
-          <Text style={styles.formErrorText}>{formError}</Text>
-        ) : null}
-        {isGoogleLoading ? (
-          <Text style={styles.formInfoText}>Conectando ao Google...</Text>
-        ) : null}
+        </Pressable>
+
+        <FormMessage message={formError} />
       </View>
     </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  contentSection: {
-    marginTop: spacing.xl + spacing.xl + spacing.sm,
-  },
   formSection: {
-    gap: spacing.lg,
+    gap: spacing.md + 4,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md - 4,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
   },
   termsContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: spacing.md,
-    marginTop: spacing.sm,
+    gap: spacing.md - 4,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 2,
-    marginTop: 2,
-    borderColor: colors.black,
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    marginTop: 1,
   },
   termsText: {
-    fontFamily: fonts.regular,
-    fontSize: fontSize.md,
-    color: colors.textPrimary,
-    lineHeight: 22,
     flex: 1,
-  },
-  termsLink: {
-    textDecorationLine: "underline",
-    fontFamily: fonts.medium,
-  },
-  formErrorText: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.medium,
-    fontSize: fontSize.sm,
-    color: colors.primary,
-  },
-  formInfoText: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.medium,
-    fontSize: fontSize.sm,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm + 1,
+    lineHeight: 21,
     color: colors.textSecondary,
   },
-  bottomContentContainer: {
-    width: "100%",
-  },
-  continueButton: {
-    width: "100%",
+  termsLink: {
+    fontFamily: fonts.semiBold,
+    color: colors.textPrimary,
+    textDecorationLine: "underline",
   },
 });

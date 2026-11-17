@@ -45,7 +45,6 @@ export interface GarageRecall {
 
 export interface GarageData {
   userId: string;
-  chassi?: string;
   order: GarageOrder;
   vehicle: GarageVehicle;
   financing: GarageFinancing;

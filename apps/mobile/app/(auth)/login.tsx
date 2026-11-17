@@ -1,25 +1,26 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowRight, Eye } from "lucide-react-native";
+import { ArrowRight } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
+import FormMessage from "@/components/ui/FormMessage";
+import PasswordInput from "@/components/ui/PasswordInput";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { ApiError, apiErrorMessage } from "@/services/api";
+import { t } from "@/i18n";
+import { ApiError } from "@/services/api";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { email: emailFromParams } = useLocalSearchParams<{ email?: string }>();
-  const { signIn } = useAuth();
+  const { signIn, signInDev } = useAuth();
   const [email, setEmail] = useState(emailFromParams ?? "");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [isFederatedError, setIsFederatedError] = useState(false);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const canSubmit =
@@ -28,13 +29,12 @@ export default function LoginScreen() {
   const handleLoginPress = async () => {
     if (!canSubmit) {
       setFormError(
-        "Informe um email válido e uma senha com pelo menos 8 caracteres."
+        "Enter a valid email and a password with at least 8 characters."
       );
       return;
     }
 
     setFormError(null);
-    setIsFederatedError(false);
     if (Platform.OS === "web" && typeof document !== "undefined") {
       (document.activeElement as HTMLElement | null)?.blur();
     }
@@ -45,162 +45,148 @@ export default function LoginScreen() {
       router.replace("/home");
     } catch (error) {
       console.error("[Login] Sign-in failed:", error);
-      if (error instanceof ApiError && error.status === 403) {
-        router.push({
-          pathname: "/(auth)/verify-email",
-          params: { email: normalizedEmail },
-        });
-        return;
+      if (error instanceof ApiError) {
+        if (error.status === 403) {
+          router.push({
+            pathname: "/(auth)/verify-email",
+            params: { email: normalizedEmail },
+          });
+          return;
+        }
+        setFormError(error.message);
+      } else if (error instanceof Error) {
+        setFormError(error.message);
+      } else {
+        setFormError("Unable to sign in. Try again.");
       }
-      setIsFederatedError(
-        error instanceof ApiError && error.code === "FEDERATED_USER_NO_PASSWORD"
-      );
-      setFormError(
-        apiErrorMessage(error, "Não foi possível entrar. Tente novamente.")
-      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSkipLogin = async () => {
+    setIsSubmitting(true);
+    setFormError(null);
+    try {
+      await signInDev();
+      router.replace("/home");
+    } catch (error) {
+      console.error("[Login] Skip sign-in failed:", error);
+      setFormError("Unable to enter demo mode.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <AuthScreenLayout>
-      <View style={styles.formContainer}>
+    <AuthScreenLayout
+      showBack
+      title="Sign in"
+      subtitle="Enter your password to access your ToyotaTech account."
+    >
+      <View style={styles.form}>
         <TextInput
-          placeholder="ENDEREÇO DE EMAIL *"
+          label="Email address"
+          placeholder="name@example.com"
           autoCapitalize="none"
+          autoComplete="email"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
         />
 
-        <TextInput
-          placeholder="SENHA *"
-          secureTextEntry={!showPassword}
+        <PasswordInput
+          label="Password"
+          placeholder="Your password"
+          autoComplete="current-password"
           value={password}
           onChangeText={setPassword}
-          containerStyle={styles.passwordInputContainer}
-          style={styles.passwordInputText}
+          onSubmitEditing={handleLoginPress}
+          returnKeyType="go"
         />
-        <Pressable
-          style={styles.visibilityRow}
-          onPress={() => setShowPassword((current) => !current)}
-        >
-          <Eye size={18} strokeWidth={1.8} color={colors.black} />
-          <Text style={styles.visibilityText}>
-            {showPassword ? "OCULTAR" : "EXIBIR"}
-          </Text>
-        </Pressable>
+
+        <FormMessage message={formError} />
 
         <Button
-          title={isSubmitting ? "Entrando..." : "Fazer login"}
-          variant="primary"
-          icon={
-            <ArrowRight
-              size={36}
-              strokeWidth={3}
-              color={colors.white}
-              strokeLinecap="butt"
-              strokeLinejoin="round"
-            />
-          }
-          style={styles.loginButton}
+          title={isSubmitting ? "Signing in..." : "Sign in"}
+          loading={isSubmitting}
+          icon={<ArrowRight size={20} strokeWidth={2.4} color={colors.white} />}
+          style={styles.submit}
           onPress={handleLoginPress}
           disabled={!canSubmit}
         />
 
+        <Button
+          title={t("Skip sign in (Demo Mode)")}
+          variant="outline"
+          onPress={handleSkipLogin}
+          disabled={isSubmitting}
+        />
+
         <Text style={styles.termsText}>
-          Ao clicar em fazer login, você concorda com os{" "}
-          <Text style={styles.termsLink}>Termos e Condições ToyotaTech</Text>.
+          {t("By signing in, you agree to the")}{" "}
+          <Text style={styles.termsLink}>
+            {t("ToyotaTech Terms and Conditions")}
+          </Text>
+          .
         </Text>
 
-        {formError ? (
-          <Text style={styles.formErrorText}>{formError}</Text>
-        ) : null}
-
-        {isFederatedError ? (
+        <View style={styles.switchRow}>
+          <Text style={styles.switchText}>{t("New to ToyotaTech?")}</Text>
           <Pressable
+            accessibilityRole="link"
+            hitSlop={6}
             onPress={() => {
               router.push({
-                pathname: "/",
+                pathname: "/(auth)/register",
                 params: { email: normalizedEmail },
               });
             }}
           >
-            <Text style={styles.forgotPasswordText}>ENTRAR COM GOOGLE</Text>
+            <Text style={styles.switchLink}>{t("Create account")}</Text>
           </Pressable>
-        ) : null}
-
-        <Pressable
-          onPress={() => {
-            router.push({
-              pathname: "/(auth)/register",
-              params: { email: normalizedEmail },
-            });
-          }}
-        >
-          <Text style={styles.forgotPasswordText}>
-            NÃO TEM CONTA? CRIAR CONTA
-          </Text>
-        </Pressable>
+        </View>
       </View>
     </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  formContainer: {
-    width: "100%",
-    marginTop: 116,
+  form: {
+    gap: spacing.md + 4,
   },
-  visibilityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-end",
-    gap: 6,
+  submit: {
     marginTop: spacing.xs,
   },
-  visibilityText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 13,
-    color: colors.black,
-  },
-  passwordInputContainer: {
-    width: "100%",
-    height: 50,
-    paddingVertical: 0,
-    paddingHorizontal: 12,
-    marginTop: spacing.md,
-  },
-  passwordInputText: {
-    fontFamily: fonts.regular,
-    fontSize: 18,
-  },
-  loginButton: {
-    width: "100%",
-    marginTop: 16,
-  },
   termsText: {
-    marginTop: 22,
     fontFamily: fonts.regular,
-    fontSize: fontSize.md,
-    lineHeight: 26,
-    color: colors.textPrimary,
+    fontSize: fontSize.sm,
+    lineHeight: 20,
+    color: colors.textSecondary,
+    textAlign: "center",
   },
   termsLink: {
+    fontFamily: fonts.semiBold,
+    color: colors.textPrimary,
     textDecorationLine: "underline",
   },
-  forgotPasswordText: {
-    marginTop: 38,
+  switchRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  switchText: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  switchLink: {
     fontFamily: fonts.semiBold,
     fontSize: fontSize.md,
-    textDecorationLine: "underline",
-    color: colors.textPrimary,
-  },
-  formErrorText: {
-    marginTop: spacing.md,
-    fontFamily: fonts.medium,
-    fontSize: fontSize.sm,
     color: colors.primary,
   },
 });

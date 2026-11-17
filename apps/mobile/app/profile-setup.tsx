@@ -1,16 +1,23 @@
 import { useRouter } from "expo-router";
-import { ArrowRight, Eye } from "lucide-react-native";
+import { ArrowRight, KeyRound } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import Logo from "@/components/Logo";
 import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import FormMessage from "@/components/ui/FormMessage";
+import PasswordInput from "@/components/ui/PasswordInput";
+import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileForm } from "@/hooks/useProfileForm";
+import { t } from "@/i18n";
 import { validatePassword } from "@/profileValidation";
-import { apiErrorMessage } from "@/services/api";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { ApiError } from "@/services/api";
+import { colors, fonts, fontSize, radius, spacing } from "@/theme";
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
@@ -32,7 +39,6 @@ export default function ProfileSetupScreen() {
     formatCpf,
   } = useProfileForm();
   const [password, setPasswordValue] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const handleSave = async () => {
@@ -51,12 +57,11 @@ export default function ProfileSetupScreen() {
         await setPassword(password);
         setPasswordSuccess(true);
       } catch (passwordError) {
-        setFormError(
-          apiErrorMessage(
-            passwordError,
-            "Não foi possível definir a senha. Tente novamente."
-          )
-        );
+        if (passwordError instanceof ApiError) {
+          setFormError(passwordError.message);
+        } else {
+          setFormError("Unable to set password. Try again.");
+        }
         return;
       }
     }
@@ -68,200 +73,128 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
+    <SafeAreaView style={styles.safeArea}>
+      <Screen maxWidth={560} showFooter={false}>
+        <Logo size={fontSize.xl + 2} />
         <ScreenSectionHeader
-          title="Complete seu perfil"
-          subtitle="Informe seus dados para continuar"
-          style={styles.sectionHeader}
+          eyebrow="ONE LAST STEP"
+          title="Complete your profile"
+          subtitle="We use this information to find your purchase and link it to your account."
         />
 
-        <View style={styles.formContainer}>
-          <TextInput
-            placeholder="Nome completo"
-            value={fullName}
-            onChangeText={setFullName}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          <TextInput
-            placeholder="Data de nascimento (DD/MM/AAAA)"
-            value={birthDate}
-            onChangeText={(text) => setBirthDate(formatBirthDate(text))}
-            keyboardType="numeric"
-            maxLength={10}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          <TextInput
-            placeholder="CPF"
-            value={cpf}
-            onChangeText={(text) => setCpf(formatCpf(text))}
-            keyboardType="numeric"
-            maxLength={14}
-            editable={!isCpfLocked}
-            containerStyle={styles.inputContainer}
-            style={styles.inputText}
-          />
-          {isFederatedUser ? (
-            <View style={styles.passwordSection}>
-              <Text style={styles.passwordSectionTitle}>
-                CRIAR SENHA (OPCIONAL)
-              </Text>
-              <Text style={styles.passwordSectionSubtitle}>
-                Defina uma senha para entrar com email e senha também, sem usar
-                o botão do Google.
-              </Text>
-
-              <TextInput
-                placeholder="NOVA SENHA"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPasswordValue}
-                containerStyle={styles.passwordInputContainer}
-                style={styles.inputText}
-              />
-              <Pressable
-                style={styles.visibilityRow}
-                onPress={() => setShowPassword((current) => !current)}
-              >
-                <Eye size={18} strokeWidth={1.8} color={colors.black} />
-                <Text style={styles.visibilityText}>
-                  {showPassword ? "OCULTAR" : "EXIBIR"}
-                </Text>
-              </Pressable>
-
-              <Text style={styles.passwordHintText}>
-                Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
-                minúscula e um número.
-              </Text>
-
-              {passwordSuccess ? (
-                <Text style={styles.passwordSuccessText}>
-                  Senha definida com sucesso!
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-
-          {formError ? (
-            <Text style={styles.formErrorText}>{formError}</Text>
-          ) : null}
-        </View>
-      </ScrollView>
-
-      <View style={styles.saveButtonContainer}>
-        <Button
-          title={isSaving ? "Salvando..." : "Salvar e continuar"}
-          style={styles.saveButton}
-          icon={
-            <ArrowRight
-              size={36}
-              strokeWidth={3}
-              color={colors.white}
-              strokeLinecap="butt"
-              strokeLinejoin="round"
+        <Card>
+          <View style={styles.form}>
+            <TextInput
+              label="Full name"
+              placeholder="Your full name"
+              autoComplete="name"
+              value={fullName}
+              onChangeText={setFullName}
             />
-          }
-          disabled={isSaving || isLoadingProfile || !token}
+            <TextInput
+              label="Birth date"
+              placeholder="DD/MM/YYYY"
+              value={birthDate}
+              onChangeText={(text) => setBirthDate(formatBirthDate(text))}
+              keyboardType="numeric"
+              maxLength={10}
+            />
+            <TextInput
+              label="CPF"
+              placeholder="000.000.000-00"
+              value={cpf}
+              onChangeText={(text) => setCpf(formatCpf(text))}
+              keyboardType="numeric"
+              maxLength={14}
+              editable={!isCpfLocked}
+            />
+          </View>
+        </Card>
+
+        {isFederatedUser ? (
+          <Card>
+            <View style={styles.passwordHeader}>
+              <View style={styles.passwordIcon}>
+                <KeyRound size={20} strokeWidth={1.8} color={colors.primary} />
+              </View>
+              <View style={styles.passwordHeaderText}>
+                <Text style={styles.passwordTitle}>
+                  {t("Create a password (optional)")}
+                </Text>
+                <Text style={styles.passwordSubtitle}>
+                  {t(
+                    "Sign in with email and password too, without using the Google button."
+                  )}
+                </Text>
+              </View>
+            </View>
+            <PasswordInput
+              label="New password"
+              placeholder="Create a password"
+              autoComplete="new-password"
+              value={password}
+              onChangeText={setPasswordValue}
+              hint="At least 8 characters with one uppercase, one lowercase and one number."
+            />
+            <FormMessage
+              message={passwordSuccess ? "Password set successfully!" : null}
+              tone="success"
+              style={styles.passwordMessage}
+            />
+          </Card>
+        ) : null}
+
+        <FormMessage message={formError} />
+
+        <Button
+          title={isSaving ? "Saving..." : "Save and continue"}
+          loading={isSaving}
+          icon={<ArrowRight size={20} strokeWidth={2.4} color={colors.white} />}
+          disabled={isLoadingProfile || !token}
           onPress={handleSave}
         />
-      </View>
-    </View>
+      </Screen>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  contentContainer: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg + 3,
-    paddingBottom: spacing.xxl + spacing.xxl + spacing.xl,
-  },
-  sectionHeader: {
-    marginTop: spacing.lg,
-  },
-  formContainer: {
-    marginTop: spacing.xl + spacing.sm + 2,
+  form: {
     gap: spacing.md,
   },
-  inputContainer: {
-    height: 50,
-    paddingVertical: 0,
-    paddingHorizontal: spacing.md - 2,
-    borderRadius: 0,
-    backgroundColor: colors.white,
-  },
-  inputText: {
-    fontFamily: fonts.regular,
-    fontSize: fontSize.md,
-    color: colors.textPrimary,
-  },
-  passwordSection: {
-    marginTop: spacing.lg,
-    gap: spacing.sm,
-  },
-  passwordSectionTitle: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.sm,
-    color: colors.black,
-    letterSpacing: 0.5,
-  },
-  passwordSectionSubtitle: {
-    fontFamily: fonts.regular,
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  passwordInputContainer: {
-    height: 50,
-    paddingVertical: 0,
-    paddingHorizontal: spacing.md - 2,
-    borderRadius: 0,
-    backgroundColor: colors.white,
-  },
-  visibilityRow: {
+  passwordHeader: {
     flexDirection: "row",
+    gap: spacing.md - 4,
+    marginBottom: spacing.md,
+  },
+  passwordIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
     alignItems: "center",
-    alignSelf: "flex-end",
-    gap: 6,
+    justifyContent: "center",
   },
-  visibilityText: {
+  passwordHeaderText: {
+    flex: 1,
+  },
+  passwordTitle: {
     fontFamily: fonts.semiBold,
-    fontSize: 13,
-    color: colors.black,
+    fontSize: fontSize.md + 1,
+    color: colors.textPrimary,
   },
-  passwordHintText: {
+  passwordSubtitle: {
+    marginTop: 2,
     fontFamily: fonts.regular,
     fontSize: fontSize.sm,
     lineHeight: 20,
     color: colors.textSecondary,
   },
-  passwordSuccessText: {
-    fontFamily: fonts.medium,
-    fontSize: fontSize.sm,
-    color: colors.textPrimary,
-  },
-  formErrorText: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.medium,
-    fontSize: fontSize.sm,
-    color: colors.primary,
-  },
-  saveButtonContainer: {
-    position: "absolute",
-    left: spacing.lg + 3,
-    right: spacing.lg + 3,
-    bottom: spacing.xxl + spacing.md,
-    zIndex: 1,
-  },
-  saveButton: {
-    width: "100%",
+  passwordMessage: {
+    marginTop: spacing.md - 4,
   },
 });

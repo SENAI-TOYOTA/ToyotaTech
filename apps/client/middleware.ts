@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { SESSION_COOKIE } from "@/lib/auth/session";
-import { TOKEN_COOKIE_KEY } from "@/store/api";
+import { SESSION_COOKIE, TOKEN_COOKIE_KEY } from "@/lib/auth/session";
 
 /**
  * Middleware de proteção de rotas do Portal do Cliente (`/cliente/*`)

@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { validateBirthDate, validateCpf } from "@/profileValidation";
+import { validateBirthDate } from "@/profileValidation";
 import { ApiError } from "@/services/api";
 import { resolveGarage } from "@/services/garage";
 import { fetchProfile, updateProfile } from "@/services/profile";
@@ -55,7 +55,7 @@ export function useProfileForm() {
         } else if (error instanceof ApiError) {
           setFormError(error.message);
         } else {
-          setFormError("Não foi possível carregar o perfil.");
+          setFormError("Unable to load profile.");
         }
       } finally {
         if (isActive) setIsLoadingProfile(false);
@@ -69,12 +69,12 @@ export function useProfileForm() {
 
   const saveProfile = async () => {
     if (!token) {
-      setFormError("Sessão inválida. Entre novamente.");
+      setFormError("Invalid session. Sign in again.");
       return false;
     }
     const normalizedCpf = normalizeCpf(cpf);
     if (!fullName.trim()) {
-      setFormError("Informe seu nome completo.");
+      setFormError("Enter your full name.");
       return false;
     }
     const birthDateError = validateBirthDate(birthDate.trim());
@@ -82,12 +82,9 @@ export function useProfileForm() {
       setFormError(birthDateError);
       return false;
     }
-    if (!isCpfLocked) {
-      const cpfError = validateCpf(normalizedCpf);
-      if (cpfError) {
-        setFormError(cpfError);
-        return false;
-      }
+    if (!isCpfLocked && normalizedCpf.length !== 11) {
+      setFormError("Enter a valid CPF.");
+      return false;
     }
     setIsSaving(true);
     setFormError(null);
@@ -104,7 +101,7 @@ export function useProfileForm() {
       if (error instanceof ApiError) {
         setFormError(error.message);
       } else {
-        setFormError("Não foi possível salvar o perfil.");
+        setFormError("Unable to save profile.");
       }
       return false;
     } finally {

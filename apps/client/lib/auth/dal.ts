@@ -2,11 +2,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
-import { TOKEN_COOKIE_KEY } from "@/store/api";
-
 import {
   decodeSession,
   SESSION_COOKIE,
+  TOKEN_COOKIE_KEY,
   type SessionUser,
   type UserRole,
 } from "./session";

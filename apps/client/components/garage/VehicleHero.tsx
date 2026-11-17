@@ -1,16 +1,12 @@
 import { ArrowRight, Wallet } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
-import { buttonStyles, VehicleFallback } from "@/components/ui";
+import VehicleCanvas from "@/components/3d/VehicleCanvas";
+import { buttonStyles } from "@/components/ui";
 import type { GarageData } from "@/types/garage";
 
 function joinParts(parts: (string | undefined)[]) {
   return parts.filter(Boolean).join(" • ");
-}
-
-function canUseCorollaImage(model?: string) {
-  return Boolean(model && model.toLowerCase().includes("corolla"));
 }
 
 function Meta({
@@ -47,9 +43,9 @@ export interface VehicleHeroProps {
 export default function VehicleHero({ garage }: VehicleHeroProps) {
   const vehicle = garage?.vehicle;
   const model = vehicle?.model ?? "Seu Toyota";
-  const specs = joinParts([vehicle?.version, vehicle?.color]);
+  const colorLabel = vehicle?.color ?? "Branco Pérola";
+  const specs = joinParts([vehicle?.version, colorLabel]);
   const details = joinParts([vehicle?.year, vehicle?.engine]);
-  const showImage = canUseCorollaImage(vehicle?.model);
 
   const metaItems = [
     { label: "Ano / motor", value: details },
@@ -63,23 +59,14 @@ export default function VehicleHero({ garage }: VehicleHeroProps) {
       aria-label="Destaque do veículo"
       className="flex flex-col overflow-hidden rounded-3xl bg-ink shadow-raised wide:min-h-[360px] wide:flex-row-reverse"
     >
-      {/* Imagem / Mídia do carro */}
-      <div className="relative h-56 bg-ink-soft wide:h-auto wide:flex-[1.15]">
-        {showImage ? (
-          <Image
-            src="/img/corolla.webp"
-            alt={model}
-            fill
-            priority
-            sizes="(min-width: 960px) 520px, 100vw"
-            className="object-cover"
-          />
-        ) : (
-          <VehicleFallback model={vehicle?.model} variant="hero" />
-        )}
+      <div className="relative min-h-[260px] bg-ink-soft wide:min-h-[360px] wide:flex-[1.15]">
+        <VehicleCanvas
+          color={colorLabel}
+          height={340}
+          className="size-full rounded-none"
+        />
       </div>
 
-      {/* Informações do veículo */}
       <div className="flex flex-1 flex-col justify-center p-6 wide:p-10">
         <p className="text-xs font-bold tracking-[1.6px] text-primary uppercase">
           Seu veículo
@@ -139,4 +126,3 @@ export default function VehicleHero({ garage }: VehicleHeroProps) {
     </section>
   );
 }
-

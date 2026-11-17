@@ -12,9 +12,11 @@ import {
   MOCK_TRACKING_STEPS,
 } from "@/lib/mocks/garage";
 
+import { TOKEN_COOKIE_KEY } from "@/lib/auth/session";
+
 export const TOKEN_STORAGE_KEY = "toyotatech.token";
 export const LEGACY_SESSION_STORAGE_KEY = "toyotatech.auth.session";
-export const TOKEN_COOKIE_KEY = "toyotatech.token";
+export { TOKEN_COOKIE_KEY };
 
 interface RootStateWithAuth {
   auth?: {

@@ -1,37 +1,23 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { hasCompleteProfile } from "@/profileValidation";
 import { fetchGarageCurrent } from "@/services/garage";
 import { GarageData } from "@/types/garage";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function useGarage() {
-  const { token, user } = useAuth();
-  const profileReady = hasCompleteProfile(user);
+  const { token } = useAuth();
   const [garage, setGarage] = useState<GarageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
-
-  const reload = useCallback(() => {
-    setReloadKey((current) => current + 1);
-  }, []);
 
   useEffect(() => {
     let active = true;
 
     const loadGarage = async () => {
-      if (!token || !profileReady) {
-        if (active) {
-          setGarage(null);
-          setError(null);
-          setIsLoading(false);
-        }
+      if (!token) {
+        if (active) setIsLoading(false);
         return;
       }
-      if (active) {
-        setIsLoading(true);
-        setError(null);
-      }
+      setIsLoading(true);
       try {
         const result = await fetchGarageCurrent(token);
         if (active) {
@@ -39,12 +25,8 @@ export function useGarage() {
           setError(null);
         }
       } catch (err) {
-        if (__DEV__) {
-          console.warn("Failed to fetch garage", err);
-        }
-        if (active) {
-          setError("Não foi possível carregar os dados do veículo.");
-        }
+        if (active) setError("Failed to load garage");
+        console.warn("Failed to fetch garage", err);
       } finally {
         if (active) setIsLoading(false);
       }
@@ -54,7 +36,7 @@ export function useGarage() {
     return () => {
       active = false;
     };
-  }, [token, profileReady, reloadKey]);
+  }, [token]);
 
-  return { garage, isLoading, error, reload };
+  return { garage, isLoading, error };
 }

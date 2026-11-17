@@ -37,6 +37,21 @@ export async function fetchMe(
   token: string,
   options?: { suppressErrorLog?: boolean }
 ) {
+  if (token === "dev-mock-access-token") {
+    return {
+      user: {
+        sub: "dev-user-001",
+        email: "cliente@toyota.com.br",
+        name: "Cliente Toyota",
+        isVerified: true,
+        profile: {
+          fullName: "Cliente Toyota Tech",
+          birthDate: "01/01/1990",
+          cpf: "123.456.789-00",
+        },
+      } satisfies AuthUser,
+    };
+  }
   return apiRequest<{ user: AuthUser }>("/me", {
     method: "GET",
     token,

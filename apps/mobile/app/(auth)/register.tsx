@@ -1,13 +1,15 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowRight, Eye } from "lucide-react-native";
+import { ArrowRight } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
+import FormMessage from "@/components/ui/FormMessage";
+import PasswordInput from "@/components/ui/PasswordInput";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
-import { validatePassword } from "@/profileValidation";
-import { apiErrorMessage } from "@/services/api";
+import { t } from "@/i18n";
+import { ApiError } from "@/services/api";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
@@ -17,29 +19,18 @@ export default function RegisterScreen() {
   const { signUp } = useAuth();
   const [email, setEmail] = useState(emailFromParams ?? "");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
   const canSubmit =
-    normalizedEmail.includes("@") &&
-    validatePassword(password) === null &&
-    !isSubmitting;
+    normalizedEmail.includes("@") && password.length >= 8 && !isSubmitting;
 
   const handleCreateAccountPress = async () => {
-    if (!normalizedEmail.includes("@")) {
-      setFormError("Informe um email válido.");
-      return;
-    }
-
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-      setFormError(passwordError);
-      return;
-    }
-
-    if (isSubmitting) {
+    if (!canSubmit) {
+      setFormError(
+        "Enter a valid email and a password with at least 8 characters."
+      );
       return;
     }
 
@@ -63,128 +54,100 @@ export default function RegisterScreen() {
         });
       }
     } catch (error) {
-      setFormError(
-        apiErrorMessage(
-          error,
-          "Não foi possível criar a conta. Tente novamente."
-        )
-      );
+      if (error instanceof ApiError) {
+        setFormError(error.message);
+      } else if (error instanceof Error) {
+        setFormError(error.message);
+      } else {
+        setFormError("Unable to create account. Try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <AuthScreenLayout>
-      <Text style={styles.welcomeText}>BEM-VINDO(A)!</Text>
-
-      <View style={styles.formContainer}>
+    <AuthScreenLayout
+      showBack
+      title="Create your account"
+      subtitle="It only takes a minute to start following your Toyota."
+    >
+      <View style={styles.form}>
         <TextInput
-          placeholder="ENDEREÇO DE EMAIL *"
+          label="Email address"
+          placeholder="name@example.com"
           autoCapitalize="none"
+          autoComplete="email"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
         />
 
-        <TextInput
-          placeholder="SENHA *"
-          secureTextEntry={!showPassword}
+        <PasswordInput
+          label="Password"
+          placeholder="Create a password"
+          autoComplete="new-password"
           value={password}
           onChangeText={setPassword}
-          containerStyle={styles.passwordInputContainer}
-          style={styles.passwordInputText}
+          onSubmitEditing={handleCreateAccountPress}
+          hint="At least 8 characters with one uppercase, one lowercase and one number."
         />
-        <Pressable
-          style={styles.visibilityRow}
-          onPress={() => setShowPassword((current) => !current)}
-        >
-          <Eye size={18} strokeWidth={1.8} color={colors.black} />
-          <Text style={styles.visibilityText}>
-            {showPassword ? "OCULTAR" : "EXIBIR"}
-          </Text>
-        </Pressable>
 
-        <Text style={styles.passwordHintText}>
-          Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
-          minúscula e um número.
-        </Text>
-
-        {formError ? (
-          <Text style={styles.formErrorText}>{formError}</Text>
-        ) : null}
+        <FormMessage message={formError} />
 
         <Button
-          title={isSubmitting ? "Criando..." : "Criar conta"}
-          variant="primary"
-          icon={
-            <ArrowRight
-              size={36}
-              strokeWidth={3}
-              color={colors.white}
-              strokeLinecap="butt"
-              strokeLinejoin="round"
-            />
-          }
-          style={styles.createAccountButton}
+          title={isSubmitting ? "Creating account..." : "Create account"}
+          loading={isSubmitting}
+          icon={<ArrowRight size={20} strokeWidth={2.4} color={colors.white} />}
+          style={styles.submit}
           onPress={handleCreateAccountPress}
           disabled={!canSubmit}
         />
+
+        <View style={styles.switchRow}>
+          <Text style={styles.switchText}>{t("Already have an account?")}</Text>
+          <Pressable
+            accessibilityRole="link"
+            hitSlop={6}
+            onPress={() => {
+              router.replace({
+                pathname: "/(auth)/login",
+                params: { email: normalizedEmail },
+              });
+            }}
+          >
+            <Text style={styles.switchLink}>{t("Sign in")}</Text>
+          </Pressable>
+        </View>
       </View>
     </AuthScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  welcomeText: {
-    marginTop: 66,
-    textAlign: "center",
-    fontFamily: fonts.semiBold,
-    fontSize: 28,
-    color: colors.black,
+  form: {
+    gap: spacing.md + 4,
   },
-  formContainer: {
-    width: "100%",
-    marginTop: spacing.xxl,
-  },
-  visibilityRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-end",
-    gap: 6,
+  submit: {
     marginTop: spacing.xs,
   },
-  visibilityText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 13,
-    color: colors.black,
+  switchRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  passwordInputContainer: {
-    width: "100%",
-    height: 50,
-    paddingVertical: 0,
-    paddingHorizontal: 12,
-    marginTop: spacing.md,
-  },
-  passwordInputText: {
-    fontFamily: fonts.regular,
-    fontSize: 18,
-  },
-  passwordHintText: {
-    marginTop: spacing.sm,
+  switchText: {
     fontFamily: fonts.regular,
     fontSize: fontSize.md,
-    lineHeight: 22,
-    color: colors.textPrimary,
+    color: colors.textSecondary,
   },
-  createAccountButton: {
-    width: "100%",
-    marginTop: spacing.xl,
-  },
-  formErrorText: {
-    marginTop: spacing.xs,
-    fontFamily: fonts.medium,
-    fontSize: fontSize.sm,
+  switchLink: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.md,
     color: colors.primary,
   },
 });

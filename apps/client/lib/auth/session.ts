@@ -2,6 +2,7 @@
  * Sessão do portal Toyota Tech (Cliente e Gestor).
  */
 export const SESSION_COOKIE = "toyotatech.session";
+export const TOKEN_COOKIE_KEY = "toyotatech.token";
 export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8; // 8h
 
 export type UserRole = "cliente" | "gestor" | "admin";
