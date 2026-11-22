@@ -158,15 +158,31 @@ describe("VehicleManagementScreen", () => {
     jest.restoreAllMocks();
   });
 
-  it("mostra o status na lista e navega para o CRLV-e", async () => {
+  it("mostra o status de excecao na lista e navega para o CRLV-e", async () => {
     const screen = await render(<VehicleManagementScreen />);
 
     expect(screen.getByText("Pendente")).toBeTruthy();
-    expect(screen.getByText("Disponível")).toBeTruthy();
+    expect(screen.queryByText("Disponível")).toBeNull();
 
     await fireEvent.press(screen.getByLabelText("CRLV-e"));
 
     expect(mockPush).toHaveBeenCalledWith("/crlv");
+  });
+
+  it("nao renderiza badge quando os documentos estao disponiveis", async () => {
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "invoice",
+          title: "Nota fiscal",
+          status: "available",
+        }),
+      ])
+    );
+    const screen = await render(<VehicleManagementScreen />);
+
+    expect(screen.queryByText("Disponível")).toBeNull();
+    expect(screen.queryByText("Pendente")).toBeNull();
   });
 });
 

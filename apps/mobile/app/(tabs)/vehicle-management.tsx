@@ -58,6 +58,28 @@ export default function VehicleManagementScreen() {
                 ? "Manual do Toyota"
                 : getDocumentDisplayTitle(document.title);
 
+            const isPending = document.status === "pending";
+            const documentButton = (
+              <Button
+                variant="secondary"
+                layout="row"
+                title={documentTitle}
+                icon={
+                  <ArrowRight
+                    size={26}
+                    strokeWidth={2.4}
+                    color={colors.black}
+                  />
+                }
+                onPress={
+                  document.id === "crlv"
+                    ? () => router.push("/crlv")
+                    : undefined
+                }
+                style={isPending ? styles.documentButton : undefined}
+              />
+            );
+
             return (
               <Animated.View
                 key={document.id}
@@ -65,30 +87,17 @@ export default function VehicleManagementScreen() {
                   .duration(600)
                   .springify()}
               >
-                <View style={styles.documentRow}>
-                  <Button
-                    variant="secondary"
-                    layout="row"
-                    title={documentTitle}
-                    icon={
-                      <ArrowRight
-                        size={26}
-                        strokeWidth={2.4}
-                        color={colors.black}
-                      />
-                    }
-                    onPress={
-                      document.id === "crlv"
-                        ? () => router.push("/crlv")
-                        : undefined
-                    }
-                    style={styles.documentButton}
-                  />
-                  <Badge
-                    label={documentStatusLabel(document.status)}
-                    style={styles.documentBadge}
-                  />
-                </View>
+                {isPending ? (
+                  <View style={styles.documentRow}>
+                    {documentButton}
+                    <Badge
+                      label={documentStatusLabel(document.status)}
+                      style={styles.documentBadge}
+                    />
+                  </View>
+                ) : (
+                  documentButton
+                )}
               </Animated.View>
             );
           })
