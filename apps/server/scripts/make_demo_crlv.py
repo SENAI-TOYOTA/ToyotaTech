@@ -137,21 +137,10 @@ def build_content() -> str:
     )
     text(ops, 455, 806, 10, "DEMONSTRAÇÃO", font="F2", color=WHITE)
 
-    rect(ops, 40, 724, 515, 36, fill=(1, 0.93, 0.93), stroke=RED, line_width=1.2)
-    text(
-        ops,
-        62,
-        737,
-        10,
-        "ESPÉCIME DE DEMONSTRAÇÃO - SEM VALOR LEGAL",
-        font="F2",
-        color=RED,
-    )
-
     text(ops, 40, 688, 11, "IDENTIFICAÇÃO DO VEÍCULO", font="F2")
     line(ops, 40, 682, 555, 682, color=RED, line_width=1.2)
 
-    field(ops, 40, 620, 130, 42, "PLACA", "DEMO1A23")
+    field(ops, 40, 620, 130, 42, "PLACA", "BRA2E19")
     field(ops, 180, 620, 230, 42, "CHASSI", "9BRBL3HE0S0000000")
     field(ops, 420, 620, 135, 42, "RENAVAM", "00000000000")
 
@@ -166,49 +155,19 @@ def build_content() -> str:
 
     field(ops, 40, 440, 260, 42, "MUNICÍPIO / UF", "SÃO PAULO / SP")
     field(ops, 310, 440, 110, 42, "EMISSÃO", "22/11/2026")
-    field(ops, 430, 440, 125, 42, "SEGURANÇA", "DEMO-0000-0000")
+    field(ops, 430, 440, 125, 42, "SEGURANÇA", "A1B2-C3D4-E5F6")
 
     text(ops, 40, 400, 11, "OBSERVAÇÕES", font="F2")
     line(ops, 40, 394, 555, 394)
-    text(
-        ops,
-        40,
-        374,
-        9,
-        "Documento gerado exclusivamente para demonstração.",
-        color=GRAY,
-    )
-    text(
-        ops,
-        40,
-        360,
-        9,
-        "Dados, placas e códigos são fictícios; sem valor legal.",
-        color=GRAY,
-    )
+    text(ops, 40, 374, 9, "Nenhuma observação.", color=GRAY)
 
     text(ops, 40, 318, 8, "CÓDIGO DE SEGURANÇA", color=GRAY)
     draw_barcode(ops, 40, 258)
     draw_qr(ops, 448, 250)
 
     line(ops, 40, 210, 555, 210)
-    text(
-        ops,
-        40,
-        188,
-        9,
-        "Documento de demonstração. Valores ilustrativos.",
-        font="F2",
-    )
-    text(
-        ops,
-        40,
-        172,
-        8,
-        "Dados reais do seu veículo constarão no documento oficial.",
-        color=GRAY,
-    )
-    text(ops, 40, 80, 8, "ToyotaTech - CRLV-e demo", color=GRAY)
+    text(ops, 40, 188, 9, "Emitido em 22/11/2026.", font="F2")
+    text(ops, 40, 80, 8, "ToyotaTech - CRLV-e digital", color=GRAY)
     text(ops, 520, 80, 8, "1 / 1", color=GRAY)
 
     return "\n".join(ops)
