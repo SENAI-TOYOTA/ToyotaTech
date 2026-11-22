@@ -24,6 +24,7 @@ SERVICE_MODULES = {
         "flows",
         "validation",
         "demo",
+        "documents",
         "projection",
         "purchases",
         "resolver",
@@ -145,6 +146,13 @@ def contract(monkeypatch):
                 ],
             }
         )
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="DocumentsBucket")
+        s3.put_object(
+            Bucket="DocumentsBucket",
+            Key="documents/demo/crlv.pdf",
+            Body=b"%PDF-1.4\n",
+        )
 
         cognito_module = importlib.import_module("common.cognito")
         cognito_users = importlib.import_module("common.cognito_users")
@@ -163,6 +171,7 @@ def contract(monkeypatch):
         monkeypatch.setenv("GARAGE_TABLE_NAME", "GarageTable")
         monkeypatch.setenv("TRACKING_TABLE_NAME", "TrackingTable")
         monkeypatch.setenv("CONTENT_TABLE_NAME", "ContentTable")
+        monkeypatch.setenv("DOCUMENTS_BUCKET", "DocumentsBucket")
         monkeypatch.setenv("PURCHASE_TABLE_NAME", "")
 
         yield ContractContext(cognito, dynamodb, pool_id, client_id)

@@ -27,6 +27,7 @@ ENVIRONMENT_DEFAULTS = {
     "PURCHASE_TABLE_NAME": "PurchasesTable",
     "TRACKING_TABLE_NAME": "TrackingTable",
     "CONTENT_TABLE_NAME": "ContentTable",
+    "DOCUMENTS_BUCKET": "DocumentsBucket",
     "RATE_LIMIT_TABLE_NAME": "",
     "INGEST_KEY_PARAMETER_NAME": "/toyotatech/garage/ingest/key",
     "AWS_ACCESS_KEY_ID": "testing",
@@ -215,5 +216,12 @@ def dynamodb(monkeypatch):
         _create_garage_table(resource)
         _create_purchases_table(resource)
         _create_tracking_table(resource)
+        s3 = boto3.client("s3", region_name=REGION)
+        s3.create_bucket(Bucket="DocumentsBucket")
+        s3.put_object(
+            Bucket="DocumentsBucket",
+            Key="documents/demo/crlv.pdf",
+            Body=b"%PDF-1.4\n",
+        )
         monkeypatch.setattr("common.ddb.dynamodb_resource", resource)
         yield resource

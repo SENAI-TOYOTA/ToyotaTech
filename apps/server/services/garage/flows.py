@@ -2,6 +2,7 @@ import time
 from typing import Any, Dict
 
 import demo
+import documents
 import projection
 import purchases
 import resolver
@@ -26,17 +27,21 @@ def _backfill_boleto(garage: Dict[str, Any], user: Dict[str, Any]) -> Dict[str, 
     return garage
 
 
+def _garage_response(garage: Dict[str, Any], user: Dict[str, Any]) -> Dict[str, Any]:
+    return documents.attach_document_urls(_backfill_boleto(garage, user))
+
+
 def current(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
     garage = resolver.get_or_create_garage(user)
-    return {"garage": _backfill_boleto(garage, user)}
+    return {"garage": _garage_response(garage, user)}
 
 
 def resolve(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
     garage, purchase, match_source = resolver.resolve_garage(user, force=True)
     body: Dict[str, Any] = {
-        "garage": _backfill_boleto(garage, user),
+        "garage": _garage_response(garage, user),
         "matchSource": match_source,
     }
     if purchase:
@@ -70,7 +75,7 @@ def upsert(event: Dict[str, Any]) -> Dict[str, Any]:
     garage["updatedAt"] = now
 
     table.put_item(Item=garage)
-    return {"garage": _backfill_boleto(garage, user)}
+    return {"garage": _garage_response(garage, user)}
 
 
 def link(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -125,6 +130,6 @@ def link(event: Dict[str, Any]) -> Dict[str, Any]:
     garage["matchAlgorithmVersion"] = demo.GARAGE_MATCH_ALGORITHM_VERSION
     get_table(resolver.GARAGE_TABLE_NAME).put_item(Item=garage)
     return {
-        "garage": _backfill_boleto(garage, user),
+        "garage": _garage_response(garage, user),
         "purchase": linked_purchase,
     }

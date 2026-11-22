@@ -126,7 +126,7 @@ def build_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> l
             "id": "crlv",
             "title": "CRLV-e",
             "date": purchase_date,
-            "status": "pending",
+            "status": "available",
         },
         {
             "id": "warranty",
