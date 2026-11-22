@@ -9,7 +9,7 @@ from common.ddb import REGION
 
 DOCUMENTS_BUCKET = os.environ.get("DOCUMENTS_BUCKET", "")
 CRLV_DEMO_KEY = "documents/demo/crlv.pdf"
-PRESIGN_TTL_SECONDS = 300
+PRESIGN_TTL_SECONDS = 3600
 
 
 def _presign_crlv() -> str:

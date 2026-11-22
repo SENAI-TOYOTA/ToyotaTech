@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { ArrowLeft } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
 
 import Badge from "@/components/ui/Badge";
@@ -29,8 +29,12 @@ const iconStrokeWidth = borders.strong;
 
 export default function CrlvScreen() {
   const router = useRouter();
-  const { garage, isLoading, error } = useGarage();
+  const { garage, isLoading, error, reload } = useGarage();
   const [openError, setOpenError] = useState<string | null>(null);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   const crlv = garage?.documents.find((document) => document.id === "crlv");
   const vehicle = garage?.vehicle;
@@ -167,6 +171,7 @@ export default function CrlvScreen() {
               variant="primary"
               layout="row"
               title="Visualizar documento"
+              loading={isLoading}
               onPress={() => {
                 void handleOpen();
               }}

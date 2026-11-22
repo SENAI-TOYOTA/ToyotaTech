@@ -362,6 +362,7 @@ def test_attach_document_urls_presigna_e_nao_muta(service_loader):
     url = result["documents"][0]["url"]
     assert url.startswith("https://")
     assert "X-Amz-Signature=" in url
+    assert "X-Amz-Expires=3600" in url
     assert "url" not in garage["documents"][0]
 
 

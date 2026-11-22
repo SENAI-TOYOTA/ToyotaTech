@@ -210,11 +210,13 @@ describe("CrlvScreen", () => {
     setGarage(
       buildGarage([buildDocument({ url: "https://example.com/crlv.pdf" })])
     );
+    const reload = mockGarageValue.reload;
     const openSpy = jest
       .spyOn(Linking, "openURL")
       .mockResolvedValue(true as never);
     const screen = await render(<CrlvScreen />);
 
+    expect(reload).toHaveBeenCalled();
     expect(screen.getByText("Disponível")).toBeTruthy();
     expect(screen.getByText("Corolla")).toBeTruthy();
     expect(screen.getByText("CHASSI_12345")).toBeTruthy();
