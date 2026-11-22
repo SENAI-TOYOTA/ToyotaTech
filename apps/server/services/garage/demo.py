@@ -115,9 +115,6 @@ def build_financing(seed: str) -> Dict[str, Any]:
 
 
 def build_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> list:
-    digest = hashlib.sha1(
-        (validation.coerce_text(seed) or "toyotatech").encode("utf-8")
-    ).hexdigest()
     return [
         {
             "id": "invoice",
@@ -129,7 +126,7 @@ def build_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> l
             "id": "crlv",
             "title": "CRLV-e",
             "date": purchase_date,
-            "status": "available" if int(digest[16:18], 16) % 3 else "pending",
+            "status": "pending",
         },
         {
             "id": "warranty",

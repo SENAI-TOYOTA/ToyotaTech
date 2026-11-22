@@ -321,3 +321,24 @@ def test_current_backfill_boleto_em_garagem_legada(dynamodb, service_loader):
     barcode = response_body(result)["garage"]["financing"]["boletoBarcode"]
     assert len(barcode) == 47
     assert barcode.isdigit()
+
+
+def test_build_documents_crlv_pending_deterministico(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        first = modules["demo"].build_documents("seed-a", "03/10/2025", {})
+        second = modules["demo"].build_documents("seed-b", "03/10/2025", {})
+
+    crlv = next(document for document in first if document["id"] == "crlv")
+    assert crlv["status"] == "pending"
+    assert first == second
+
+
+def test_build_documents_demais_status_available(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        documents = modules["demo"].build_documents("seed-a", "03/10/2025", {})
+
+    statuses = {document["id"]: document["status"] for document in documents}
+    assert statuses["invoice"] == "available"
+    assert statuses["warranty"] == "available"
+    assert statuses["manual"] == "available"
+    assert statuses["maintenance-plan"] == "available"

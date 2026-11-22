@@ -1,7 +1,9 @@
+import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Screen from "@/components/ui/Screen";
@@ -9,6 +11,7 @@ import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Skeleton from "@/components/ui/Skeleton";
 import { useGarage } from "@/hooks/useGarage";
 import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
+import { documentStatusLabel } from "@/utils/document";
 
 const documentSkeletonIds = [
   "document-1",
@@ -31,6 +34,7 @@ function getDocumentDisplayTitle(title: string) {
 }
 
 export default function VehicleManagementScreen() {
+  const router = useRouter();
   const { garage, isLoading } = useGarage();
 
   const documents = garage?.documents ?? [];
@@ -61,18 +65,30 @@ export default function VehicleManagementScreen() {
                   .duration(600)
                   .springify()}
               >
-                <Button
-                  variant="secondary"
-                  layout="row"
-                  title={documentTitle}
-                  icon={
-                    <ArrowRight
-                      size={26}
-                      strokeWidth={2.4}
-                      color={colors.black}
-                    />
-                  }
-                />
+                <View style={styles.documentRow}>
+                  <Button
+                    variant="secondary"
+                    layout="row"
+                    title={documentTitle}
+                    icon={
+                      <ArrowRight
+                        size={26}
+                        strokeWidth={2.4}
+                        color={colors.black}
+                      />
+                    }
+                    onPress={
+                      document.id === "crlv"
+                        ? () => router.push("/crlv")
+                        : undefined
+                    }
+                    style={styles.documentButton}
+                  />
+                  <Badge
+                    label={documentStatusLabel(document.status)}
+                    style={styles.documentBadge}
+                  />
+                </View>
               </Animated.View>
             );
           })
@@ -131,6 +147,17 @@ const styles = StyleSheet.create({
   documentList: {
     marginTop: spacing.xl + spacing.sm + 2,
     gap: spacing.xl,
+  },
+  documentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  documentButton: {
+    flex: 1,
+  },
+  documentBadge: {
+    alignSelf: "center",
   },
   emptyStateText: {
     fontFamily: fonts.regular,
