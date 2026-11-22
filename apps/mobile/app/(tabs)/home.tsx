@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
+import type { ImageSourcePropType } from "react-native";
 import { Image, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
@@ -10,19 +11,29 @@ import Skeleton from "@/components/ui/Skeleton";
 import VehicleFallback from "@/components/ui/VehicleFallback";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGarage } from "@/hooks/useGarage";
-import { borders, colors, fonts, radii, spacing } from "@/theme";
+import { useHighlights } from "@/hooks/useHighlights";
+import { borders, colors, fonts, fontSize, radii, spacing } from "@/theme";
+import type { HighlightItem } from "@/types/content";
+import { highlightImageSource } from "@/utils/highlight";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
 const mainCarImage = require("@/assets/images/corolla-main.jpg");
 const sideCarImage = require("@/assets/images/corolla-side.jpg");
 const newsImage = require("@/assets/images/corolla-news.jpg");
 
-const highlightCards = [
-  { id: "corolla", title: "Corolla Altis", image: mainCarImage },
-  { id: "yaris", title: "Yaris Cross", image: sideCarImage },
-  { id: "services", title: "Serviços Toyota", image: newsImage },
-  { id: "lifestyle", title: "Estilo de vida", image: mainCarImage },
-];
+const highlightCardSize = 180;
+const highlightSkeletonCount = 4;
+const highlightsRetryHitSlop = {
+  top: spacing.md,
+  bottom: spacing.md,
+  left: spacing.md,
+  right: spacing.md,
+};
+const highlightImages: Record<string, ImageSourcePropType> = {
+  "corolla-main": mainCarImage,
+  "corolla-side": sideCarImage,
+  "corolla-news": newsImage,
+};
 
 const toyotaTips = [
   {
@@ -46,10 +57,98 @@ const toyotaTips = [
   },
 ];
 
+interface HighlightsSectionProps {
+  highlights: HighlightItem[];
+  isLoading: boolean;
+  error: string | null;
+  onReload: () => void;
+}
+
+function HighlightsSection({
+  highlights,
+  isLoading,
+  error,
+  onReload,
+}: HighlightsSectionProps) {
+  return (
+    <>
+      <Animated.Text
+        entering={FadeInDown.delay(400).duration(600)}
+        style={styles.sectionTitle}
+      >
+        Novidades
+      </Animated.Text>
+      {isLoading && !highlights.length ? (
+        <Animated.ScrollView
+          entering={FadeInRight.delay(500).duration(600)}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.highlightContent}
+          style={styles.highlightScroll}
+        >
+          {Array.from({ length: highlightSkeletonCount }, (_, index) => (
+            <Skeleton
+              key={`highlight-skeleton-${index}`}
+              height={highlightCardSize}
+              width={highlightCardSize}
+              borderRadius={radii.sm}
+              accessibilityLabel={
+                index === 0 ? "Carregando novidades" : undefined
+              }
+            />
+          ))}
+        </Animated.ScrollView>
+      ) : highlights.length ? (
+        <Animated.ScrollView
+          entering={FadeInRight.delay(500).duration(600)}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.highlightContent}
+          style={styles.highlightScroll}
+        >
+          {highlights.map((card) => (
+            <View key={card.id} style={styles.highlightCard}>
+              <Image
+                source={highlightImageSource(card, highlightImages, newsImage)}
+                style={styles.highlightImage}
+                resizeMode="cover"
+              />
+              <View style={styles.highlightLabel}>
+                <Text style={styles.highlightLabelText}>{card.title}</Text>
+              </View>
+            </View>
+          ))}
+        </Animated.ScrollView>
+      ) : (
+        <View style={styles.highlightsEmpty}>
+          <Text style={styles.highlightsEmptyText}>
+            {error ?? "Nenhuma novidade disponível."}
+          </Text>
+          {error ? (
+            <InteractivePressable
+              style={styles.highlightsRetry}
+              hitSlop={highlightsRetryHitSlop}
+              onPress={onReload}
+            >
+              <Text style={styles.highlightsRetryText}>Tentar novamente</Text>
+            </InteractivePressable>
+          ) : null}
+        </View>
+      )}
+    </>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { garage, isLoading, error, reload } = useGarage();
+  const {
+    highlights,
+    isLoading: isHighlightsLoading,
+    error: highlightsError,
+    reload: reloadHighlights,
+  } = useHighlights();
   const displayName = user?.profile?.fullName || user?.name || "Usuário";
   const firstName = displayName.trim().split(/\s+/)[0] || "Usuário";
   const vehicle = garage?.vehicle;
@@ -129,32 +228,12 @@ export default function HomeScreen() {
         />
       </Animated.View>
 
-      <Animated.Text
-        entering={FadeInDown.delay(400).duration(600)}
-        style={styles.sectionTitle}
-      >
-        Novidades
-      </Animated.Text>
-      <Animated.ScrollView
-        entering={FadeInRight.delay(500).duration(600)}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.highlightContent}
-        style={styles.highlightScroll}
-      >
-        {highlightCards.map((card) => (
-          <View key={card.id} style={styles.highlightCard}>
-            <Image
-              source={card.image}
-              style={styles.highlightImage}
-              resizeMode="cover"
-            />
-            <View style={styles.highlightLabel}>
-              <Text style={styles.highlightLabelText}>{card.title}</Text>
-            </View>
-          </View>
-        ))}
-      </Animated.ScrollView>
+      <HighlightsSection
+        highlights={highlights}
+        isLoading={isHighlightsLoading}
+        error={highlightsError}
+        onReload={reloadHighlights}
+      />
 
       <View style={styles.newsHeaderRow}>
         <Animated.Text
@@ -281,7 +360,7 @@ const styles = StyleSheet.create({
     paddingRight: spacing.xl,
   },
   highlightCard: {
-    width: 180,
+    width: highlightCardSize,
     aspectRatio: 1,
     borderWidth: borders.thin,
     borderColor: colors.black,
@@ -307,6 +386,32 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     fontSize: 16,
     color: colors.black,
+  },
+  highlightsEmpty: {
+    marginTop: spacing.sm,
+    gap: spacing.sm,
+    borderWidth: borders.thin,
+    borderColor: colors.black,
+    borderRadius: radii.sm,
+    padding: spacing.md,
+  },
+  highlightsEmptyText: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  highlightsRetry: {
+    alignSelf: "flex-start",
+    borderWidth: borders.thin,
+    borderColor: colors.black,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  highlightsRetryText: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.sm,
+    color: colors.white,
   },
   newsHeaderRow: {
     marginTop: spacing.xl + spacing.xs,

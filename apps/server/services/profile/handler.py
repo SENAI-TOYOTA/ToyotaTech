@@ -1,6 +1,7 @@
 import json
 from typing import Any, Dict
 
+import content
 import flows
 from botocore.exceptions import ClientError
 
@@ -12,6 +13,7 @@ ROUTES = {
     "GET /profile": flows.read_profile,
     "PUT /profile": flows.save_profile,
     "GET /me": flows.me,
+    "GET /content/highlights": content.get_highlights,
 }
 
 

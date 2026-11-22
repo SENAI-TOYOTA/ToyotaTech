@@ -26,6 +26,7 @@ ENVIRONMENT_DEFAULTS = {
     "GARAGE_TABLE_NAME": "GarageTable",
     "PURCHASE_TABLE_NAME": "PurchasesTable",
     "TRACKING_TABLE_NAME": "TrackingTable",
+    "CONTENT_TABLE_NAME": "ContentTable",
     "RATE_LIMIT_TABLE_NAME": "",
     "INGEST_KEY_PARAMETER_NAME": "/toyotatech/garage/ingest/key",
     "AWS_ACCESS_KEY_ID": "testing",
@@ -125,6 +126,15 @@ def _create_profiles_table(resource):
     )
 
 
+def _create_content_table(resource):
+    return resource.create_table(
+        TableName="ContentTable",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+
 def _create_garage_table(resource):
     return resource.create_table(
         TableName="GarageTable",
@@ -201,6 +211,7 @@ def dynamodb(monkeypatch):
     with mock_aws():
         resource = boto3.resource("dynamodb", region_name=REGION)
         _create_profiles_table(resource)
+        _create_content_table(resource)
         _create_garage_table(resource)
         _create_purchases_table(resource)
         _create_tracking_table(resource)

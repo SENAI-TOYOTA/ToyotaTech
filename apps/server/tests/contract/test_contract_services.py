@@ -19,7 +19,7 @@ PASSWORD = "Password1!"
 ALLOWED_ORIGIN = "https://app.example.com"
 
 SERVICE_MODULES = {
-    "profile": ["flows", "validation"],
+    "profile": ["flows", "validation", "content"],
     "garage": [
         "flows",
         "validation",
@@ -107,6 +107,7 @@ def contract(monkeypatch):
             ("ProfileTable", "userId"),
             ("RateLimitTable", "pk"),
             ("TrackingTable", "vehicleId"),
+            ("ContentTable", "pk"),
         )
         for name, key in tables:
             dynamodb.create_table(
@@ -131,6 +132,19 @@ def contract(monkeypatch):
             ],
             BillingMode="PAY_PER_REQUEST",
         )
+        dynamodb.Table("ContentTable").put_item(
+            Item={
+                "pk": "highlights",
+                "highlights": [
+                    {
+                        "id": "corolla",
+                        "title": "Corolla Altis",
+                        "imageKey": "corolla-main",
+                        "imageUrl": "https://example.com/highlight.jpg",
+                    }
+                ],
+            }
+        )
 
         cognito_module = importlib.import_module("common.cognito")
         cognito_users = importlib.import_module("common.cognito_users")
@@ -148,6 +162,7 @@ def contract(monkeypatch):
         monkeypatch.setenv("PROFILE_TABLE_NAME", "ProfileTable")
         monkeypatch.setenv("GARAGE_TABLE_NAME", "GarageTable")
         monkeypatch.setenv("TRACKING_TABLE_NAME", "TrackingTable")
+        monkeypatch.setenv("CONTENT_TABLE_NAME", "ContentTable")
         monkeypatch.setenv("PURCHASE_TABLE_NAME", "")
 
         yield ContractContext(cognito, dynamodb, pool_id, client_id)
@@ -374,6 +389,10 @@ def build_contract_cases(contract):
     with service_handler("profile") as profile_handler:
         profile_body = call(profile_handler, "GET", "/profile", token=token)[2]
         me_body = call(profile_handler, "GET", "/me", token=token)[2]
+        highlights_status, _, highlights_body = call(
+            profile_handler, "GET", "/content/highlights"
+        )
+        assert highlights_status == 200, highlights_body
 
     with service_handler("garage") as garage_handler:
         status, _, _ = call(
@@ -393,6 +412,7 @@ def build_contract_cases(contract):
     return [
         ("profileRead", "ProfileResponse", profile_body),
         ("me", "meResponse", me_body),
+        ("highlights", "HighlightsResponse", highlights_body),
         ("garageCurrent", "garageBody", garage_body),
         ("garageResolve", "resolveResponse", resolve_body),
         ("garageStatus", "statusResponse", status_body),
@@ -402,6 +422,7 @@ def build_contract_cases(contract):
 def write_contract_file(cases):
     lines = [
         'import type { ProfileResponse } from "@/types/profile";',
+        'import type { HighlightsResponse } from "@/types/content";',
         'import type { AuthUser } from "@/types/auth";',
         'import type { GarageData } from "@/types/garage";',
         'import type { TrackingInfo } from "@/types/tracking";',

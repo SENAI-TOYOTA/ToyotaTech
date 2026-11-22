@@ -106,6 +106,7 @@ Resources:
           COGNITO_CLIENT_ID: !Ref UserPoolClient
           PROFILE_TABLE_NAME: !Ref ProfilesTable
           RATE_LIMIT_TABLE_NAME: !Ref AuthRateLimitTable
+          CONTENT_TABLE_NAME: !Ref ContentTable
       Events:
         GetProfile:
           Type: HttpApi
@@ -124,6 +125,12 @@ Resources:
           Properties:
             ApiId: !Ref HttpApi
             Path: /me
+            Method: GET
+        GetHighlights:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /content/highlights
             Method: GET
 
   GarageFunction:
@@ -246,6 +253,17 @@ Resources:
           AttributeType: S
       KeySchema:
         - AttributeName: userId
+          KeyType: HASH
+
+  ContentTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
           KeyType: HASH
 
   GarageTable:
