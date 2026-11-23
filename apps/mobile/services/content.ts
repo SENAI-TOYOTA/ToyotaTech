@@ -1,11 +1,12 @@
 import { apiRequest } from "@/services/api";
-import { HighlightsResponse } from "@/types/content";
+import { ContentDetailResponse, HighlightsResponse } from "@/types/content";
 
 const HIGHLIGHTS_CACHE_TTL_MS = 60_000;
 
 let cachedHighlights: HighlightsResponse | null = null;
 let cachedAt = 0;
 let inflightHighlights: Promise<HighlightsResponse> | null = null;
+const inflightDetails = new Map<string, Promise<ContentDetailResponse>>();
 
 export async function fetchHighlights(force = false) {
   if (
@@ -38,8 +39,28 @@ export async function fetchHighlights(force = false) {
   return request;
 }
 
+export async function fetchContentDetail(id: string) {
+  const inflight = inflightDetails.get(id);
+  if (inflight) {
+    return inflight;
+  }
+
+  const request = apiRequest<ContentDetailResponse>(
+    `/content/highlights/${encodeURIComponent(id)}`,
+    { method: "GET" }
+  ).finally(() => {
+    if (inflightDetails.get(id) === request) {
+      inflightDetails.delete(id);
+    }
+  });
+
+  inflightDetails.set(id, request);
+  return request;
+}
+
 export function resetHighlightsCache() {
   cachedHighlights = null;
   cachedAt = 0;
   inflightHighlights = null;
+  inflightDetails.clear();
 }

@@ -62,6 +62,7 @@ interface HighlightsSectionProps {
   isLoading: boolean;
   error: string | null;
   onReload: () => void;
+  onOpen: (id: string) => void;
 }
 
 function HighlightsSection({
@@ -69,6 +70,7 @@ function HighlightsSection({
   isLoading,
   error,
   onReload,
+  onOpen,
 }: HighlightsSectionProps) {
   return (
     <>
@@ -107,7 +109,13 @@ function HighlightsSection({
           style={styles.highlightScroll}
         >
           {highlights.map((card) => (
-            <View key={card.id} style={styles.highlightCard}>
+            <InteractivePressable
+              key={card.id}
+              style={styles.highlightCard}
+              onPress={() => onOpen(card.id)}
+              accessibilityRole="button"
+              accessibilityLabel={card.title}
+            >
               <Image
                 source={highlightImageSource(card, highlightImages, newsImage)}
                 style={styles.highlightImage}
@@ -116,7 +124,7 @@ function HighlightsSection({
               <View style={styles.highlightLabel}>
                 <Text style={styles.highlightLabelText}>{card.title}</Text>
               </View>
-            </View>
+            </InteractivePressable>
           ))}
         </Animated.ScrollView>
       ) : (
@@ -233,6 +241,9 @@ export default function HomeScreen() {
         isLoading={isHighlightsLoading}
         error={highlightsError}
         onReload={reloadHighlights}
+        onOpen={(id) =>
+          router.push({ pathname: "/content/[id]", params: { id } })
+        }
       />
 
       <View style={styles.newsHeaderRow}>

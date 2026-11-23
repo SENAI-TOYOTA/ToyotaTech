@@ -342,3 +342,95 @@ def test_highlights_imageurl_malformada_nao_quebra(dynamodb, service_loader):
     body = response_body(result)
     assert len(body["highlights"]) == 2
     assert all("imageUrl" not in item for item in body["highlights"])
+
+
+DETAIL_ITEM = {
+    "id": "corolla",
+    "title": "Corolla Altis",
+    "imageKey": "corolla-main",
+    "imageUrl": "https://example.com/corolla.jpg",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "22/11/2026",
+    "readingTime": 4,
+    "summary": "Resumo do conteúdo.",
+    "body": ["Primeiro parágrafo.", "Segundo parágrafo."],
+}
+
+
+def test_content_detail_retorna_conteudo_completo(dynamodb, service_loader):
+    seed_highlights(dynamodb, [DETAIL_ITEM])
+
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        result = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights/corolla"), None
+        )
+
+    assert result["statusCode"] == 200
+    content = response_body(result)["content"]
+    assert content["id"] == "corolla"
+    assert content["category"] == "guide"
+    assert content["author"] == "Equipe ToyotaTech"
+    assert content["readingTime"] == 4
+    assert content["body"] == ["Primeiro parágrafo.", "Segundo parágrafo."]
+
+
+def test_content_detail_desconhecido_retorna_404(dynamodb, service_loader):
+    seed_highlights(dynamodb, [DETAIL_ITEM])
+
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        result = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights/inexistente"), None
+        )
+
+    assert result["statusCode"] == 404
+    assert response_body(result) == {"message": "Conteúdo não encontrado."}
+
+
+def test_content_detail_sem_tabela_retorna_404(dynamodb, service_loader):
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        result = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights/corolla"), None
+        )
+
+    assert result["statusCode"] == 404
+
+
+def test_content_detail_normaliza_campos_invalidos(dynamodb, service_loader):
+    seed_highlights(
+        dynamodb,
+        [
+            {
+                "id": "corolla",
+                "title": "Corolla Altis",
+                "imageKey": "corolla-main",
+                "category": "outro",
+                "readingTime": "abc",
+                "body": "texto solto",
+            }
+        ],
+    )
+
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        result = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights/corolla"), None
+        )
+
+    assert result["statusCode"] == 200
+    content = response_body(result)["content"]
+    assert "category" not in content
+    assert "readingTime" not in content
+    assert content["body"] == []
+
+
+def test_highlights_lista_nao_inclui_campos_de_detalhe(dynamodb, service_loader):
+    seed_highlights(dynamodb, [DETAIL_ITEM])
+
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        result = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights"), None
+        )
+
+    assert result["statusCode"] == 200
+    item = response_body(result)["highlights"][0]
+    assert set(item) == {"id", "title", "imageKey", "imageUrl"}

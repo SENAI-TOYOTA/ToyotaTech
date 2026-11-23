@@ -10,8 +10,10 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { cleanup, render } from "@testing-library/react-native";
+import { cleanup, fireEvent, render } from "@testing-library/react-native";
 import { StyleSheet } from "react-native";
+
+const mockPush = jest.fn<(...args: unknown[]) => void>();
 
 jest.mock("react-native-reanimated", () => {
   const RN = require("react-native");
@@ -54,7 +56,7 @@ jest.mock("lucide-react-native", () => {
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
-    push: jest.fn(),
+    push: mockPush,
     replace: jest.fn(),
     back: jest.fn(),
     canGoBack: () => true,
@@ -124,6 +126,18 @@ describe("HomeScreen novidades", () => {
 
     expect(screen.getByText("Novidade da API")).toBeTruthy();
     expect(screen.getByText("Guias e Notícias")).toBeTruthy();
+  });
+
+  it("navega para o detalhe ao tocar na novidade", async () => {
+    mockPush.mockReset();
+    const screen = await render(<HomeScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Novidade da API"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/content/[id]",
+      params: { id: "api-1" },
+    });
   });
 
   it("mostra estado vazio explicito sem novidades", async () => {

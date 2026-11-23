@@ -40,6 +40,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return response(204, {})
 
     route = ROUTES.get(f"{method} {path}")
+    if route is None and method == "GET" and path.startswith("/content/highlights/"):
+        content_id = path.rsplit("/", 1)[-1]
+
+        def route(event: Dict[str, Any]) -> Dict[str, Any]:
+            return content.get_content_detail(event, content_id)
+
     if route is None:
         return response(404, {"message": "Rota não encontrada."})
 

@@ -132,6 +132,12 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /content/highlights
             Method: GET
+        GetContentDetail:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /content/highlights/{id}
+            Method: GET
 
   GarageFunction:
     Type: AWS::Serverless::Function

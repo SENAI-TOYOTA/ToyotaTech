@@ -142,6 +142,12 @@ def contract(monkeypatch):
                         "title": "Corolla Altis",
                         "imageKey": "corolla-main",
                         "imageUrl": "https://example.com/highlight.jpg",
+                        "category": "guide",
+                        "author": "Equipe ToyotaTech",
+                        "publishedAt": "22/11/2026",
+                        "readingTime": 4,
+                        "summary": "Resumo do conteúdo.",
+                        "body": ["Primeiro parágrafo.", "Segundo parágrafo."],
                     }
                 ],
             }
@@ -402,6 +408,10 @@ def build_contract_cases(contract):
             profile_handler, "GET", "/content/highlights"
         )
         assert highlights_status == 200, highlights_body
+        detail_status, _, content_detail_body = call(
+            profile_handler, "GET", "/content/highlights/corolla"
+        )
+        assert detail_status == 200, content_detail_body
 
     with service_handler("garage") as garage_handler:
         status, _, _ = call(
@@ -422,6 +432,7 @@ def build_contract_cases(contract):
         ("profileRead", "ProfileResponse", profile_body),
         ("me", "meResponse", me_body),
         ("highlights", "HighlightsResponse", highlights_body),
+        ("contentDetail", "ContentDetailResponse", content_detail_body),
         ("garageCurrent", "garageBody", garage_body),
         ("garageResolve", "resolveResponse", resolve_body),
         ("garageStatus", "statusResponse", status_body),
@@ -432,6 +443,7 @@ def write_contract_file(cases):
     lines = [
         'import type { ProfileResponse } from "@/types/profile";',
         'import type { HighlightsResponse } from "@/types/content";',
+        'import type { ContentDetailResponse } from "@/types/content";',
         'import type { AuthUser } from "@/types/auth";',
         'import type { GarageData } from "@/types/garage";',
         'import type { TrackingInfo } from "@/types/tracking";',
