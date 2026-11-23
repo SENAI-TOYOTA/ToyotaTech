@@ -53,11 +53,7 @@ export default function VehicleManagementScreen() {
       <View style={styles.documentList}>
         {documents.length ? (
           documents.map((document, index) => {
-            const documentTitle =
-              document.id === "manual"
-                ? "Manual do Toyota"
-                : getDocumentDisplayTitle(document.title);
-
+            const documentTitle = getDocumentDisplayTitle(document.title);
             const isPending = document.status === "pending";
             const documentButton = (
               <Button
@@ -78,7 +74,9 @@ export default function VehicleManagementScreen() {
                       ? () => router.push("/nota-fiscal")
                       : document.id === "warranty"
                         ? () => router.push("/garantia-toyota")
-                        : undefined
+                        : document.id === "manual"
+                          ? () => router.push("/manual-do-veiculo")
+                          : undefined
                 }
                 style={isPending ? styles.documentButton : undefined}
               />

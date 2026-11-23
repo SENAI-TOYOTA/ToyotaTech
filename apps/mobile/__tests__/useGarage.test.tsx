@@ -1,4 +1,5 @@
 import { resetGarageCache, useGarage } from "@/hooks/useGarage";
+import { ApiError } from "@/services/api";
 import { AuthUser } from "@/types/auth";
 import { GarageData, GarageResponse } from "@/types/garage";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -124,6 +125,21 @@ describe("useGarage", () => {
     await waitFor(() =>
       expect(hook.result.current.error).toBe(
         "Não foi possível carregar os dados do veículo."
+      )
+    );
+    expect(hook.result.current.isLoading).toBe(false);
+  });
+
+  it("expoe o retryAfter quando a busca e limitada por taxa", async () => {
+    mockFetchGarageCurrent.mockRejectedValueOnce(
+      new ApiError("Too many requests", 429, 7)
+    );
+
+    const hook = await renderHook(() => useGarage());
+
+    await waitFor(() =>
+      expect(hook.result.current.error).toBe(
+        "Too many requests Tente novamente em 7s."
       )
     );
     expect(hook.result.current.isLoading).toBe(false);

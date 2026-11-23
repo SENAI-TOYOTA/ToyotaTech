@@ -14,6 +14,7 @@ import { Linking } from "react-native";
 import VehicleManagementScreen from "@/app/(tabs)/vehicle-management";
 import CrlvScreen from "@/app/crlv";
 import GarantiaToyotaScreen from "@/app/garantia-toyota";
+import ManualDoVeiculoScreen from "@/app/manual-do-veiculo";
 import NotaFiscalScreen from "@/app/nota-fiscal";
 
 const mockPush = jest.fn<(path: string) => void>();
@@ -564,5 +565,119 @@ describe("GarantiaToyotaScreen", () => {
     const screen = await render(<GarantiaToyotaScreen />);
 
     expect(screen.getByLabelText("Carregando garantia")).toBeTruthy();
+  });
+});
+
+describe("ManualDoVeiculoScreen", () => {
+  beforeEach(() => {
+    mockPush.mockReset();
+    mockReplace.mockReset();
+    mockBack.mockReset();
+    mockCanGoBack = true;
+    jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await cleanup();
+    jest.restoreAllMocks();
+    mockCanGoBack = true;
+  });
+
+  it("navega da lista para o manual do veiculo", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "manual", title: "Manual do Corolla" })])
+    );
+    const screen = await render(<VehicleManagementScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Manual do Corolla"));
+
+    expect(mockPush).toHaveBeenCalledWith("/manual-do-veiculo");
+  });
+
+  it("exibe o titulo com o modelo real do veiculo", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "manual", title: "Manual do Corolla" })])
+    );
+    const screen = await render(<ManualDoVeiculoScreen />);
+
+    expect(screen.getAllByText("Manual do Corolla").length).toBeGreaterThan(0);
+    expect(screen.getByText("Corolla")).toBeTruthy();
+    expect(screen.getByText("XEI")).toBeTruthy();
+  });
+
+  it("exibe aviso de processamento quando o manual esta pendente", async () => {
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "manual",
+          title: "Manual do Corolla",
+          status: "pending",
+        }),
+      ])
+    );
+    const screen = await render(<ManualDoVeiculoScreen />);
+
+    expect(screen.getByText("Pendente")).toBeTruthy();
+    expect(screen.getByText(/está em processamento/)).toBeTruthy();
+  });
+
+  it("exibe mensagem clara quando o conteudo ainda nao foi publicado", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "manual", title: "Manual do Corolla" })])
+    );
+    const screen = await render(<ManualDoVeiculoScreen />);
+
+    expect(
+      screen.getByText(/capítulos e a busca por assunto ainda não/)
+    ).toBeTruthy();
+  });
+
+  it("nao exibe campo de busca nem capitulos sem conteudo", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "manual", title: "Manual do Corolla" })])
+    );
+    const screen = await render(<ManualDoVeiculoScreen />);
+
+    expect(screen.queryByPlaceholderText(/buscar/i)).toBeNull();
+    expect(screen.queryByText(/Capítulo 1/)).toBeNull();
+  });
+
+  it("exibe mensagem clara quando o veiculo nao possui manual", async () => {
+    setGarage(buildGarage([]));
+    const screen = await render(<ManualDoVeiculoScreen />);
+
+    expect(screen.getByText("Manual indisponível")).toBeTruthy();
+    expect(screen.getByText("Voltar")).toBeTruthy();
+  });
+
+  it("volta para a gestao do veiculo quando nao ha historico", async () => {
+    mockCanGoBack = false;
+    setGarage(
+      buildGarage([buildDocument({ id: "manual", title: "Manual do Corolla" })])
+    );
+    const screen = await render(<ManualDoVeiculoScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Voltar"));
+
+    expect(mockReplace).toHaveBeenCalledWith("/vehicle-management");
+  });
+
+  it("retorna pelo historico quando ha navegacao anterior", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "manual", title: "Manual do Corolla" })])
+    );
+    const screen = await render(<ManualDoVeiculoScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Voltar"));
+
+    expect(mockBack).toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("exibe skeletons fixos durante o carregamento", async () => {
+    setGarage(null, true);
+    const screen = await render(<ManualDoVeiculoScreen />);
+
+    expect(screen.getByLabelText("Carregando manual")).toBeTruthy();
   });
 });

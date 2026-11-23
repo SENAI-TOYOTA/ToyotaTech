@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { hasCompleteProfile } from "@/profileValidation";
+import { apiErrorMessage } from "@/services/api";
 import { fetchGarageCurrent } from "@/services/garage";
 import { GarageData } from "@/types/garage";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
@@ -51,12 +52,15 @@ async function loadGarage(session: string, token: string, force: boolean) {
       loadedSession = session;
       snapshot = { garage: result.garage, isLoading: false, error: null };
     })
-    .catch(() => {
+    .catch((cause: unknown) => {
       loadedSession = null;
       snapshot = {
         ...snapshot,
         isLoading: false,
-        error: "Não foi possível carregar os dados do veículo.",
+        error: apiErrorMessage(
+          cause,
+          "Não foi possível carregar os dados do veículo."
+        ),
       };
     })
     .finally(() => {
