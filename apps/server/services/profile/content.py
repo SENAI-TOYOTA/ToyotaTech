@@ -12,7 +12,7 @@ HIGHLIGHTS_KEY = "highlights"
 
 DEFAULT_HIGHLIGHTS = [
     {"id": "corolla", "title": "Corolla Altis", "imageKey": "corolla-main"},
-    {"id": "yaris", "title": "Yaris Cross", "imageKey": "corolla-side"},
+    {"id": "yaris", "title": "Yaris Cross", "imageKey": "yaris-cross"},
     {"id": "services", "title": "Serviços Toyota", "imageKey": "corolla-news"},
     {"id": "lifestyle", "title": "Estilo de vida", "imageKey": "corolla-main"},
 ]

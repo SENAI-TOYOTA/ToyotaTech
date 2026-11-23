@@ -105,6 +105,7 @@ describe("ContentDetailScreen", () => {
     );
 
     expect(screen.getByText("GUIA")).toBeTruthy();
+    expect(screen.getByText("Guia")).toBeTruthy();
     expect(
       screen.getByText("Equipe ToyotaTech · 22/11/2026 · 4 min de leitura")
     ).toBeTruthy();

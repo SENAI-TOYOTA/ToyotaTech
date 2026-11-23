@@ -20,6 +20,7 @@ import { canUseCorollaAltisImage } from "@/utils/vehicle";
 const mainCarImage = require("@/assets/images/corolla-main.jpg");
 const sideCarImage = require("@/assets/images/corolla-side.jpg");
 const newsImage = require("@/assets/images/corolla-news.jpg");
+const yarisImage = require("@/assets/images/yaris-cross.jpg");
 
 const highlightCardSize = 180;
 const highlightSkeletonCount = 4;
@@ -33,6 +34,7 @@ const highlightImages: Record<string, ImageSourcePropType> = {
   "corolla-main": mainCarImage,
   "corolla-side": sideCarImage,
   "corolla-news": newsImage,
+  "yaris-cross": yarisImage,
 };
 
 const toyotaTips = [

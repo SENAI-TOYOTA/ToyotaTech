@@ -32,6 +32,7 @@ const detailImages: Record<string, ImageSourcePropType> = {
   "corolla-main": require("@/assets/images/corolla-main.jpg"),
   "corolla-side": require("@/assets/images/corolla-side.jpg"),
   "corolla-news": require("@/assets/images/corolla-news.jpg"),
+  "yaris-cross": require("@/assets/images/yaris-cross.jpg"),
 };
 const fallbackImage = detailImages["corolla-news"];
 
@@ -88,6 +89,13 @@ export default function ContentDetailScreen() {
     }
   };
 
+  const headerTitle =
+    state.content?.category === "guide"
+      ? "Guia"
+      : state.content?.category === "news"
+        ? "Notícia"
+        : "Novidade";
+
   const header = (
     <View style={styles.header}>
       <InteractivePressable
@@ -102,7 +110,7 @@ export default function ContentDetailScreen() {
           color={colors.black}
         />
       </InteractivePressable>
-      <Text style={styles.headerTitle}>Conteúdo</Text>
+      <Text style={styles.headerTitle}>{headerTitle}</Text>
     </View>
   );
 
