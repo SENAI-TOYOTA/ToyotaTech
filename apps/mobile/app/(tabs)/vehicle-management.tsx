@@ -74,7 +74,9 @@ export default function VehicleManagementScreen() {
                 onPress={
                   document.id === "crlv"
                     ? () => router.push("/crlv")
-                    : undefined
+                    : document.id === "invoice"
+                      ? () => router.push("/nota-fiscal")
+                      : undefined
                 }
                 style={isPending ? styles.documentButton : undefined}
               />

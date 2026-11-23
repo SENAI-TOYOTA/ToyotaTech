@@ -13,6 +13,7 @@ import { Linking } from "react-native";
 
 import VehicleManagementScreen from "@/app/(tabs)/vehicle-management";
 import CrlvScreen from "@/app/crlv";
+import NotaFiscalScreen from "@/app/nota-fiscal";
 
 const mockPush = jest.fn<(path: string) => void>();
 const mockReplace = jest.fn<(path: string) => void>();
@@ -250,5 +251,123 @@ describe("CrlvScreen", () => {
     const screen = await render(<CrlvScreen />);
 
     expect(screen.getByText("CRLV-e indisponível")).toBeTruthy();
+  });
+});
+
+describe("NotaFiscalScreen", () => {
+  beforeEach(() => {
+    mockPush.mockReset();
+    mockReplace.mockReset();
+    jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await cleanup();
+    jest.restoreAllMocks();
+  });
+
+  it("navega da lista para a nota fiscal", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "invoice", title: "Nota fiscal" })])
+    );
+    const screen = await render(<VehicleManagementScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Nota fiscal"));
+
+    expect(mockPush).toHaveBeenCalledWith("/nota-fiscal");
+  });
+
+  it("mostra os dados da compra e nenhuma acao sem arquivo digital", async () => {
+    const openSpy = jest.spyOn(Linking, "openURL");
+    setGarage(
+      buildGarage([buildDocument({ id: "invoice", title: "Nota fiscal" })])
+    );
+    const screen = await render(<NotaFiscalScreen />);
+
+    expect(screen.getByText("Disponível")).toBeTruthy();
+    expect(screen.getByText("TT-1")).toBeTruthy();
+    expect(screen.getByText("Concessionária Toyota")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "A versão digital deste documento não está disponível neste ambiente."
+      )
+    ).toBeTruthy();
+    expect(screen.queryByText("Visualizar documento")).toBeNull();
+    expect(openSpy).not.toHaveBeenCalled();
+  });
+
+  it("abre a url quando a nota fiscal tem arquivo digital", async () => {
+    const openSpy = jest
+      .spyOn(Linking, "openURL")
+      .mockResolvedValue(true as never);
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "invoice",
+          title: "Nota fiscal",
+          url: "https://example.com/nota-fiscal.pdf",
+        }),
+      ])
+    );
+    const screen = await render(<NotaFiscalScreen />);
+
+    await fireEvent.press(screen.getByText("Visualizar documento"));
+
+    expect(openSpy).toHaveBeenCalledWith("https://example.com/nota-fiscal.pdf");
+  });
+
+  it("mostra aviso quando nao foi possivel abrir o documento", async () => {
+    const openSpy = jest
+      .spyOn(Linking, "openURL")
+      .mockRejectedValueOnce(new Error("open failed") as never);
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "invoice",
+          title: "Nota fiscal",
+          url: "https://example.com/nota-fiscal.pdf",
+        }),
+      ])
+    );
+    const screen = await render(<NotaFiscalScreen />);
+
+    await fireEvent.press(screen.getByText("Visualizar documento"));
+
+    expect(
+      await screen.findByText("Não foi possível abrir o documento.")
+    ).toBeTruthy();
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Visualizar documento")).toBeTruthy();
+  });
+
+  it("bloqueia a acao enquanto a nota fiscal esta pendente", async () => {
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "invoice",
+          title: "Nota fiscal",
+          status: "pending",
+        }),
+      ])
+    );
+    const screen = await render(<NotaFiscalScreen />);
+
+    expect(screen.getByText("Pendente")).toBeTruthy();
+    expect(screen.getByText(/está em processamento/)).toBeTruthy();
+    expect(screen.queryByText("Visualizar documento")).toBeNull();
+  });
+
+  it("mostra estado de carregamento com dimensao fixa", async () => {
+    setGarage(null, true);
+    const screen = await render(<NotaFiscalScreen />);
+
+    expect(screen.getByLabelText("Carregando nota fiscal")).toBeTruthy();
+  });
+
+  it("mostra indisponivel quando o documento nao existe", async () => {
+    setGarage(buildGarage([]));
+    const screen = await render(<NotaFiscalScreen />);
+
+    expect(screen.getByText("Nota fiscal indisponível")).toBeTruthy();
   });
 });
