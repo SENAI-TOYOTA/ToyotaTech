@@ -18,6 +18,7 @@ import NotaFiscalScreen from "@/app/nota-fiscal";
 
 const mockPush = jest.fn<(path: string) => void>();
 const mockReplace = jest.fn<(path: string) => void>();
+const mockBack = jest.fn<() => void>();
 let mockCanGoBack = true;
 
 jest.mock("react-native-reanimated", () => {
@@ -64,7 +65,7 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({
     push: mockPush,
     replace: mockReplace,
-    back: jest.fn(),
+    back: mockBack,
     canGoBack: () => mockCanGoBack,
   }),
 }));
@@ -378,6 +379,7 @@ describe("GarantiaToyotaScreen", () => {
   beforeEach(() => {
     mockPush.mockReset();
     mockReplace.mockReset();
+    mockBack.mockReset();
     mockCanGoBack = true;
     jest.clearAllMocks();
   });
@@ -385,6 +387,7 @@ describe("GarantiaToyotaScreen", () => {
   afterEach(async () => {
     await cleanup();
     jest.restoreAllMocks();
+    mockCanGoBack = true;
   });
 
   it("navega da lista para a garantia toyota", async () => {
@@ -530,6 +533,30 @@ describe("GarantiaToyotaScreen", () => {
     await fireEvent.press(screen.getByLabelText("Voltar"));
 
     expect(mockReplace).toHaveBeenCalledWith("/vehicle-management");
+  });
+
+  it("retorna para a tela anterior quando existe pilha de navegacao", async () => {
+    mockCanGoBack = true;
+    setGarage(
+      buildGarage([buildDocument({ id: "warranty", title: "Garantia Toyota" })])
+    );
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Voltar"));
+
+    expect(mockBack).toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("recarrega a garagem ao carregar a tela", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "warranty", title: "Garantia Toyota" })])
+    );
+    const reload = mockGarageValue.reload;
+
+    await render(<GarantiaToyotaScreen />);
+
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 
   it("exibe skeleton no carregamento inicial", async () => {
