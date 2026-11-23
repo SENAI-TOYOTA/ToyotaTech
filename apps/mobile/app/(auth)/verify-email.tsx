@@ -1,13 +1,18 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import { OtpInput, OtpInputRef } from "react-native-otp-entry";
 
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/contexts/AuthContext";
 import { apiErrorMessage } from "@/services/api";
 import { resendVerification, verifyEmail } from "@/services/auth";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import {
+  clearPendingRegistrationPassword,
+  consumePendingRegistrationPassword,
+} from "@/services/pendingRegistration";
+import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
 const CODE_LENGTH = 6;
@@ -15,12 +20,21 @@ const CODE_LENGTH = 6;
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const { email = "" } = useLocalSearchParams<{ email?: string }>();
+  const normalizedEmail = String(email).toLowerCase();
+  const { signIn } = useAuth();
   const otpRef = useRef<OtpInputRef>(null);
   const [verificationCode, setVerificationCode] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [autoLoginFailed, setAutoLoginFailed] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      clearPendingRegistrationPassword();
+    };
+  }, []);
 
   const handleVerifyPress = async () => {
     if (verificationCode.length !== CODE_LENGTH) {
@@ -29,6 +43,7 @@ export default function VerifyEmailScreen() {
     }
     setFormError(null);
     setFeedback(null);
+    setAutoLoginFailed(false);
 
     if (Platform.OS === "web" && typeof document !== "undefined") {
       (document.activeElement as HTMLElement | null)?.blur();
@@ -37,13 +52,32 @@ export default function VerifyEmailScreen() {
     setIsSubmitting(true);
     try {
       await verifyEmail({
-        email: String(email).toLowerCase(),
+        email: normalizedEmail,
         code: verificationCode,
       });
-      router.replace({
-        pathname: "/(auth)/login",
-        params: { email: String(email).toLowerCase() },
-      });
+      const password = consumePendingRegistrationPassword(normalizedEmail);
+      if (!password) {
+        clearPendingRegistrationPassword();
+        router.replace({
+          pathname: "/(auth)/login",
+          params: { email: normalizedEmail },
+        });
+        return;
+      }
+      try {
+        await signIn(normalizedEmail, password);
+        router.replace("/home");
+      } catch (error) {
+        clearPendingRegistrationPassword();
+        setAutoLoginFailed(true);
+        setFeedback("E-mail verificado. Entre com sua senha para continuar.");
+        setFormError(
+          apiErrorMessage(
+            error,
+            "Não foi possível entrar automaticamente. Faça login."
+          )
+        );
+      }
     } catch (error) {
       setFormError(
         apiErrorMessage(
@@ -104,8 +138,9 @@ export default function VerifyEmailScreen() {
         </View>
 
         <Button
-          title={isSubmitting ? "Verificando..." : "Verificar"}
+          title="Verificar"
           variant="primary"
+          loading={isSubmitting}
           icon={
             <ArrowRight
               size={36}
@@ -120,12 +155,26 @@ export default function VerifyEmailScreen() {
           disabled={isSubmitting || isResending}
         />
         <Button
-          title={isResending ? "Reenviando..." : "Reenviar código"}
+          title="Reenviar código"
           variant="outline"
+          loading={isResending}
           style={styles.resendButton}
           onPress={handleResendPress}
           disabled={isSubmitting || isResending}
         />
+        {autoLoginFailed ? (
+          <Button
+            title="Ir para login"
+            variant="outline"
+            style={styles.resendButton}
+            onPress={() =>
+              router.replace({
+                pathname: "/(auth)/login",
+                params: { email: normalizedEmail },
+              })
+            }
+          />
+        ) : null}
         {feedback ? <Text style={styles.feedbackText}>{feedback}</Text> : null}
         {formError ? (
           <Text style={styles.formErrorText}>{formError}</Text>
@@ -181,14 +230,14 @@ const styles = StyleSheet.create({
   pinCodeContainer: {
     width: 46,
     height: 54,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.border,
-    borderRadius: 6,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
   },
   activePinCodeContainer: {
     borderColor: colors.primary,
-    borderWidth: 2,
+    borderWidth: borders.strong,
   },
   pinCodeText: {
     fontFamily: fonts.semiBold,

@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 GARAGE_MODULES = (
     "demo",
+    "documents",
     "flows",
     "handler",
     "projection",
@@ -66,7 +67,7 @@ def seed_purchase(
         "fullName": "Maria Silva",
         "cpf": cpf,
         "purchaseDate": "03/10/2025",
-        "dealership": "Concessionaria Toyota",
+        "dealership": "Concessionária Toyota",
         "vehicle": {"chassi": "CHASSI_12345", "model": "Corolla"},
     }
     if user_id is not None:
@@ -95,6 +96,15 @@ def test_current_cria_e_persiste_garagem(dynamodb, service_loader):
     stored = dynamodb.Table("GarageTable").get_item(Key={"userId": USER["sub"]})
     assert stored["Item"]["chassi"] == body["garage"]["chassi"]
     assert stored["Item"]["purchaseId"].startswith("demo-")
+    crlv = next(
+        document for document in body["garage"]["documents"] if document["id"] == "crlv"
+    )
+    assert crlv["status"] == "available"
+    assert crlv["url"].startswith("https://")
+    stored_crlv = next(
+        document for document in stored["Item"]["documents"] if document["id"] == "crlv"
+    )
+    assert "url" not in stored_crlv
 
 
 def test_current_reutiliza_garagem_existente(dynamodb, service_loader):
@@ -274,3 +284,100 @@ def test_link_compra_ja_vinculada_retorna_409(dynamodb, service_loader):
 
     assert result["statusCode"] == 409
     assert response_body(result)["message"] == "Compra já vinculada a outro usuário."
+
+
+def test_build_financing_gera_boleto_deterministico(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        financing = modules["demo"].build_financing(CPF)
+        repeated = modules["demo"].build_financing(CPF)
+        other = modules["demo"].build_financing(OTHER_CPF)
+
+    barcode = financing["boletoBarcode"]
+    assert financing["boletoAvailable"] is True
+    assert barcode.isdigit()
+    assert len(barcode) == 47
+    assert repeated["boletoBarcode"] == barcode
+    assert other["boletoBarcode"] != barcode
+
+
+def test_backfill_boleto_preserva_codigo_valido(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        garage = {
+            "financing": {
+                "boletoAvailable": True,
+                "boletoBarcode": "1" * 47,
+            }
+        }
+        modules["demo"].backfill_boleto(garage, CPF)
+
+    assert garage["financing"]["boletoBarcode"] == "1" * 47
+
+
+def test_current_backfill_boleto_em_garagem_legada(dynamodb, service_loader):
+    seed_profile(dynamodb)
+    legacy = {
+        "userId": USER["sub"],
+        "financing": {"boletoAvailable": True, "bank": "Banco Toyota"},
+    }
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        with patch.object(modules["flows"], "authenticated_user", return_value=USER):
+            with patch.object(
+                modules["resolver"], "get_or_create_garage", return_value=legacy
+            ):
+                result = modules["handler"].lambda_handler(
+                    api_event("GET", "/garage/current"), None
+                )
+
+    barcode = response_body(result)["garage"]["financing"]["boletoBarcode"]
+    assert len(barcode) == 47
+    assert barcode.isdigit()
+
+
+def test_build_documents_crlv_available_deterministico(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        first = modules["demo"].build_documents("seed-a", "03/10/2025", {})
+        second = modules["demo"].build_documents("seed-b", "03/10/2025", {})
+
+    crlv = next(document for document in first if document["id"] == "crlv")
+    assert crlv["status"] == "available"
+    assert first == second
+
+
+def test_build_documents_demais_status_available(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        documents = modules["demo"].build_documents("seed-a", "03/10/2025", {})
+
+    statuses = {document["id"]: document["status"] for document in documents}
+    assert statuses["invoice"] == "available"
+    assert statuses["warranty"] == "available"
+    assert statuses["manual"] == "available"
+    assert statuses["maintenance-plan"] == "available"
+
+
+def test_attach_document_urls_presigna_e_nao_muta(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        garage = {"documents": [{"id": "crlv", "status": "available"}]}
+        result = modules["documents"].attach_document_urls(garage)
+
+    url = result["documents"][0]["url"]
+    assert url.startswith("https://")
+    assert "X-Amz-Signature=" in url
+    assert "X-Amz-Expires=3600" in url
+    assert "url" not in garage["documents"][0]
+
+
+def test_attach_document_urls_nao_presigna_pending(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        garage = {"documents": [{"id": "crlv", "status": "pending"}]}
+        result = modules["documents"].attach_document_urls(garage)
+
+    assert "url" not in result["documents"][0]
+
+
+def test_attach_document_urls_sem_bucket_nao_presigna(service_loader):
+    with service_loader("garage", GARAGE_MODULES) as modules:
+        with patch.object(modules["documents"], "DOCUMENTS_BUCKET", ""):
+            garage = {"documents": [{"id": "crlv", "status": "available"}]}
+            result = modules["documents"].attach_document_urls(garage)
+
+    assert "url" not in result["documents"][0]

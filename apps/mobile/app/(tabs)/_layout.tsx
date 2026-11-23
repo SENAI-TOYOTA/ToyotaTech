@@ -1,19 +1,22 @@
 import { Tabs, useRouter } from "expo-router";
 import { CarFront, CircleDollarSign, Home, User } from "lucide-react-native";
 import React, { useEffect } from "react";
-import { type ColorValue, Pressable, StyleSheet, View } from "react-native";
+import { type ColorValue, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import Logo from "@/components/Logo";
-import { colors, fontSize, spacing } from "@/theme";
+import InteractivePressable from "@/components/ui/InteractivePressable";
+import { colors, fontSize, fonts, spacing } from "@/theme";
 
-const iconSize = 22;
+const iconSize = 20;
 const iconStrokeWidth = 1.8;
 
 function TabsHeader() {
@@ -22,13 +25,14 @@ function TabsHeader() {
   return (
     <SafeAreaView edges={["top"]} style={styles.headerSafeArea}>
       <View style={styles.headerContent}>
-        <Pressable
+        <InteractivePressable
           onPress={() => router.replace("/home")}
           accessibilityRole="button"
           accessibilityLabel="Ir para o início"
+          style={styles.logoPressable}
         >
           <Logo size={fontSize.xxl + spacing.xs} />
-        </Pressable>
+        </InteractivePressable>
       </View>
     </SafeAreaView>
   );
@@ -44,25 +48,16 @@ const TabIcon = React.memo(function TabIcon({
   Icon: typeof Home;
 }) {
   const scale = useSharedValue(1);
-  const indicatorOpacity = useSharedValue(0);
-  const indicatorScale = useSharedValue(0.5);
 
   useEffect(() => {
-    scale.value = withSpring(focused ? 1.15 : 1, {
+    scale.value = withSpring(focused ? 1.05 : 1, {
       damping: 15,
       stiffness: 150,
     });
-    indicatorOpacity.value = withTiming(focused ? 1 : 0, { duration: 250 });
-    indicatorScale.value = withSpring(focused ? 1 : 0.5);
-  }, [focused, scale, indicatorOpacity, indicatorScale]);
+  }, [focused, scale]);
 
   const animatedIconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-  }));
-
-  const animatedIndicatorStyle = useAnimatedStyle(() => ({
-    opacity: indicatorOpacity.value,
-    transform: [{ scaleX: indicatorScale.value }],
   }));
 
   return (
@@ -71,26 +66,35 @@ const TabIcon = React.memo(function TabIcon({
         <Icon
           size={iconSize}
           strokeWidth={iconStrokeWidth}
-          color={color as string}
+          color={focused ? colors.primary : (color as string)}
         />
       </Animated.View>
-      <Animated.View style={[styles.tabIndicator, animatedIndicatorStyle]} />
     </View>
   );
 });
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, spacing.xs);
+
   return (
     <Tabs
       screenOptions={{
         header: () => <TabsHeader />,
         headerShadowVisible: false,
         sceneStyle: styles.scene,
-        tabBarShowLabel: false,
+        tabBarShowLabel: true,
         tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.black,
-        tabBarStyle: styles.tabBar,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: styles.tabBarLabel,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: 56 + bottomInset,
+            paddingBottom: bottomInset,
+          },
+        ],
         tabBarItemStyle: styles.tabBarItem,
       }}
     >
@@ -98,6 +102,7 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: "Início",
+          tabBarLabel: "Início",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={Home} color={color} focused={focused} />
           ),
@@ -107,6 +112,7 @@ export default function TabsLayout() {
         name="financing"
         options={{
           title: "Financiamento",
+          tabBarLabel: "Financiamento",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={CircleDollarSign} color={color} focused={focused} />
           ),
@@ -116,6 +122,7 @@ export default function TabsLayout() {
         name="vehicle-management"
         options={{
           title: "Gestão do veículo",
+          tabBarLabel: "Veículo",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={CarFront} color={color} focused={focused} />
           ),
@@ -125,15 +132,10 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Perfil",
+          tabBarLabel: "Perfil",
           tabBarIcon: ({ color, focused }) => (
             <TabIcon Icon={User} color={color} focused={focused} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="tracking"
-        options={{
-          href: null,
         }}
       />
     </Tabs>
@@ -157,31 +159,34 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     backgroundColor: colors.background,
   },
+  logoPressable: {
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+  },
   tabBar: {
-    height: spacing.xxl + spacing.md,
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    boxShadow: "0px -1px 10px rgba(0, 0, 0, 0.12)",
+    boxShadow: "0px -1px 10px rgba(0, 0, 0, 0.08)",
     elevation: 8,
     paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
   },
   tabBarItem: {
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 2,
+  },
+  tabBarLabel: {
+    fontFamily: fonts.medium,
+    fontSize: fontSize.xs,
+    marginTop: 2,
   },
   tabIconWrapper: {
-    width: 38,
-    height: 34,
+    width: 48,
+    height: 28,
     alignItems: "center",
     justifyContent: "center",
-  },
-  tabIndicator: {
-    marginTop: 6,
-    width: 18,
-    height: 2,
-    borderRadius: 999,
-    backgroundColor: colors.primary,
   },
 });

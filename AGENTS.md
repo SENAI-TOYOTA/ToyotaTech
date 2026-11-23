@@ -99,6 +99,27 @@ O projeto não possui frontend desacoplado ou backend independente: **Mobile e C
 - `theme.ts` e `profileValidation.ts` ficam **diretamente na raiz de `apps/mobile/`** (não crie subpastas `constants/` ou `utils/` para eles).
 - Não reintroduza arquivos e pastas mortas removidos em limpezas anteriores.
 
+### 5. DESIGN SYSTEM (MOBILE)
+- **Nenhum valor mágico em tela nova**. Use os tokens de `theme.ts`: `colors`, `fonts`, `fontSize`, `spacing`, `radii`, `borders`, `touch`, `sizes`, `elevation`, `layout`, `semantic`, `textStyles`.
+- **Toda tela usa `components/ui/Screen.tsx`** como container padrão (`scroll`, `keyboardAvoiding`, `edges`, `header`, `contentStyle`). O padrão de página é `layout.screenPadding` (27), `paddingTop` de `spacing.sm` e leitura limitada a `layout.readingWidth`.
+- **Componentes base**: `Button` (primary/secondary/outline, cta/row, `loading`), `TextField` (rótulo + entrada + erro), `Card` (borda 1px + fundo branco), `Badge` (pílula), `Skeleton` (dimensões fixas), `ScreenSectionHeader` e `InteractivePressable`.
+- **Área de toque mínima de 44x44** (`touch.minTarget`): quando a caixa visual for menor (`Button` layout `row` tem 40), garanta `hitSlop` em vez de inflar a altura.
+- **Sem sombra difusa nativa**: a elevação do app é a camada sólida deslocada em `elevation.offset`.
+- **Mapa de skeletons por tipo de tela** (sempre com dimensão fixa igual ao conteúdo final):
+  - Dashboard/Home: hero `300`, botão `sizes.buttonRow`, cards horizontais `180x180`.
+  - Lista/Tracking: card do veículo `300` e uma linha por item (`70` para timeline, `40` para linha de documento).
+  - Formulário/Perfil: um bloco de `sizes.inputField` por campo, apenas no carregamento inicial (nunca durante o salvamento).
+  - Detalhe/Financiamento: um bloco por card, repetindo `minHeight` do card real (`160`, `142`).
+- **Acessibilidade**: skeleton com `accessibilityLabel` vira `progressbar`; sem rótulo fica oculto do leitor de tela. Um rótulo por seção, não por bloco.
+
+### 6. PERMISSÃO ANTES DE ALTERAR (OBRIGATÓRIO)
+- **Nenhuma alteração fora da ordem textual e exata do Senhor.** Se o pedido citar um arquivo, comportamento ou componente, altere **apenas aquilo**.
+- Antes de qualquer edição, **liste os arquivos que serão tocados e o que muda em cada um**, e **aguarde permissão explícita**. Se a implementação exigir tocar em algo não solicitado, **pare e peça autorização** — nunca decida por conta própria.
+- **Proibido substituir, reordenar, mover, inverter, redimensionar ou "padronizar"** elementos existentes (botões, ícones, sombras, lados, cores) sem ordem explícita para aquele elemento.
+- **Proibida varredura automática** (regex, script, find/replace) sobre pastas inteiras. Toda edição é cirúrgica, arquivo por arquivo, revisada antes de aplicar.
+- Se um commit anterior alterou algo não autorizado, **avise imediatamente** e proponha o revert; não siga trabalhando em cima.
+
+
 ---
 
 ## 4. Como Validar as Alterações (Gates de CI)
@@ -115,13 +136,13 @@ npx tsc --noEmit && npm run check && npm test
 - **Typecheck**: `npx tsc --noEmit`
 - **Lint**: `npm run lint` (`eslint . --max-warnings=0`)
 - **Prettier**: `npm run format:check`
-- **Testes**: `npm test` (Jest - 5 suítes e 56 testes passando)
+- **Testes**: `npm test` (Jest - 14 suítes e 120 testes passando)
 
 ### No Backend & Contratos (`apps/server`):
 ```bash
 # Linter e formatação Python:
 ruff check apps/server && ruff format --check apps/server
 
-# Testes unitários e contratos TypeScript (226 testes passando):
+# Testes unitários e contratos TypeScript (287 testes passando):
 .venv/bin/python -m pytest apps/server -q
 ```

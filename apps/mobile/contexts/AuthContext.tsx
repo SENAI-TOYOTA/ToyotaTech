@@ -8,7 +8,6 @@ import {
   useState,
 } from "react";
 
-import { hasCompleteProfile } from "@/profileValidation";
 import { ApiError } from "@/services/api";
 import {
   fetchMe,
@@ -17,7 +16,6 @@ import {
   register,
   setPassword as setPasswordService,
 } from "@/services/auth";
-import { fetchGarageCurrent } from "@/services/garage";
 import {
   deleteStoredSession,
   getSessionPersistence,
@@ -89,22 +87,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [sessionPersistence, setSessionPersistence] =
     useState<SessionPersistence>(getSessionPersistence);
 
-  const bootstrapGarage = useCallback(
-    async (accessToken: string, nextUser: AuthUser | null) => {
-      if (!hasCompleteProfile(nextUser)) {
-        return;
-      }
-      try {
-        await fetchGarageCurrent(accessToken);
-      } catch (error) {
-        if (__DEV__) {
-          console.warn("[GARAGE] Failed to initialize garage", error);
-        }
-      }
-    },
-    []
-  );
-
   const clearSession = useCallback(async () => {
     await clearSessionOps();
     setUser(null);
@@ -162,7 +144,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
       });
       setSession(activeSession);
       setUser(meResult.user);
-      await bootstrapGarage(activeSession.accessToken, meResult.user);
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         try {
@@ -172,7 +153,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
           });
           setSession(refreshedSession);
           setUser(meResult.user);
-          await bootstrapGarage(refreshedSession.accessToken, meResult.user);
         } catch {
           if (__DEV__) {
             console.warn(
@@ -188,7 +168,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } finally {
       setIsLoadingSession(false);
     }
-  }, [bootstrapGarage, clearSession]);
+  }, [clearSession]);
 
   useEffect(() => {
     hydrateSession();
@@ -201,13 +181,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       try {
         const meResult = await fetchMe(nextSession.accessToken);
         setUser(meResult.user);
-        await bootstrapGarage(nextSession.accessToken, meResult.user);
       } catch (error) {
         await clearSession();
         throw error;
       }
     },
-    [bootstrapGarage, clearSession]
+    [clearSession]
   );
 
   const signIn = useCallback(

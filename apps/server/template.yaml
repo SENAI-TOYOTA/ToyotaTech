@@ -105,6 +105,8 @@ Resources:
           COGNITO_USER_POOL_ID: !Ref UserPool
           COGNITO_CLIENT_ID: !Ref UserPoolClient
           PROFILE_TABLE_NAME: !Ref ProfilesTable
+          RATE_LIMIT_TABLE_NAME: !Ref AuthRateLimitTable
+          CONTENT_TABLE_NAME: !Ref ContentTable
       Events:
         GetProfile:
           Type: HttpApi
@@ -124,6 +126,18 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /me
             Method: GET
+        GetHighlights:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /content/highlights
+            Method: GET
+        GetContentDetail:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /content/highlights/{id}
+            Method: GET
 
   GarageFunction:
     Type: AWS::Serverless::Function
@@ -139,6 +153,7 @@ Resources:
           GARAGE_TABLE_NAME: !Ref GarageTable
           PURCHASE_TABLE_NAME: !Ref PurchasesTable
           PROFILE_TABLE_NAME: !Ref ProfilesTable
+          DOCUMENTS_BUCKET: !Ref DocumentsBucket
       Events:
         GetCurrent:
           Type: HttpApi
@@ -246,6 +261,46 @@ Resources:
       KeySchema:
         - AttributeName: userId
           KeyType: HASH
+
+  ContentTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+
+  DocumentsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  DocumentsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DocumentsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowLabRoleGetObject
+            Effect: Allow
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${AWS::AccountId}:role/LabRole
+            Action: s3:GetObject
+            Resource: !Sub arn:${AWS::Partition}:s3:::${DocumentsBucket}/*
 
   GarageTable:
     Type: AWS::DynamoDB::Table

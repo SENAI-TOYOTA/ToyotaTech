@@ -1,4 +1,4 @@
-import { colors, fonts, spacing } from "@/theme";
+import { borders, colors, fonts, spacing } from "@/theme";
 import { StyleSheet, Text, View } from "react-native";
 
 interface VehicleFallbackProps {
@@ -24,7 +24,7 @@ export default function VehicleFallback({
 
   return (
     <View style={variant === "hero" ? styles.hero : styles.card}>
-      <Text style={styles.eyebrow}>LINKED VEHICLE</Text>
+      <Text style={styles.eyebrow}>VEÍCULO VINCULADO</Text>
       <Text style={variant === "hero" ? styles.modelHero : styles.modelCard}>
         {displayModel}
       </Text>
@@ -32,7 +32,7 @@ export default function VehicleFallback({
         {specs}
       </Text>
       {variant === "hero" && chassi ? (
-        <Text style={styles.chassi}>Chassis {chassi}</Text>
+        <Text style={styles.chassi}>Chassi {chassi}</Text>
       ) : null}
       <Text style={variant === "hero" ? styles.noteHero : styles.noteCard}>
         Imagem ilustrativa indisponível
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
   hero: {
     width: "100%",
     height: "100%",
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     padding: spacing.lg,
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   card: {
     width: "100%",
     height: "100%",
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: colors.white,
     padding: spacing.md,
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   noteHero: {
     marginTop: spacing.lg,
     alignSelf: "flex-start",
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,

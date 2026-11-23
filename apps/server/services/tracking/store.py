@@ -1,12 +1,14 @@
+import json
 import os
 import time
+from decimal import Decimal
 from typing import Any, Dict, Optional
 
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from common.ddb import get_table
-from common.responses import error_body
+from common.responses import ApiError, error_body
 
 TRACKING_TABLE_NAME = os.environ.get("TRACKING_TABLE_NAME", "").strip()
 GARAGE_TABLE_NAME = os.environ.get("GARAGE_TABLE_NAME", "").strip()
@@ -14,7 +16,9 @@ CHASSI_INDEX_NAME = "chassi-index"
 
 
 def get_garage(user_id: str) -> Optional[Dict[str, Any]]:
-    result = get_table(GARAGE_TABLE_NAME).get_item(Key={"userId": user_id})
+    result = get_table(GARAGE_TABLE_NAME).get_item(
+        Key={"userId": user_id}, ConsistentRead=True
+    )
     item = result.get("Item")
     return item if isinstance(item, dict) else None
 
@@ -31,7 +35,20 @@ def find_garage_by_chassi(chassi: str) -> Optional[Dict[str, Any]]:
             Limit=1,
         )
         items = result.get("Items", [])
-        return items[0] if items else None
+        if not items:
+            return None
+
+        item = items[0]
+        user_id = item.get("userId")
+        if not isinstance(user_id, str) or not user_id:
+            return item
+
+        consistent = table.get_item(Key={"userId": user_id}, ConsistentRead=True).get(
+            "Item"
+        )
+        if isinstance(consistent, dict) and consistent.get("chassi") == normalized:
+            return consistent
+        return None
     except ClientError as error:
         code, _ = error_body(error)
         if code in {"ValidationException", "ResourceNotFoundException"}:
@@ -40,19 +57,77 @@ def find_garage_by_chassi(chassi: str) -> Optional[Dict[str, Any]]:
 
 
 def save_event(
-    vehicle_id: str, payload: Dict[str, Any], stage: str, status: str
+    vehicle_id: str,
+    payload: Dict[str, Any],
+    stage: str,
+    status: str,
+    event_timestamp: Optional[int] = None,
 ) -> Dict[str, Any]:
     now = int(time.time())
+    timestamp = now if event_timestamp is None else int(event_timestamp)
+    try:
+        stored_payload = json.loads(
+            json.dumps(payload, allow_nan=False), parse_float=Decimal
+        )
+    except (TypeError, ValueError) as error:
+        raise ApiError(400, "Payload de tracking inválido.") from error
+
     event = {
         "vehicleId": vehicle_id,
-        "timestamp": now,
+        "timestamp": timestamp,
         "stage": stage,
         "status": status,
-        "payload": payload,
+        "payload": stored_payload,
         "receivedAt": now,
     }
-    get_table(TRACKING_TABLE_NAME).put_item(Item=event)
+    try:
+        get_table(TRACKING_TABLE_NAME).put_item(
+            Item=event,
+            ConditionExpression="attribute_not_exists(#timestamp)",
+            ExpressionAttributeNames={"#timestamp": "timestamp"},
+        )
+    except ClientError as error:
+        code, _ = error_body(error)
+        if code == "ConditionalCheckFailedException":
+            return event
+        if code == "ValidationException":
+            raise ApiError(400, "Payload de tracking inválido.") from error
+        raise
     return event
+
+
+def update_garage_tracking(
+    user_id: str, tracking: Dict[str, Any], tracking_updated_at: int
+) -> bool:
+    normalized = user_id.strip()
+    if not normalized:
+        return False
+
+    try:
+        get_table(GARAGE_TABLE_NAME).update_item(
+            Key={"userId": normalized},
+            UpdateExpression=(
+                "SET #tracking = :tracking, "
+                "trackingUpdatedAt = :trackingUpdatedAt, "
+                "updatedAt = :updatedAt"
+            ),
+            ConditionExpression=(
+                "attribute_not_exists(trackingUpdatedAt) "
+                "OR trackingUpdatedAt < :trackingUpdatedAt"
+            ),
+            ExpressionAttributeNames={"#tracking": "tracking"},
+            ExpressionAttributeValues={
+                ":tracking": tracking,
+                ":trackingUpdatedAt": int(tracking_updated_at),
+                ":updatedAt": int(time.time()),
+            },
+        )
+    except ClientError as error:
+        code, _ = error_body(error)
+        if code != "ConditionalCheckFailedException":
+            raise
+        return False
+    return True
 
 
 def latest_event(vehicle_id: str) -> Optional[Dict[str, Any]]:
@@ -62,6 +137,7 @@ def latest_event(vehicle_id: str) -> Optional[Dict[str, Any]]:
         KeyConditionExpression=Key("vehicleId").eq(vehicle_id),
         ScanIndexForward=False,
         Limit=1,
+        ConsistentRead=True,
     )
     items = result.get("Items", [])
     return items[0] if items else None

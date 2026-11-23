@@ -1,11 +1,26 @@
+import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import InteractivePressable from "@/components/ui/InteractivePressable";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
+import Skeleton from "@/components/ui/Skeleton";
 import { useGarage } from "@/hooks/useGarage";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
+import { documentStatusLabel } from "@/utils/document";
+
+const documentSkeletonIds = [
+  "document-1",
+  "document-2",
+  "document-3",
+  "document-4",
+  "document-5",
+  "document-6",
+];
 
 const documentDatePattern =
   /(?:\s*[-|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
@@ -19,65 +34,91 @@ function getDocumentDisplayTitle(title: string) {
 }
 
 export default function VehicleManagementScreen() {
-  const { garage } = useGarage();
+  const router = useRouter();
+  const { garage, isLoading } = useGarage();
 
   const documents = garage?.documents ?? [];
   const recalls = garage?.recalls ?? [];
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        <Animated.View entering={FadeInDown.duration(600).springify()}>
-          <ScreenSectionHeader
-            title="Gestão do veículo"
-            subtitle="Documentos digitais, lembretes e mais!"
-            style={styles.sectionHeader}
-          />
-        </Animated.View>
+    <Screen>
+      <Animated.View entering={FadeInDown.duration(600).springify()}>
+        <ScreenSectionHeader
+          title="Gestão do veículo"
+          subtitle="Documentos digitais, lembretes e mais!"
+          style={styles.sectionHeader}
+        />
+      </Animated.View>
 
-        <View style={styles.documentList}>
-          {documents.length ? (
-            documents.map((document, index) => {
-              const documentTitle = getDocumentDisplayTitle(document.title);
+      <View style={styles.documentList}>
+        {documents.length ? (
+          documents.map((document, index) => {
+            const documentTitle =
+              document.id === "manual"
+                ? "Manual do Toyota"
+                : getDocumentDisplayTitle(document.title);
 
-              return (
-                <Animated.View
-                  key={document.id}
-                  entering={FadeInDown.delay(200 + index * 100)
-                    .duration(600)
-                    .springify()}
-                  style={styles.documentButtonWrapper}
-                >
-                  <View style={styles.documentButtonShadow} />
-                  <InteractivePressable style={styles.documentButton}>
-                    <View style={styles.documentButtonContent}>
-                      <Text style={styles.documentButtonText}>
-                        {documentTitle}
-                      </Text>
-                    </View>
-                    <ArrowRight
-                      size={30}
-                      strokeWidth={2.4}
-                      color={colors.black}
+            const isPending = document.status === "pending";
+            const documentButton = (
+              <Button
+                variant="secondary"
+                layout="row"
+                title={documentTitle}
+                icon={
+                  <ArrowRight
+                    size={26}
+                    strokeWidth={2.4}
+                    color={colors.black}
+                  />
+                }
+                onPress={
+                  document.id === "crlv"
+                    ? () => router.push("/crlv")
+                    : undefined
+                }
+                style={isPending ? styles.documentButton : undefined}
+              />
+            );
+
+            return (
+              <Animated.View
+                key={document.id}
+                entering={FadeInDown.delay(200 + index * 100)
+                  .duration(600)
+                  .springify()}
+              >
+                {isPending ? (
+                  <View style={styles.documentRow}>
+                    {documentButton}
+                    <Badge
+                      label={documentStatusLabel(document.status)}
+                      style={styles.documentBadge}
                     />
-                  </InteractivePressable>
-                </Animated.View>
-              );
-            })
-          ) : (
-            <Text style={styles.emptyStateText}>
-              Nenhum documento vinculado.
-            </Text>
-          )}
-        </View>
+                  </View>
+                ) : (
+                  documentButton
+                )}
+              </Animated.View>
+            );
+          })
+        ) : isLoading ? (
+          documentSkeletonIds.map((documentSkeletonId, index) => (
+            <Skeleton
+              key={documentSkeletonId}
+              height={40}
+              borderRadius={radii.sm}
+              accessibilityLabel={
+                index === 0 ? "Carregando documentos" : undefined
+              }
+            />
+          ))
+        ) : (
+          <Text style={styles.emptyStateText}>Nenhum documento vinculado.</Text>
+        )}
+      </View>
 
-        <Animated.View
-          entering={FadeInDown.delay(700).duration(600).springify()}
-          style={styles.recallCard}
-        >
+      <Animated.View entering={FadeInDown.delay(700).duration(600).springify()}>
+        <Card style={styles.recallCard} padding={0}>
           <Text style={styles.recallTitle}>Programas de recall</Text>
           <Text style={styles.recallDescription}>
             Notificações e agendamentos de reparos obrigatórios.
@@ -94,28 +135,21 @@ export default function VehicleManagementScreen() {
                   ) : null}
                 </View>
               ))
+            ) : isLoading ? (
+              <Skeleton height={44} borderRadius={radii.sm} />
             ) : (
               <Text style={styles.recallEmptyText}>
                 Nenhum recall registrado.
               </Text>
             )}
           </View>
-        </Animated.View>
-      </ScrollView>
-    </View>
+        </Card>
+      </Animated.View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  contentContainer: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg + 3,
-    paddingBottom: spacing.xxl + spacing.xxl,
-  },
   sectionHeader: {
     marginTop: spacing.lg,
   },
@@ -123,38 +157,16 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl + spacing.sm + 2,
     gap: spacing.xl,
   },
-  documentButtonWrapper: {
-    height: spacing.xxl - spacing.sm + 2,
-    marginRight: spacing.sm - 1,
-  },
-  documentButtonShadow: {
-    position: "absolute",
-    top: spacing.xs,
-    left: spacing.sm - 1,
-    right: -(spacing.sm - 1),
-    bottom: -spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: "transparent",
-  },
-  documentButton: {
-    height: spacing.xxl - spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.md + 2,
+  documentRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: spacing.sm,
   },
-  documentButtonContent: {
+  documentButton: {
     flex: 1,
-    paddingRight: spacing.sm,
   },
-  documentButtonText: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xl,
-    color: colors.textPrimary,
+  documentBadge: {
+    alignSelf: "center",
   },
   emptyStateText: {
     fontFamily: fonts.regular,
@@ -163,8 +175,6 @@ const styles = StyleSheet.create({
   },
   recallCard: {
     marginTop: spacing.xl + spacing.sm + 2,
-    borderWidth: 1,
-    borderColor: colors.black,
     paddingHorizontal: spacing.md - 2,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm + 2,
@@ -187,8 +197,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   recallItem: {
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
+    borderRadius: radii.sm,
     backgroundColor: colors.white,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.sm,

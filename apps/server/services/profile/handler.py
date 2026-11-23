@@ -1,17 +1,30 @@
 import json
 from typing import Any, Dict
 
+import content
 import flows
 from botocore.exceptions import ClientError
 
 from common.cognito import COGNITO_CLIENT_ID
+from common.ratelimit import enforce_rate_limit
 from common.responses import ApiError, log_error, response
 
 ROUTES = {
     "GET /profile": flows.read_profile,
     "PUT /profile": flows.save_profile,
     "GET /me": flows.me,
+    "GET /content/highlights": content.get_highlights,
 }
+
+
+def _api_error_response(error: ApiError) -> Dict[str, Any]:
+    headers = None
+    retry_after = error.extra.get("retryAfter")
+    if error.status_code == 429 and retry_after is not None:
+        headers = {"Retry-After": str(retry_after)}
+    return response(
+        error.status_code, {"message": error.message, **error.extra}, headers
+    )
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -27,13 +40,28 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return response(204, {})
 
     route = ROUTES.get(f"{method} {path}")
+    if route is None and method == "GET" and path.startswith("/content/highlights/"):
+        content_id = path.rsplit("/", 1)[-1]
+
+        def route(event: Dict[str, Any]) -> Dict[str, Any]:
+            return content.get_content_detail(event, content_id)
+
     if route is None:
         return response(404, {"message": "Rota não encontrada."})
+
+    source_ip = (event.get("requestContext", {}).get("http") or {}).get("sourceIp", "")
+    if method == "PUT" and path == "/profile":
+        try:
+            enforce_rate_limit(source_ip, f"{method} {path}")
+        except ApiError as error:
+            return _api_error_response(error)
+        except ClientError as error:
+            log_error("Rate limit store error.", event=event, error=error)
 
     try:
         return response(200, route(event))
     except ApiError as error:
-        return response(error.status_code, {"message": error.message, **error.extra})
+        return _api_error_response(error)
     except ClientError as error:
         log_error("Cognito error.", event=event, error=error)
         return response(500, {"message": "Erro interno."})

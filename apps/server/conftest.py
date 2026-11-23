@@ -26,6 +26,8 @@ ENVIRONMENT_DEFAULTS = {
     "GARAGE_TABLE_NAME": "GarageTable",
     "PURCHASE_TABLE_NAME": "PurchasesTable",
     "TRACKING_TABLE_NAME": "TrackingTable",
+    "CONTENT_TABLE_NAME": "ContentTable",
+    "DOCUMENTS_BUCKET": "DocumentsBucket",
     "RATE_LIMIT_TABLE_NAME": "",
     "INGEST_KEY_PARAMETER_NAME": "/toyotatech/garage/ingest/key",
     "AWS_ACCESS_KEY_ID": "testing",
@@ -110,8 +112,10 @@ def reset_ingest_key():
     import common.ingest_key as ingest_key
 
     ingest_key._cached_key = None
+    ingest_key._cached_at = None
     yield
     ingest_key._cached_key = None
+    ingest_key._cached_at = None
 
 
 def _create_profiles_table(resource):
@@ -119,6 +123,15 @@ def _create_profiles_table(resource):
         TableName="ProfileTable",
         KeySchema=[{"AttributeName": "userId", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "userId", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+
+def _create_content_table(resource):
+    return resource.create_table(
+        TableName="ContentTable",
+        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
         BillingMode="PAY_PER_REQUEST",
     )
 
@@ -199,8 +212,16 @@ def dynamodb(monkeypatch):
     with mock_aws():
         resource = boto3.resource("dynamodb", region_name=REGION)
         _create_profiles_table(resource)
+        _create_content_table(resource)
         _create_garage_table(resource)
         _create_purchases_table(resource)
         _create_tracking_table(resource)
+        s3 = boto3.client("s3", region_name=REGION)
+        s3.create_bucket(Bucket="DocumentsBucket")
+        s3.put_object(
+            Bucket="DocumentsBucket",
+            Key="documents/demo/crlv.pdf",
+            Body=b"%PDF-1.4\n",
+        )
         monkeypatch.setattr("common.ddb.dynamodb_resource", resource)
         yield resource

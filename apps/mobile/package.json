@@ -15,59 +15,51 @@
     "check": "npm run lint && npm run format:check",
     "test": "jest"
   },
-  "jest": {
-    "testEnvironment": "node",
-    "setupFiles": [
-      "<rootDir>/jest.setup.ts"
-    ],
-    "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/$1"
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|expo/virtual/.*|react-navigation|@react-navigation/.*|native-base|react-native-svg))"
-    ]
-  },
   "dependencies": {
     "@expo-google-fonts/afacad": "^0.4.1",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
-    "expo": "^58.0.20",
-    "expo-auth-session": "~58.0.15",
+    "expo": "~58.0.25",
+    "expo-auth-session": "~58.0.18",
     "expo-checkbox": "~58.0.2",
     "expo-constants": "~58.0.13",
+    "expo-crypto": "~58.0.8",
     "expo-font": "~58.0.10",
-    "expo-image": "~58.0.17",
-    "expo-linking": "~58.0.14",
-    "expo-router": "~58.0.27",
-    "expo-secure-store": "~58.0.2",
-    "expo-splash-screen": "~58.0.11",
-    "expo-status-bar": "~58.0.4",
-    "expo-symbols": "~58.0.4",
-    "expo-system-ui": "~58.0.6",
-    "expo-web-browser": "~58.0.7",
+    "expo-image": "~58.0.18",
+    "expo-linking": "~58.0.17",
+    "expo-router": "~58.0.31",
+    "expo-secure-store": "~58.0.3",
+    "expo-splash-screen": "~58.0.14",
+    "expo-status-bar": "~58.0.5",
+    "expo-symbols": "~58.0.5",
+    "expo-system-ui": "~58.0.7",
+    "expo-web-browser": "~58.0.8",
     "lucide-react-native": "^1.7.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-native": "0.88.0",
+    "react-native": "0.88.1",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-otp-entry": "^1.8.5",
     "react-native-reanimated": "4.7.1",
-    "react-native-safe-area-context": "~5.10.1",
-    "react-native-screens": "~4.30.0",
+    "react-native-safe-area-context": "~5.11.1",
+    "react-native-screens": "~4.30.1",
     "react-native-svg": "15.16.0",
     "react-native-web": "^0.21.4",
     "react-native-worklets": "0.13.0"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^14.1.0",
     "@types/node": "^26.4.1",
     "@types/react": "~19.3.0",
     "babel-jest": "^29.7.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~58.0.4",
     "jest": "~30.5.2",
+    "jest-expo": "~58.0.0",
     "prettier": "^3.8.3",
     "prettier-plugin-organize-imports": "^4.3.0",
+    "react-test-renderer": "^19.3.0",
     "typescript": "~6.0.3"
   },
   "private": true

@@ -2,6 +2,7 @@ import time
 from typing import Any, Dict
 
 import demo
+import documents
 import projection
 import purchases
 import resolver
@@ -13,15 +14,36 @@ from common.ddb import get_table
 from common.responses import ApiError, error_body, parse_body, require
 
 
+def _backfill_boleto(garage: Dict[str, Any], user: Dict[str, Any]) -> Dict[str, Any]:
+    financing = garage.get("financing")
+    if not isinstance(financing, dict) or not financing.get("boletoAvailable"):
+        return garage
+    barcode = validation.coerce_text(financing.get("boletoBarcode"))
+    if len(barcode) == 47 and barcode.isdigit():
+        return garage
+    user_id = validation.coerce_text(user.get("sub"))
+    profile = resolver.get_profile(user_id) if user_id else {}
+    demo.backfill_boleto(garage, demo.build_seed(user, profile))
+    return garage
+
+
+def _garage_response(garage: Dict[str, Any], user: Dict[str, Any]) -> Dict[str, Any]:
+    return documents.attach_document_urls(_backfill_boleto(garage, user))
+
+
 def current(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
-    return {"garage": resolver.get_or_create_garage(user)}
+    garage = resolver.get_or_create_garage(user)
+    return {"garage": _garage_response(garage, user)}
 
 
 def resolve(event: Dict[str, Any]) -> Dict[str, Any]:
     user = authenticated_user(event)
     garage, purchase, match_source = resolver.resolve_garage(user, force=True)
-    body: Dict[str, Any] = {"garage": garage, "matchSource": match_source}
+    body: Dict[str, Any] = {
+        "garage": _garage_response(garage, user),
+        "matchSource": match_source,
+    }
     if purchase:
         body["purchase"] = purchase
     return body
@@ -53,7 +75,7 @@ def upsert(event: Dict[str, Any]) -> Dict[str, Any]:
     garage["updatedAt"] = now
 
     table.put_item(Item=garage)
-    return {"garage": garage}
+    return {"garage": _garage_response(garage, user)}
 
 
 def link(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -107,4 +129,7 @@ def link(event: Dict[str, Any]) -> Dict[str, Any]:
     garage["matchConfidence"] = "high"
     garage["matchAlgorithmVersion"] = demo.GARAGE_MATCH_ALGORITHM_VERSION
     get_table(resolver.GARAGE_TABLE_NAME).put_item(Item=garage)
-    return {"garage": garage, "purchase": linked_purchase}
+    return {
+        "garage": _garage_response(garage, user),
+        "purchase": linked_purchase,
+    }

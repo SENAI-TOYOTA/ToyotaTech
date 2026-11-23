@@ -1,13 +1,18 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight, Eye } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 
 import Button from "@/components/ui/Button";
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { validatePassword } from "@/profileValidation";
 import { apiErrorMessage } from "@/services/api";
+import {
+  clearPendingRegistrationPassword,
+  setPendingRegistrationPassword,
+} from "@/services/pendingRegistration";
 import { colors, fonts, fontSize, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
@@ -52,11 +57,13 @@ export default function RegisterScreen() {
     try {
       const result = await signUp(normalizedEmail, password);
       if (result.requiresEmailVerification) {
+        setPendingRegistrationPassword(normalizedEmail, password);
         router.push({
           pathname: "/(auth)/verify-email",
           params: { email: normalizedEmail },
         });
       } else {
+        clearPendingRegistrationPassword();
         router.replace({
           pathname: "/(auth)/login",
           params: { email: normalizedEmail },
@@ -95,7 +102,7 @@ export default function RegisterScreen() {
           containerStyle={styles.passwordInputContainer}
           style={styles.passwordInputText}
         />
-        <Pressable
+        <InteractivePressable
           style={styles.visibilityRow}
           onPress={() => setShowPassword((current) => !current)}
         >
@@ -103,7 +110,7 @@ export default function RegisterScreen() {
           <Text style={styles.visibilityText}>
             {showPassword ? "OCULTAR" : "EXIBIR"}
           </Text>
-        </Pressable>
+        </InteractivePressable>
 
         <Text style={styles.passwordHintText}>
           Mínimo de 8 caracteres com pelo menos uma letra maiúscula, uma
@@ -115,8 +122,9 @@ export default function RegisterScreen() {
         ) : null}
 
         <Button
-          title={isSubmitting ? "Criando..." : "Criar conta"}
+          title="Criar conta"
           variant="primary"
+          loading={isSubmitting}
           icon={
             <ArrowRight
               size={36}

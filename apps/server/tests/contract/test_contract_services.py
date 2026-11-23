@@ -19,11 +19,12 @@ PASSWORD = "Password1!"
 ALLOWED_ORIGIN = "https://app.example.com"
 
 SERVICE_MODULES = {
-    "profile": ["flows", "validation"],
+    "profile": ["flows", "validation", "content"],
     "garage": [
         "flows",
         "validation",
         "demo",
+        "documents",
         "projection",
         "purchases",
         "resolver",
@@ -107,6 +108,7 @@ def contract(monkeypatch):
             ("ProfileTable", "userId"),
             ("RateLimitTable", "pk"),
             ("TrackingTable", "vehicleId"),
+            ("ContentTable", "pk"),
         )
         for name, key in tables:
             dynamodb.create_table(
@@ -131,6 +133,32 @@ def contract(monkeypatch):
             ],
             BillingMode="PAY_PER_REQUEST",
         )
+        dynamodb.Table("ContentTable").put_item(
+            Item={
+                "pk": "highlights",
+                "highlights": [
+                    {
+                        "id": "corolla",
+                        "title": "Corolla Altis",
+                        "imageKey": "corolla-main",
+                        "imageUrl": "https://example.com/highlight.jpg",
+                        "category": "guide",
+                        "author": "Equipe ToyotaTech",
+                        "publishedAt": "22/11/2026",
+                        "readingTime": 4,
+                        "summary": "Resumo do conteúdo.",
+                        "body": ["Primeiro parágrafo.", "Segundo parágrafo."],
+                    }
+                ],
+            }
+        )
+        s3 = boto3.client("s3", region_name="us-east-1")
+        s3.create_bucket(Bucket="DocumentsBucket")
+        s3.put_object(
+            Bucket="DocumentsBucket",
+            Key="documents/demo/crlv.pdf",
+            Body=b"%PDF-1.4\n",
+        )
 
         cognito_module = importlib.import_module("common.cognito")
         cognito_users = importlib.import_module("common.cognito_users")
@@ -148,6 +176,8 @@ def contract(monkeypatch):
         monkeypatch.setenv("PROFILE_TABLE_NAME", "ProfileTable")
         monkeypatch.setenv("GARAGE_TABLE_NAME", "GarageTable")
         monkeypatch.setenv("TRACKING_TABLE_NAME", "TrackingTable")
+        monkeypatch.setenv("CONTENT_TABLE_NAME", "ContentTable")
+        monkeypatch.setenv("DOCUMENTS_BUCKET", "DocumentsBucket")
         monkeypatch.setenv("PURCHASE_TABLE_NAME", "")
 
         yield ContractContext(cognito, dynamodb, pool_id, client_id)
@@ -211,6 +241,39 @@ def test_profile_update_returns_profile_shape(contract):
     assert set(body["profile"]) == {"fullName", "birthDate", "cpf"}
 
 
+def test_profile_duplicate_cpf_returns_409(contract):
+    first_email = seed_email(contract, "cpf-duplicado-a")
+    second_email = seed_email(contract, "cpf-duplicado-b")
+    first_token = contract.access_token(first_email)
+    second_token = contract.access_token(second_email)
+    with service_handler("profile") as handler:
+        first_status, _, _ = call(
+            handler,
+            "PUT",
+            "/profile",
+            {
+                "fullName": "Maria Silva",
+                "birthDate": "01/02/1990",
+                "cpf": "52998224725",
+            },
+            token=first_token,
+        )
+        second_status, _, second_body = call(
+            handler,
+            "PUT",
+            "/profile",
+            {
+                "fullName": "João Souza",
+                "birthDate": "02/03/1991",
+                "cpf": "52998224725",
+            },
+            token=second_token,
+        )
+    assert first_status == 200
+    assert second_status == 409
+    assert second_body["message"] == "CPF já vinculado a outro usuário."
+
+
 def test_profile_without_token_returns_401(contract):
     with service_handler("profile") as handler:
         status, _, body = call(handler, "GET", "/profile")
@@ -225,8 +288,16 @@ def test_me_returns_user_with_profile(contract):
         status, headers, body = call(handler, "GET", "/me", token=token)
     assert status == 200
     assert set(body) == {"user"}
-    assert set(body["user"]) == {"email", "name", "isVerified", "sub", "profile"}
+    assert set(body["user"]) == {
+        "email",
+        "name",
+        "isVerified",
+        "sub",
+        "profile",
+        "profileComplete",
+    }
     assert body["user"]["email"] == email
+    assert body["user"]["profileComplete"] is False
     assert headers["Access-Control-Expose-Headers"] == "Retry-After"
 
 
@@ -333,6 +404,14 @@ def build_contract_cases(contract):
     with service_handler("profile") as profile_handler:
         profile_body = call(profile_handler, "GET", "/profile", token=token)[2]
         me_body = call(profile_handler, "GET", "/me", token=token)[2]
+        highlights_status, _, highlights_body = call(
+            profile_handler, "GET", "/content/highlights"
+        )
+        assert highlights_status == 200, highlights_body
+        detail_status, _, content_detail_body = call(
+            profile_handler, "GET", "/content/highlights/corolla"
+        )
+        assert detail_status == 200, content_detail_body
 
     with service_handler("garage") as garage_handler:
         status, _, _ = call(
@@ -352,6 +431,8 @@ def build_contract_cases(contract):
     return [
         ("profileRead", "ProfileResponse", profile_body),
         ("me", "meResponse", me_body),
+        ("highlights", "HighlightsResponse", highlights_body),
+        ("contentDetail", "ContentDetailResponse", content_detail_body),
         ("garageCurrent", "garageBody", garage_body),
         ("garageResolve", "resolveResponse", resolve_body),
         ("garageStatus", "statusResponse", status_body),
@@ -361,6 +442,8 @@ def build_contract_cases(contract):
 def write_contract_file(cases):
     lines = [
         'import type { ProfileResponse } from "@/types/profile";',
+        'import type { HighlightsResponse } from "@/types/content";',
+        'import type { ContentDetailResponse } from "@/types/content";',
         'import type { AuthUser } from "@/types/auth";',
         'import type { GarageData } from "@/types/garage";',
         'import type { TrackingInfo } from "@/types/tracking";',

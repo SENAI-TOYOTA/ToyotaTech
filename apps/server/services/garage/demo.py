@@ -12,7 +12,7 @@ DEMO_VEHICLE_CATALOG = [
     {
         "model": "Toyota Corolla Altis",
         "version": "Hybrid 2025",
-        "color": "Branco Perola",
+        "color": "Branco Pérola",
         "year": "2025",
         "engine": "1.8 Hybrid",
     },
@@ -73,6 +73,24 @@ def format_next_due_date(seed: str) -> str:
     return f"{due_day:02d}/{month:02d}/{year:04d}"
 
 
+def build_boleto_barcode(digest: str) -> str:
+    stream = digest + hashlib.sha1(digest.encode("utf-8")).hexdigest()
+    return "".join(str(int(char, 16) % 10) for char in stream)[:47]
+
+
+def backfill_boleto(garage: Dict[str, Any], seed: str) -> None:
+    financing = garage.get("financing")
+    if not isinstance(financing, dict) or not financing.get("boletoAvailable"):
+        return
+    barcode = validation.coerce_text(financing.get("boletoBarcode"))
+    if len(barcode) == 47 and barcode.isdigit():
+        return
+    digest = hashlib.sha1(
+        (validation.coerce_text(seed) or "toyotatech").encode("utf-8")
+    ).hexdigest()
+    financing["boletoBarcode"] = build_boleto_barcode(digest)
+
+
 def build_financing(seed: str) -> Dict[str, Any]:
     digest = hashlib.sha1(
         (validation.coerce_text(seed) or "toyotatech").encode("utf-8")
@@ -91,15 +109,12 @@ def build_financing(seed: str) -> Dict[str, Any]:
         "installmentAmount": format_brl_cents(amount_cents),
         "nextDueDate": format_next_due_date(seed),
         "boletoAvailable": True,
+        "boletoBarcode": build_boleto_barcode(digest),
         "status": "active",
     }
 
 
 def build_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> list:
-    digest = hashlib.sha1(
-        (validation.coerce_text(seed) or "toyotatech").encode("utf-8")
-    ).hexdigest()
-    vehicle_model = validation.coerce_text(vehicle.get("model")) or "Toyota"
     return [
         {
             "id": "invoice",
@@ -111,7 +126,7 @@ def build_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> l
             "id": "crlv",
             "title": "CRLV-e",
             "date": purchase_date,
-            "status": "available" if int(digest[16:18], 16) % 3 else "pending",
+            "status": "available",
         },
         {
             "id": "warranty",
@@ -121,13 +136,13 @@ def build_documents(seed: str, purchase_date: str, vehicle: Dict[str, str]) -> l
         },
         {
             "id": "manual",
-            "title": f"Manual do {vehicle_model}",
+            "title": "Manual do Toyota",
             "date": purchase_date,
             "status": "available",
         },
         {
             "id": "maintenance-plan",
-            "title": "Plano de revisoes",
+            "title": "Plano de revisões",
             "date": purchase_date,
             "status": "available",
         },
@@ -152,7 +167,7 @@ def build_garage(
     tracking_steps = [
         {
             "id": "1",
-            "label": "Inicio da producao",
+            "label": "Início da produção",
             "status": "completed",
             "date": "10/05/2026",
         },
@@ -164,7 +179,7 @@ def build_garage(
             "date": "15/05/2026",
         },
         {"id": "4", "label": "Aguardando o embarque", "status": "current"},
-        {"id": "5", "label": "Em transito", "status": "pending"},
+        {"id": "5", "label": "Em trânsito", "status": "pending"},
         {"id": "6", "label": "Saiu para entrega", "status": "pending"},
     ]
     return {
@@ -174,7 +189,7 @@ def build_garage(
             "orderId": f"TT-{chassi[-5:]}",
             "status": "linked",
             "purchaseDate": "03/10/2025",
-            "dealership": "Concessionaria Toyota",
+            "dealership": "Concessionária Toyota",
         },
         "vehicle": vehicle,
         "financing": build_financing(seed),

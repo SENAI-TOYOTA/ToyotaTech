@@ -12,7 +12,7 @@ import TextInput from "@/components/ui/TextInput";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiErrorMessage } from "@/services/api";
 import { checkEmail } from "@/services/auth";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { colors, fontSize, fonts, radii, spacing } from "@/theme";
 import { AuthScreenLayout } from "./_layout";
 
 const googleIcon = require("@/assets/images/google-icon.png");
@@ -227,8 +227,9 @@ export default function LoginScreen() {
       bottomContent={
         <View style={styles.bottomContentContainer}>
           <Button
-            title={isSubmitting ? "Verificando..." : "Prosseguir"}
+            title="Prosseguir"
             variant="primary"
+            loading={isSubmitting}
             icon={
               <ArrowRight
                 size={36}
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 2,
+    borderRadius: radii.sm,
     marginTop: 2,
     borderColor: colors.black,
   },

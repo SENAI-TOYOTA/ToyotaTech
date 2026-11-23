@@ -1,13 +1,20 @@
+import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import InteractivePressable from "@/components/ui/InteractivePressable";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
+import Skeleton from "@/components/ui/Skeleton";
 import { useGarage } from "@/hooks/useGarage";
-import { colors, fonts, fontSize, spacing } from "@/theme";
+import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
+import { isValidBoletoBarcode } from "@/utils/format";
 
 export default function FinancingScreen() {
+  const router = useRouter();
   const { garage, isLoading, error } = useGarage();
 
   const financing = garage?.financing;
@@ -17,110 +24,122 @@ export default function FinancingScreen() {
   const paidInstallments = financing
     ? `${financing.paidInstallments} / ${financing.totalInstallments}`
     : "";
-  const boletoAvailable = financing?.boletoAvailable ?? false;
+  const boletoBarcode = financing?.boletoBarcode ?? "";
+  const boletoAvailable =
+    Boolean(financing?.boletoAvailable) && isValidBoletoBarcode(boletoBarcode);
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
-      >
-        <Animated.View entering={FadeInDown.duration(600).springify()}>
-          <ScreenSectionHeader
-            title="Financiamento"
-            subtitle="Acompanhe o seu financiamento"
-            style={styles.sectionHeader}
-          />
-        </Animated.View>
+    <Screen>
+      <Animated.View entering={FadeInDown.duration(600).springify()}>
+        <ScreenSectionHeader
+          title="Financiamento"
+          subtitle="Acompanhe o seu financiamento"
+          style={styles.sectionHeader}
+        />
+      </Animated.View>
 
-        {garage && financing ? (
-          <Animated.View
-            entering={FadeInDown.delay(200).duration(600).springify()}
-            style={styles.financeCard}
-          >
+      {garage && financing ? (
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+        >
+          <Card style={styles.financeCard}>
             <Text style={styles.carTitle}>{vehicleTitle}</Text>
 
             <View style={styles.installmentRow}>
               <Text style={styles.installmentLabel}>Parcelas pagas:</Text>
               <View style={styles.installmentBadgeWrapper}>
                 <View style={styles.installmentBadgeShadow} />
-                <View style={styles.installmentBadge}>
-                  <Text style={styles.installmentText}>{paidInstallments}</Text>
-                </View>
+                <Badge
+                  label={paidInstallments}
+                  style={styles.installmentBadge}
+                  textStyle={styles.installmentText}
+                />
               </View>
             </View>
 
             <Text style={styles.bankInfo}>
-              Financial institution:{" "}
+              Instituição financeira:{" "}
               <Text style={styles.bankName}>{financing.bank}</Text>
             </Text>
             {financing.contractNumber ? (
               <Text style={styles.contractInfo}>
-                Contract: {financing.contractNumber}
+                Contrato: {financing.contractNumber}
               </Text>
             ) : null}
             <Text style={styles.invoiceDescription}>
-              Installment {financing.installmentAmount} | Due{" "}
+              Parcela {financing.installmentAmount} | Vencimento{" "}
               {financing.nextDueDate}
             </Text>
-          </Animated.View>
-        ) : (
-          <Animated.View
-            entering={FadeInDown.delay(200).duration(600).springify()}
-            style={styles.emptyCard}
-          >
-            <Text style={styles.emptyText}>
-              {isLoading
-                ? "Carregando financiamento..."
-                : (error ?? "Financiamento ainda não vinculado.")}
-            </Text>
-          </Animated.View>
-        )}
+          </Card>
+        </Animated.View>
+      ) : isLoading ? (
+        <Skeleton
+          accessibilityLabel="Carregando financiamento"
+          height={160}
+          borderRadius={radii.sm}
+          style={styles.financeCard}
+        />
+      ) : (
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+          style={styles.emptyCard}
+        >
+          <Text style={styles.emptyText}>
+            {error ?? "Financiamento ainda não vinculado."}
+          </Text>
+        </Animated.View>
+      )}
 
-        {garage && financing ? (
-          <Animated.View
-            entering={FadeInDown.delay(400).duration(600).springify()}
-            style={styles.invoiceCard}
-          >
-            <Text style={styles.invoiceTitle}>2° Via do boleto</Text>
+      {garage && financing ? (
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(600).springify()}
+        >
+          <Card style={styles.invoiceCard}>
+            <Text style={styles.invoiceTitle}>2ª via do boleto</Text>
             <Text style={styles.invoiceDescription}>
-              Baixe seus boletos e carnês com facilidade
+              Emita a segunda via e pague pelo app do seu banco
             </Text>
 
-            <View style={styles.invoiceButtonWrapper}>
-              <View style={styles.invoiceButtonShadow} />
-              <InteractivePressable
-                style={styles.invoiceButton}
-                disabled={!boletoAvailable}
-              >
-                <Text style={styles.invoiceButtonText}>Acessar boleto</Text>
-                <ArrowRight size={28} strokeWidth={2.4} color={colors.white} />
-              </InteractivePressable>
-            </View>
-          </Animated.View>
-        ) : null}
-      </ScrollView>
-    </View>
+            <Button
+              variant="primary"
+              layout="row"
+              title="Acessar boleto"
+              icon={
+                <ArrowRight size={26} strokeWidth={2.4} color={colors.white} />
+              }
+              disabled={!boletoAvailable}
+              onPress={
+                boletoAvailable ? () => router.push("/boleto") : undefined
+              }
+              style={styles.invoiceButton}
+            />
+            {!boletoAvailable ? (
+              <Text style={styles.boletoUnavailableText}>
+                A segunda via estará disponível a partir do fechamento da
+                parcela.
+              </Text>
+            ) : null}
+          </Card>
+        </Animated.View>
+      ) : isLoading ? (
+        <Skeleton
+          accessibilityLabel="Carregando boleto"
+          height={142}
+          borderRadius={radii.sm}
+          style={styles.invoiceCard}
+        />
+      ) : null}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  contentContainer: {
-    paddingTop: spacing.sm,
-    paddingHorizontal: spacing.lg + 3,
-    paddingBottom: spacing.xxl + spacing.xxl,
-  },
   sectionHeader: {
     marginTop: spacing.lg,
   },
   financeCard: {
     marginTop: spacing.xl + spacing.md - 1,
-    borderWidth: 1,
-    borderColor: colors.black,
+    borderRadius: radii.sm,
     minHeight: 160,
     paddingHorizontal: spacing.sm + 5,
     paddingTop: spacing.sm,
@@ -153,16 +172,19 @@ const styles = StyleSheet.create({
     left: 3,
     right: -3,
     bottom: -3,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
     backgroundColor: "transparent",
   },
   installmentBadge: {
     width: "100%",
     height: "100%",
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
+    borderRadius: radii.sm,
     backgroundColor: colors.primary,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -188,8 +210,9 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     marginTop: spacing.xl + spacing.md - 1,
-    borderWidth: 1,
+    borderWidth: borders.thin,
     borderColor: colors.black,
+    borderRadius: radii.sm,
     minHeight: 96,
     paddingHorizontal: spacing.sm + 5,
     paddingVertical: spacing.md,
@@ -202,8 +225,7 @@ const styles = StyleSheet.create({
   },
   invoiceCard: {
     marginTop: spacing.xl + spacing.xs + 1,
-    borderWidth: 1,
-    borderColor: colors.black,
+    borderRadius: radii.sm,
     minHeight: 142,
     paddingHorizontal: spacing.sm + 5,
     paddingTop: spacing.sm,
@@ -220,35 +242,14 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textSecondary,
   },
-  invoiceButtonWrapper: {
-    width: 219,
-    height: 40,
-    marginTop: spacing.md - 1,
-    marginLeft: 1,
-  },
-  invoiceButtonShadow: {
-    position: "absolute",
-    top: 4,
-    left: 6,
-    right: -6,
-    bottom: -4,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: "transparent",
-  },
   invoiceButton: {
-    height: 40,
-    borderWidth: 1,
-    borderColor: colors.black,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm + 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    width: 219,
+    marginTop: spacing.md - 1,
   },
-  invoiceButtonText: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xl,
-    color: colors.white,
+  boletoUnavailableText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
   },
 });
