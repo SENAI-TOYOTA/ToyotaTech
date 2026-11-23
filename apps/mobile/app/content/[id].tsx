@@ -220,6 +220,7 @@ const styles = StyleSheet.create({
   },
   cover: {
     marginTop: spacing.lg,
+    width: "100%",
     height: coverHeight,
     borderRadius: radii.sm,
     backgroundColor: colors.grayLight,
