@@ -76,7 +76,9 @@ export default function VehicleManagementScreen() {
                     ? () => router.push("/crlv")
                     : document.id === "invoice"
                       ? () => router.push("/nota-fiscal")
-                      : undefined
+                      : document.id === "warranty"
+                        ? () => router.push("/garantia-toyota")
+                        : undefined
                 }
                 style={isPending ? styles.documentButton : undefined}
               />

@@ -13,10 +13,12 @@ import { Linking } from "react-native";
 
 import VehicleManagementScreen from "@/app/(tabs)/vehicle-management";
 import CrlvScreen from "@/app/crlv";
+import GarantiaToyotaScreen from "@/app/garantia-toyota";
 import NotaFiscalScreen from "@/app/nota-fiscal";
 
 const mockPush = jest.fn<(path: string) => void>();
 const mockReplace = jest.fn<(path: string) => void>();
+let mockCanGoBack = true;
 
 jest.mock("react-native-reanimated", () => {
   const RN = require("react-native");
@@ -63,7 +65,7 @@ jest.mock("expo-router", () => ({
     push: mockPush,
     replace: mockReplace,
     back: jest.fn(),
-    canGoBack: () => true,
+    canGoBack: () => mockCanGoBack,
   }),
 }));
 
@@ -369,5 +371,171 @@ describe("NotaFiscalScreen", () => {
     const screen = await render(<NotaFiscalScreen />);
 
     expect(screen.getByText("Nota fiscal indisponível")).toBeTruthy();
+  });
+});
+
+describe("GarantiaToyotaScreen", () => {
+  beforeEach(() => {
+    mockPush.mockReset();
+    mockReplace.mockReset();
+    mockCanGoBack = true;
+    jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await cleanup();
+    jest.restoreAllMocks();
+  });
+
+  it("navega da lista para a garantia toyota", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "warranty", title: "Garantia Toyota" })])
+    );
+    const screen = await render(<VehicleManagementScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Garantia Toyota"));
+
+    expect(mockPush).toHaveBeenCalledWith("/garantia-toyota");
+  });
+
+  it("exibe dados da compra, pedido e veiculo", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "warranty", title: "Garantia Toyota" })])
+    );
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    expect(screen.getByText("Data da compra")).toBeTruthy();
+    expect(screen.getByText("03/10/2025")).toBeTruthy();
+    expect(screen.getByText("TT-1")).toBeTruthy();
+    expect(screen.getByText("Concessionária Toyota")).toBeTruthy();
+    expect(screen.getByText("Corolla")).toBeTruthy();
+    expect(screen.getByText("CHASSI_12345")).toBeTruthy();
+  });
+
+  it("declara vigencia e cobertura indisponiveis", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "warranty", title: "Garantia Toyota" })])
+    );
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    expect(
+      screen.getByText(/itens de cobertura da garantia ainda não/)
+    ).toBeTruthy();
+  });
+
+  it("nao sugere garantia ativa ou expirada", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "warranty", title: "Garantia Toyota" })])
+    );
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    expect(screen.getByText("Disponível")).toBeTruthy();
+    expect(screen.queryByText("Ativa")).toBeNull();
+    expect(screen.queryByText("Expirada")).toBeNull();
+    expect(screen.queryByText(/dias restantes/)).toBeNull();
+  });
+
+  it("exibe aviso de processamento quando o termo esta pendente", async () => {
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "warranty",
+          title: "Garantia Toyota",
+          status: "pending",
+        }),
+      ])
+    );
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    expect(screen.getByText("Pendente")).toBeTruthy();
+    expect(screen.getByText(/está em processamento/)).toBeTruthy();
+    expect(screen.queryByText("Visualizar termo")).toBeNull();
+  });
+
+  it("exibe aviso quando o termo digital nao esta disponivel", async () => {
+    setGarage(
+      buildGarage([buildDocument({ id: "warranty", title: "Garantia Toyota" })])
+    );
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    expect(
+      screen.getByText(
+        "A versão digital deste termo não está disponível neste ambiente."
+      )
+    ).toBeTruthy();
+    expect(screen.queryByText("Visualizar termo")).toBeNull();
+  });
+
+  it("abre o termo externo ao tocar em visualizar", async () => {
+    const openSpy = jest
+      .spyOn(Linking, "openURL")
+      .mockResolvedValue(true as never);
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "warranty",
+          title: "Garantia Toyota",
+          url: "https://example.com/termo-garantia.pdf",
+        }),
+      ])
+    );
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    await fireEvent.press(screen.getByText("Visualizar termo"));
+
+    expect(openSpy).toHaveBeenCalledWith(
+      "https://example.com/termo-garantia.pdf"
+    );
+  });
+
+  it("exibe erro quando a abertura do termo falha", async () => {
+    const openSpy = jest
+      .spyOn(Linking, "openURL")
+      .mockRejectedValueOnce(new Error("open failed") as never);
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "warranty",
+          title: "Garantia Toyota",
+          url: "https://example.com/termo-garantia.pdf",
+        }),
+      ])
+    );
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    await fireEvent.press(screen.getByText("Visualizar termo"));
+
+    expect(
+      await screen.findByText("Não foi possível abrir o documento.")
+    ).toBeTruthy();
+    expect(openSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Visualizar termo")).toBeTruthy();
+  });
+
+  it("exibe indisponibilidade quando nao ha termo do veiculo", async () => {
+    setGarage(buildGarage([]));
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    expect(screen.getByText("Termo de garantia indisponível")).toBeTruthy();
+    expect(screen.getByText("Voltar")).toBeTruthy();
+  });
+
+  it("retorna para gestao do veiculo sem pilha de navegacao", async () => {
+    mockCanGoBack = false;
+    setGarage(
+      buildGarage([buildDocument({ id: "warranty", title: "Garantia Toyota" })])
+    );
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Voltar"));
+
+    expect(mockReplace).toHaveBeenCalledWith("/vehicle-management");
+  });
+
+  it("exibe skeleton no carregamento inicial", async () => {
+    setGarage(null, true);
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    expect(screen.getByLabelText("Carregando garantia")).toBeTruthy();
   });
 });
