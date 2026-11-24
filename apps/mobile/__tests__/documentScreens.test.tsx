@@ -16,6 +16,7 @@ import CrlvScreen from "@/app/crlv";
 import GarantiaToyotaScreen from "@/app/garantia-toyota";
 import ManualDoVeiculoScreen from "@/app/manual-do-veiculo";
 import NotaFiscalScreen from "@/app/nota-fiscal";
+import PlanoDeRevisoesScreen from "@/app/plano-de-revisoes";
 
 const mockPush = jest.fn<(path: string) => void>();
 const mockReplace = jest.fn<(path: string) => void>();
@@ -719,5 +720,133 @@ describe("ManualDoVeiculoScreen", () => {
     expect(
       screen.getByText("Muitas requisições. Tente novamente em 7s.")
     ).toBeTruthy();
+  });
+});
+
+describe("PlanoDeRevisoesScreen", () => {
+  beforeEach(() => {
+    mockPush.mockReset();
+    mockReplace.mockReset();
+    mockBack.mockReset();
+    mockCanGoBack = true;
+    jest.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    await cleanup();
+    jest.restoreAllMocks();
+    mockCanGoBack = true;
+  });
+
+  it("navega da lista para o plano de revisoes", async () => {
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "maintenance-plan",
+          title: "Plano de revisões",
+        }),
+      ])
+    );
+    const screen = await render(<VehicleManagementScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Plano de revisões"));
+
+    expect(mockPush).toHaveBeenCalledWith("/plano-de-revisoes");
+  });
+
+  it("exibe titulo acentuado", async () => {
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "maintenance-plan",
+          title: "Plano de revisões",
+        }),
+      ])
+    );
+    const screen = await render(<PlanoDeRevisoesScreen />);
+
+    expect(screen.getByText("Plano de revisões")).toBeTruthy();
+    expect(screen.queryByText("Plano de revisoes")).toBeNull();
+  });
+
+  it("exibe dados do veiculo e avisos de dados ausentes", async () => {
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "maintenance-plan",
+          title: "Plano de revisões",
+        }),
+      ])
+    );
+    const screen = await render(<PlanoDeRevisoesScreen />);
+
+    expect(screen.getByText("Disponível")).toBeTruthy();
+    expect(screen.getByText("03/10/2025")).toBeTruthy();
+    expect(screen.getByText("Corolla")).toBeTruthy();
+    expect(screen.getByText("XEI")).toBeTruthy();
+    expect(
+      screen.getByText(/quilometragem atual do veículo ainda não/)
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/histórico de revisões do veículo ainda não/)
+    ).toBeTruthy();
+    expect(screen.queryByText(/em dia|atrasada/)).toBeNull();
+  });
+
+  it("mostra estado indisponivel quando o documento nao existe", async () => {
+    setGarage(buildGarage([]));
+    const screen = await render(<PlanoDeRevisoesScreen />);
+
+    expect(screen.getByText("Plano de revisões indisponível")).toBeTruthy();
+  });
+
+  it("exibe a mensagem de erro da garagem no fallback", async () => {
+    setGarage(null, false, "Muitas requisições. Tente novamente em 7s.");
+    const screen = await render(<PlanoDeRevisoesScreen />);
+
+    expect(
+      screen.getByText("Muitas requisições. Tente novamente em 7s.")
+    ).toBeTruthy();
+  });
+
+  it("retorna pelo historico quando ha navegacao anterior", async () => {
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "maintenance-plan",
+          title: "Plano de revisões",
+        }),
+      ])
+    );
+    const screen = await render(<PlanoDeRevisoesScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Voltar"));
+
+    expect(mockBack).toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("volta para a gestao do veiculo sem historico", async () => {
+    mockCanGoBack = false;
+    setGarage(
+      buildGarage([
+        buildDocument({
+          id: "maintenance-plan",
+          title: "Plano de revisões",
+        }),
+      ])
+    );
+    const screen = await render(<PlanoDeRevisoesScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Voltar"));
+
+    expect(mockReplace).toHaveBeenCalledWith("/vehicle-management");
+  });
+
+  it("exibe skeletons durante o carregamento", async () => {
+    setGarage(null, true);
+    const screen = await render(<PlanoDeRevisoesScreen />);
+
+    expect(screen.getByLabelText("Carregando plano de revisões")).toBeTruthy();
   });
 });

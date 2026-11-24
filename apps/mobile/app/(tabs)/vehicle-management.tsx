@@ -26,13 +26,18 @@ const documentDatePattern =
   /(?:\s*[-|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
 
 type DocumentRoute =
-  "/crlv" | "/nota-fiscal" | "/garantia-toyota" | "/manual-do-veiculo";
+  | "/crlv"
+  | "/nota-fiscal"
+  | "/garantia-toyota"
+  | "/manual-do-veiculo"
+  | "/plano-de-revisoes";
 
 const documentRoutes: Partial<Record<string, DocumentRoute>> = {
   crlv: "/crlv",
   invoice: "/nota-fiscal",
   warranty: "/garantia-toyota",
   manual: "/manual-do-veiculo",
+  "maintenance-plan": "/plano-de-revisoes",
 };
 
 function getDocumentDisplayTitle(title: string) {
