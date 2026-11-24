@@ -25,6 +25,16 @@ const documentSkeletonIds = [
 const documentDatePattern =
   /(?:\s*[-|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
 
+type DocumentRoute =
+  "/crlv" | "/nota-fiscal" | "/garantia-toyota" | "/manual-do-veiculo";
+
+const documentRoutes: Partial<Record<string, DocumentRoute>> = {
+  crlv: "/crlv",
+  invoice: "/nota-fiscal",
+  warranty: "/garantia-toyota",
+  manual: "/manual-do-veiculo",
+};
+
 function getDocumentDisplayTitle(title: string) {
   const sanitizedTitle = title
     .replace(documentDatePattern, "")
@@ -54,6 +64,7 @@ export default function VehicleManagementScreen() {
         {documents.length ? (
           documents.map((document, index) => {
             const documentTitle = getDocumentDisplayTitle(document.title);
+            const documentRoute = documentRoutes[document.id];
             const isPending = document.status === "pending";
             const documentButton = (
               <Button
@@ -68,15 +79,7 @@ export default function VehicleManagementScreen() {
                   />
                 }
                 onPress={
-                  document.id === "crlv"
-                    ? () => router.push("/crlv")
-                    : document.id === "invoice"
-                      ? () => router.push("/nota-fiscal")
-                      : document.id === "warranty"
-                        ? () => router.push("/garantia-toyota")
-                        : document.id === "manual"
-                          ? () => router.push("/manual-do-veiculo")
-                          : undefined
+                  documentRoute ? () => router.push(documentRoute) : undefined
                 }
                 style={isPending ? styles.documentButton : undefined}
               />

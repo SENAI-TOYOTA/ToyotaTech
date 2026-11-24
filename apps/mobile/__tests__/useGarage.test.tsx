@@ -130,18 +130,44 @@ describe("useGarage", () => {
     expect(hook.result.current.isLoading).toBe(false);
   });
 
-  it("expoe o retryAfter quando a busca e limitada por taxa", async () => {
+  it("expoe o retryAfter da resposta de limite de taxa", async () => {
     mockFetchGarageCurrent.mockRejectedValueOnce(
-      new ApiError("Too many requests", 429, 7)
+      new ApiError("Muitas requisições.", 429, 7)
     );
 
     const hook = await renderHook(() => useGarage());
 
     await waitFor(() =>
       expect(hook.result.current.error).toBe(
-        "Too many requests Tente novamente em 7s."
+        "Muitas requisições. Tente novamente em 7s."
       )
     );
     expect(hook.result.current.isLoading).toBe(false);
+  });
+
+  it("traduz a mensagem conhecida da API antes de expor o limite", async () => {
+    mockFetchGarageCurrent.mockRejectedValueOnce(
+      new ApiError("Limit exceeded", 429, 5)
+    );
+
+    const hook = await renderHook(() => useGarage());
+
+    await waitFor(() =>
+      expect(hook.result.current.error).toBe(
+        "Muitas requisições. Tente novamente mais tarde. Tente novamente em 5s."
+      )
+    );
+  });
+
+  it("omite o retry quando o limite chega sem retryAfter", async () => {
+    mockFetchGarageCurrent.mockRejectedValueOnce(
+      new ApiError("Resposta inválida da API.", 429)
+    );
+
+    const hook = await renderHook(() => useGarage());
+
+    await waitFor(() =>
+      expect(hook.result.current.error).toBe("Resposta inválida da API.")
+    );
   });
 });

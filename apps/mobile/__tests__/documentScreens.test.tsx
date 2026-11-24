@@ -121,11 +121,15 @@ function buildGarage(documents: GarageDocument[]): GarageData {
   } as unknown as GarageData;
 }
 
-function setGarage(garage: GarageData | null, isLoading = false) {
+function setGarage(
+  garage: GarageData | null,
+  isLoading = false,
+  error: string | null = null
+) {
   mockGarageValue = {
     garage,
     isLoading,
-    error: null,
+    error,
     reload: jest.fn(),
   };
 }
@@ -256,6 +260,15 @@ describe("CrlvScreen", () => {
 
     expect(screen.getByText("CRLV-e indisponível")).toBeTruthy();
   });
+
+  it("exibe a mensagem de erro da garagem no fallback", async () => {
+    setGarage(null, false, "Muitas requisições. Tente novamente em 7s.");
+    const screen = await render(<CrlvScreen />);
+
+    expect(
+      screen.getByText("Muitas requisições. Tente novamente em 7s.")
+    ).toBeTruthy();
+  });
 });
 
 describe("NotaFiscalScreen", () => {
@@ -373,6 +386,15 @@ describe("NotaFiscalScreen", () => {
     const screen = await render(<NotaFiscalScreen />);
 
     expect(screen.getByText("Nota fiscal indisponível")).toBeTruthy();
+  });
+
+  it("exibe a mensagem de erro da garagem no fallback", async () => {
+    setGarage(null, false, "Muitas requisições. Tente novamente em 7s.");
+    const screen = await render(<NotaFiscalScreen />);
+
+    expect(
+      screen.getByText("Muitas requisições. Tente novamente em 7s.")
+    ).toBeTruthy();
   });
 });
 
@@ -522,6 +544,15 @@ describe("GarantiaToyotaScreen", () => {
 
     expect(screen.getByText("Termo de garantia indisponível")).toBeTruthy();
     expect(screen.getByText("Voltar")).toBeTruthy();
+  });
+
+  it("exibe a mensagem de erro da garagem no fallback", async () => {
+    setGarage(null, false, "Muitas requisições. Tente novamente em 7s.");
+    const screen = await render(<GarantiaToyotaScreen />);
+
+    expect(
+      screen.getByText("Muitas requisições. Tente novamente em 7s.")
+    ).toBeTruthy();
   });
 
   it("retorna para gestao do veiculo sem pilha de navegacao", async () => {
@@ -679,5 +710,14 @@ describe("ManualDoVeiculoScreen", () => {
     const screen = await render(<ManualDoVeiculoScreen />);
 
     expect(screen.getByLabelText("Carregando manual")).toBeTruthy();
+  });
+
+  it("exibe a mensagem de erro da garagem quando a consulta falha", async () => {
+    setGarage(null, false, "Muitas requisições. Tente novamente em 7s.");
+    const screen = await render(<ManualDoVeiculoScreen />);
+
+    expect(
+      screen.getByText("Muitas requisições. Tente novamente em 7s.")
+    ).toBeTruthy();
   });
 });
