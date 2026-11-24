@@ -136,7 +136,7 @@ npx tsc --noEmit && npm run check && npm test
 - **Typecheck**: `npx tsc --noEmit`
 - **Lint**: `npm run lint` (`eslint . --max-warnings=0`)
 - **Prettier**: `npm run format:check`
-- **Testes**: `npm test` (Jest - 14 suítes e 120 testes passando)
+- **Testes**: `npm test` (Jest - 21 suítes e 208 testes passando)
 
 ### No Backend & Contratos (`apps/server`):
 ```bash

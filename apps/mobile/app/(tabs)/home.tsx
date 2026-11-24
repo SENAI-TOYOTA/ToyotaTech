@@ -24,6 +24,10 @@ const yarisImage = require("@/assets/images/yaris-cross.jpg");
 
 const highlightCardSize = 180;
 const highlightSkeletonCount = 4;
+const newsHeaderHitSlop = {
+  top: spacing.sm,
+  bottom: spacing.sm,
+};
 const highlightsRetryHitSlop = {
   top: spacing.md,
   bottom: spacing.md,
@@ -256,10 +260,16 @@ export default function HomeScreen() {
           Guias e Notícias
         </Animated.Text>
         <Animated.View entering={FadeInDown.delay(600).duration(600)}>
-          <View style={styles.newsHeaderButton}>
+          <InteractivePressable
+            style={styles.newsHeaderButton}
+            hitSlop={newsHeaderHitSlop}
+            onPress={() => router.push("/content")}
+            accessibilityRole="button"
+            accessibilityLabel="Ver todos"
+          >
             <Text style={styles.newsHeaderText}>Ver todos</Text>
             <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
-          </View>
+          </InteractivePressable>
         </Animated.View>
       </View>
 

@@ -182,4 +182,12 @@ describe("HomeScreen novidades", () => {
       right: spacing.md,
     });
   });
+
+  it("navega para a listagem ao tocar em ver todos", async () => {
+    const screen = await render(<HomeScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Ver todos"));
+
+    expect(mockPush).toHaveBeenCalledWith("/content");
+  });
 });
