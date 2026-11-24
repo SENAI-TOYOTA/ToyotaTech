@@ -20,7 +20,11 @@ import {
   getNextMaintenance,
   ROADSIDE_PHONE,
 } from "@/lib/mocks/aftersales";
-import { API_BASE_URL, resolveAuthToken } from "@/store/api";
+import {
+  API_BASE_URL,
+  HAS_CONFIGURED_API_URL,
+  resolveAuthToken,
+} from "@/store/api";
 import { useGetVeiculoQuery } from "@/store/slices/garageSlice";
 import type { VeiculoData } from "@/types/garage";
 
@@ -196,6 +200,10 @@ async function requestChatbotEndpoint(
   message: string,
   garage: VeiculoData,
 ): Promise<{ text: string; actions?: ChatbotActionLink[] }> {
+  if (!HAS_CONFIGURED_API_URL) {
+    return buildContextualBotReply(message, garage);
+  }
+
   const token = resolveAuthToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",

@@ -64,7 +64,7 @@ function ProductCard({ product }: { product: Product }) {
           variant={added ? "secondary" : "primary"}
           iconPosition="left"
           icon={added ? <Check size={16} /> : <ShoppingCart size={16} />}
-          className="mt-3"
+          className="mt-3 px-3 text-sm"
           onClick={() => {
             dispatch(addToCart(product));
             setAdded(true);
@@ -185,8 +185,8 @@ export default function StoreView() {
         ))}
       </div>
 
-      <div className="grid items-start gap-5 wide:grid-cols-[1fr_300px]">
-        <div className="grid gap-4 tablet:grid-cols-2 wide:grid-cols-2">
+      <div className="grid items-start gap-5 wide:grid-cols-[minmax(0,1fr)_270px]">
+        <div className="grid min-w-0 gap-4 tablet:grid-cols-2 wide:grid-cols-1 min-[1100px]:grid-cols-2">
           {filtered.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

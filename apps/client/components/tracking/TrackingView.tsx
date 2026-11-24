@@ -13,11 +13,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { MOCK_GARAGE_DATA } from "@/lib/mocks/garage";
-import {
-  PRODUCTION_POLLING_INTERVAL_MS,
-  useGetGarageQuery,
-  useGetProducaoQuery,
-} from "@/store";
+import { useGetGarageQuery, useGetProducaoQuery } from "@/store";
 import type { TrackingInfo, TrackingStepStatus } from "@/types/tracking";
 
 import ProductionStepper from "./ProductionStepper";
@@ -52,7 +48,7 @@ export default function TrackingView({
     isSuccess,
     refetch,
   } = useGetProducaoQuery(resolvedVin, {
-    pollingInterval: PRODUCTION_POLLING_INTERVAL_MS,
+    pollingInterval: 0,
   });
 
   const baseData = apiTrackingData ?? initialData;

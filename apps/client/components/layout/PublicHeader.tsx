@@ -1,9 +1,18 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import Logo from "@/components/brand/Logo";
 import { buttonStyles } from "@/components/ui";
 
 export default function PublicHeader() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/login") || pathname?.startsWith("/cadastro")) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
       <div className="mx-auto flex h-16 w-full max-w-content items-center justify-between gap-6 px-gutter">

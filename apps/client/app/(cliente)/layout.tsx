@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import ClientFooter from "@/components/layout/ClientFooter";
 import ClientHeader from "@/components/layout/ClientHeader";
-import { ClientSidebar, ClientTabBar } from "@/components/layout/ClientNav";
+import { ClientTabBar } from "@/components/layout/ClientNav";
 import { ChatbotWidget } from "@/components/ui";
 import { requireSession } from "@/lib/auth/dal";
 
@@ -11,10 +11,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/**
- * Layout protegido do Portal do Cliente.
- * Inclui o `ChatbotWidget` flutuante em todas as páginas protegidas do consumidor.
- */
 export default async function ClienteLayout({
   children,
 }: {
@@ -26,8 +22,7 @@ export default async function ClienteLayout({
     <div className="flex min-h-full flex-1 flex-col bg-surface-muted">
       <ClientHeader user={user} />
 
-      <div className="mx-auto flex w-full max-w-content flex-1 gap-8 px-gutter pt-6 pb-10 wide:pt-8 wide:pb-12">
-        <ClientSidebar />
+      <div className="mx-auto flex w-full max-w-content flex-1 px-gutter pt-6 pb-10 wide:pt-8 wide:pb-12">
         <main id="conteudo" className="min-w-0 flex-1">
           {children}
         </main>

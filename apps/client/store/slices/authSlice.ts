@@ -2,10 +2,10 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import {
   api,
-  LEGACY_SESSION_STORAGE_KEY,
+  clearAuthTokenCookie,
   resolveAuthToken,
-  TOKEN_COOKIE_KEY,
-  TOKEN_STORAGE_KEY,
+  setAuthTokenCookie,
+  USER_STORAGE_KEY,
 } from "@/store/api";
 import type {
   AuthResponse,
@@ -15,7 +15,7 @@ import type {
   RegisterResponse,
 } from "@/types/auth";
 
-export const USER_STORAGE_KEY = "toyotatech.user";
+export { USER_STORAGE_KEY };
 
 export interface AuthState {
   user: AuthUser | null;
@@ -30,40 +30,16 @@ const initialState: AuthState = {
 };
 
 function persistAuthSession(token: string, user: AuthUser | null) {
-  if (typeof window === "undefined") {
+  setAuthTokenCookie(token);
+
+  if (typeof window === "undefined" || !user) {
     return;
   }
 
   try {
-    window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    if (user) {
-      window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
-    }
+    window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
   } catch {
     // Ignora erros de armazenamento
-  }
-
-  if (typeof document !== "undefined") {
-    const maxAge = 60 * 60 * 8; // 8h
-    document.cookie = `${TOKEN_COOKIE_KEY}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
-  }
-}
-
-function clearAuthSessionStorage() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.removeItem(TOKEN_STORAGE_KEY);
-    window.localStorage.removeItem(USER_STORAGE_KEY);
-    window.localStorage.removeItem(LEGACY_SESSION_STORAGE_KEY);
-  } catch {
-    // Ignora erros de armazenamento
-  }
-
-  if (typeof document !== "undefined") {
-    document.cookie = `${TOKEN_COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
   }
 }
 
@@ -111,6 +87,9 @@ export const authSlice = createSlice({
     hydrateAuth: (state) => {
       const token = resolveAuthToken();
       if (!token) {
+        state.token = null;
+        state.user = null;
+        state.isAuthenticated = false;
         return;
       }
 
@@ -134,7 +113,7 @@ export const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
-      clearAuthSessionStorage();
+      clearAuthTokenCookie();
     },
   },
   extraReducers: (builder) => {
@@ -165,4 +144,3 @@ export const {
 } = authApi;
 
 export default authSlice.reducer;
-

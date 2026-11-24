@@ -15,6 +15,7 @@ import { MOCK_GARAGE_DATA } from "@/lib/mocks/garage";
 import { useGetGarageQuery } from "@/store";
 import type { GarageData, GarageDocument, GarageRecall } from "@/types/garage";
 
+import MaintenanceSummaryCard from "./MaintenanceSummaryCard";
 import VehicleHero from "./VehicleHero";
 
 const documentDatePattern =
@@ -173,6 +174,9 @@ export default function GarageView({
 
       {/* Hero Section do Carro */}
       <VehicleHero garage={garage} />
+
+      {/* Plano de Revisões */}
+      <MaintenanceSummaryCard />
 
       {/* Colunas de Documentos e Recalls */}
       <div className="grid items-start gap-5 wide:grid-cols-2">

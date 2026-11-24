@@ -4,7 +4,6 @@ import {
   CloudOff,
   FileText,
   FolderOpen,
-  Loader2,
   RefreshCw,
   RotateCcw,
   ShieldAlert,
@@ -12,6 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import MaintenanceSummaryCard from "@/components/garage/MaintenanceSummaryCard";
 import VehicleHero from "@/components/garage/VehicleHero";
 import PageHeader from "@/components/layout/PageHeader";
 import {
@@ -153,27 +153,18 @@ export default function GaragemPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6" role="status" aria-label="Carregando dados do veículo">
         <PageHeader
           eyebrow="Meu veículo"
           title="Gestão do veículo"
           description="Documentos digitais, lembretes e campanhas de recall."
         />
-        <Card>
-          <div
-            role="status"
-            className="flex flex-col items-center justify-center gap-3 py-12 text-center"
-          >
-            <Loader2
-              aria-hidden
-              size={32}
-              className="animate-spin text-primary"
-            />
-            <p className="text-base font-medium text-fg-secondary">
-              Carregando dados do veículo...
-            </p>
-          </div>
-        </Card>
+        <div className="h-[340px] animate-pulse rounded-3xl bg-ink/85" />
+        <div className="h-36 animate-pulse rounded-2xl border border-border bg-surface" />
+        <div className="grid gap-5 wide:grid-cols-2">
+          <div className="h-64 animate-pulse rounded-2xl border border-border bg-surface" />
+          <div className="h-64 animate-pulse rounded-2xl border border-border bg-surface" />
+        </div>
       </div>
     );
   }
@@ -255,6 +246,9 @@ export default function GaragemPage() {
 
       {/* Hero Section do Carro */}
       <VehicleHero garage={garage} />
+
+      {/* Plano de Revisões */}
+      <MaintenanceSummaryCard />
 
       {/* Colunas de Documentos e Recalls */}
       <div className="grid items-start gap-5 wide:grid-cols-2">

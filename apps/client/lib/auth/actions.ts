@@ -54,7 +54,15 @@ export async function signInAction(
 
   // TODO(fase-4): substituir por chamada real à API de autenticação.
   await persistSession({ email, name });
-  redirect("/cliente/acompanhamento");
+  redirect("/cliente");
+}
+
+export async function signInDemoAction() {
+  await persistSession({
+    email: "demo@toyotatech.com.br",
+    name: "Cliente Toyota",
+  });
+  redirect("/cliente");
 }
 
 /** Cadastro simulado — redireciona ao login com o e-mail preenchido. */

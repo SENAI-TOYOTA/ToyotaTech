@@ -1,9 +1,11 @@
 "use client";
 
 import { useGLTF } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import {
   Box3,
+  BufferGeometry,
   Color,
   Material,
   Mesh,
@@ -11,6 +13,7 @@ import {
   MeshPhysicalMaterial,
   MeshStandardMaterial,
   Plane,
+  Quaternion,
   Vector3,
 } from "three";
 
@@ -24,6 +27,14 @@ export interface CorollaModelProps {
   position?: [number, number, number];
   rotation?: [number, number, number];
   onLoaded?: () => void;
+}
+
+interface WireframeMeshPart {
+  key: string;
+  geometry: BufferGeometry;
+  position: [number, number, number];
+  quaternion: [number, number, number, number];
+  scale: [number, number, number];
 }
 
 export function resolveCarColor(inputColor?: string): string {
@@ -89,22 +100,37 @@ export default function CorollaModel({
   rotation = [0, 0, 0],
   onLoaded,
 }: CorollaModelProps) {
-  const gltf = useGLTF(COROLLA_MODEL_URI, false, false);
+  const gltf = useGLTF(COROLLA_MODEL_URI, true);
+  const invalidate = useThree((state) => state.invalidate);
   const isProgressMode = typeof progress === "number";
   const resolvedHex = resolveCarColor(paintColor ?? color);
 
-  const solidClipPlane = useMemo(() => new Plane(new Vector3(0, 0, -1), 2), []);
-  const wireClipPlane = useMemo(() => new Plane(new Vector3(0, 0, 1), 2), []);
+  const solidClipPlane = useMemo(() => new Plane(new Vector3(0, 0, -1), 0), []);
+  const wireClipPlane = useMemo(() => new Plane(new Vector3(0, 0, 1), 0), []);
+
+  const wireMaterial = useMemo(
+    () =>
+      new MeshBasicMaterial({
+        color: "#9CA3AF",
+        wireframe: true,
+        transparent: true,
+        opacity: 0.25,
+        depthWrite: false,
+        clippingPlanes: [wireClipPlane],
+      }),
+    [wireClipPlane],
+  );
 
   useEffect(() => {
-    if (onLoaded) {
-      onLoaded();
-    }
-  }, [onLoaded]);
+    return () => {
+      wireMaterial.dispose();
+    };
+  }, [wireMaterial]);
 
   const {
     solidScene,
-    wireframeScene,
+    wireframeParts,
+    clonedMaterials,
     normalizedScale,
     centeredOffset,
     worldSize,
@@ -113,6 +139,47 @@ export default function CorollaModel({
     clone.updateMatrixWorld(true);
 
     const targetColor = new Color(resolvedHex);
+    const createdMaterials: Material[] = [];
+    const wireParts: WireframeMeshPart[] = [];
+    const materialCache = new Map<Material, Material>();
+
+    const configureSolidMaterial = (mat: Material): Material => {
+      const cached = materialCache.get(mat);
+      if (cached) {
+        return cached;
+      }
+
+      const isPaint = Boolean(
+        mat.name && mat.name.toLowerCase().includes("paint"),
+      );
+      if (!isPaint && !isProgressMode) {
+        return mat;
+      }
+
+      const clonedMat = mat.clone();
+      if (isProgressMode) {
+        clonedMat.clippingPlanes = [solidClipPlane];
+        clonedMat.clipShadows = true;
+      }
+      if (isPaint) {
+        const pbrMat = clonedMat as MeshPhysicalMaterial | MeshStandardMaterial;
+        pbrMat.metalness = 0.3;
+        pbrMat.roughness = 0.25;
+        pbrMat.color.copy(targetColor);
+        if ("clearcoat" in pbrMat) {
+          (pbrMat as MeshPhysicalMaterial).clearcoat = 0.85;
+          (pbrMat as MeshPhysicalMaterial).clearcoatRoughness = 0.12;
+        }
+      }
+      materialCache.set(mat, clonedMat);
+      createdMaterials.push(clonedMat);
+      return clonedMat;
+    };
+
+    const tempPos = new Vector3();
+    const tempQuat = new Quaternion();
+    const tempScale = new Vector3();
+    let partIdx = 0;
 
     clone.traverse((child) => {
       const mesh = child as Mesh;
@@ -120,58 +187,24 @@ export default function CorollaModel({
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
-        const configureSolidMaterial = (mat: Material): Material => {
-          const clonedMat = mat.clone();
-          if (isProgressMode) {
-            clonedMat.clippingPlanes = [solidClipPlane];
-            clonedMat.clipShadows = true;
-          }
-          if (mat.name && mat.name.toLowerCase().includes("paint")) {
-            const pbrMat = clonedMat as
-              | MeshPhysicalMaterial
-              | MeshStandardMaterial;
-            pbrMat.metalness = 0.3;
-            pbrMat.roughness = 0.25;
-            pbrMat.color.copy(targetColor);
-            if ("clearcoat" in pbrMat) {
-              (pbrMat as MeshPhysicalMaterial).clearcoat = 0.85;
-              (pbrMat as MeshPhysicalMaterial).clearcoatRoughness = 0.12;
-            }
-          }
-          return clonedMat;
-        };
-
         if (Array.isArray(mesh.material)) {
           mesh.material = mesh.material.map(configureSolidMaterial);
         } else {
           mesh.material = configureSolidMaterial(mesh.material);
         }
+
+        if (isProgressMode && mesh.geometry) {
+          mesh.matrixWorld.decompose(tempPos, tempQuat, tempScale);
+          wireParts.push({
+            key: `wire-${partIdx++}`,
+            geometry: mesh.geometry,
+            position: [tempPos.x, tempPos.y, tempPos.z],
+            quaternion: [tempQuat.x, tempQuat.y, tempQuat.z, tempQuat.w],
+            scale: [tempScale.x, tempScale.y, tempScale.z],
+          });
+        }
       }
     });
-
-    let wireClone: typeof clone | null = null;
-    if (isProgressMode) {
-      wireClone = gltf.scene.clone(true);
-      wireClone.updateMatrixWorld(true);
-
-      const wireMat = new MeshBasicMaterial({
-        color: "#9CA3AF",
-        wireframe: true,
-        transparent: true,
-        opacity: 0.25,
-        depthWrite: false,
-        clippingPlanes: [wireClipPlane],
-      });
-
-      wireClone.traverse((child) => {
-        const mesh = child as Mesh;
-        if (mesh.isMesh) {
-          mesh.castShadow = false;
-          mesh.receiveShadow = false;
-          mesh.material = wireMat;
-        }
-      });
-    }
 
     const box = new Box3().setFromObject(clone);
     const size = new Vector3();
@@ -185,7 +218,8 @@ export default function CorollaModel({
 
     return {
       solidScene: clone,
-      wireframeScene: wireClone,
+      wireframeParts: wireParts,
+      clonedMaterials: createdMaterials,
       normalizedScale: fitScale,
       centeredOffset: [
         -center.x * fitScale,
@@ -198,24 +232,56 @@ export default function CorollaModel({
         size.z * fitScale,
       ),
     };
-  }, [gltf.scene, resolvedHex, isProgressMode, solidClipPlane, wireClipPlane]);
+  }, [gltf.scene, resolvedHex, isProgressMode, solidClipPlane]);
+
+  useEffect(() => {
+    return () => {
+      for (const mat of clonedMaterials) {
+        mat.dispose();
+      }
+    };
+  }, [clonedMaterials]);
+
+  useEffect(() => {
+    if (onLoaded) {
+      onLoaded();
+    }
+    invalidate();
+  }, [onLoaded, invalidate]);
 
   const clampedProgress = Math.max(0, Math.min(100, progress ?? 100));
-  const halfLength = (worldSize.z * scale) / 2 + 0.03;
-  const cutZ = -halfLength + (clampedProgress / 100) * (halfLength * 2);
+  const isZLongitudinal = worldSize.z >= worldSize.x;
+  const longitudinalSpan = (isZLongitudinal ? worldSize.z : worldSize.x) * scale;
+  const halfLength = longitudinalSpan / 2 + 0.02;
+  const cutCoord = -halfLength + (clampedProgress / 100) * (halfLength * 2);
 
-  solidClipPlane.normal.set(0, 0, -1);
-  solidClipPlane.constant = cutZ;
-  wireClipPlane.normal.set(0, 0, 1);
-  wireClipPlane.constant = -cutZ;
+  useEffect(() => {
+    if (isZLongitudinal) {
+      solidClipPlane.setComponents(0, 0, -1, cutCoord);
+      wireClipPlane.setComponents(0, 0, 1, -cutCoord);
+    } else {
+      solidClipPlane.setComponents(-1, 0, 0, cutCoord);
+      wireClipPlane.setComponents(1, 0, 0, -cutCoord);
+    }
+    invalidate();
+  }, [solidClipPlane, wireClipPlane, isZLongitudinal, cutCoord, invalidate]);
 
   return (
     <group position={position} rotation={rotation} scale={scale}>
       <group position={centeredOffset} scale={normalizedScale}>
         <primitive object={solidScene} />
-        {isProgressMode && wireframeScene ? (
-          <primitive object={wireframeScene} />
-        ) : null}
+        {isProgressMode
+          ? wireframeParts.map((part) => (
+              <mesh
+                key={part.key}
+                geometry={part.geometry}
+                material={wireMaterial}
+                position={part.position}
+                quaternion={part.quaternion}
+                scale={part.scale}
+              />
+            ))
+          : null}
       </group>
     </group>
   );

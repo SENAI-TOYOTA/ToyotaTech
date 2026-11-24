@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 
 import {
   Button,
@@ -11,8 +11,8 @@ import {
   PasswordInput,
   TextInput,
 } from "@/components/ui";
-import { setAuthTokenCookie } from "@/store/api";
-import { useLoginMutation } from "@/store/slices/authSlice";
+import { signInDemoAction } from "@/lib/auth/actions";
+import { setCredentials, useAppDispatch, useLoginMutation } from "@/store";
 
 function extractErrorMessage(err: unknown): string {
   if (err && typeof err === "object") {
@@ -29,15 +29,21 @@ export interface LoginFormProps {
   defaultEmail?: string;
   defaultName?: string;
   justRegistered?: boolean;
+  sessionExpired?: boolean;
+  redirectTo?: string;
 }
 
 export default function LoginForm({
   defaultEmail = "",
   defaultName = "",
   justRegistered = false,
+  sessionExpired = false,
+  redirectTo = "/cliente",
 }: LoginFormProps) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [login, { isLoading }] = useLoginMutation();
+  const [isDemoLoading, startDemoTransition] = useTransition();
 
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState("");
@@ -45,7 +51,10 @@ export default function LoginForm({
 
   const normalizedEmail = email.trim().toLowerCase();
   const canSubmit =
-    normalizedEmail.includes("@") && password.length >= 8 && !isLoading;
+    normalizedEmail.includes("@") &&
+    password.length >= 8 &&
+    !isLoading &&
+    !isDemoLoading;
   const registerHref = normalizedEmail
     ? `/cadastro?email=${encodeURIComponent(normalizedEmail)}`
     : "/cadastro";
@@ -67,35 +76,54 @@ export default function LoginForm({
         password,
       }).unwrap();
 
-      const token = response.token ?? response.accessToken;
-      if (token) {
-        setAuthTokenCookie(token);
-      }
-
-      if (defaultName && typeof window !== "undefined") {
-        try {
-          window.localStorage.setItem(
-            "toyotatech.user",
-            JSON.stringify({
+      const resolvedToken = response.token ?? response.accessToken;
+      if (resolvedToken && defaultName && !response.user?.name) {
+        dispatch(
+          setCredentials({
+            token: resolvedToken,
+            user: {
               ...response.user,
-              name: response.user?.name || defaultName,
-            }),
-          );
-        } catch {
-          // Ignora falha de localStorage
-        }
+              name: defaultName,
+            },
+          }),
+        );
       }
 
-      router.push("/cliente/acompanhamento");
+      router.push(redirectTo);
       router.refresh();
     } catch (error) {
       setFormError(extractErrorMessage(error));
     }
   };
 
+  const handleDemoAccess = () => {
+    setFormError(null);
+    dispatch(
+      setCredentials({
+        token: "demo-mock-token",
+        user: {
+          id: "usr_demo_toyota_01",
+          email: "demo@toyotatech.com.br",
+          name: "Cliente Toyota",
+          isVerified: true,
+        },
+      }),
+    );
+    startDemoTransition(async () => {
+      await signInDemoAction();
+    });
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-      {justRegistered && !formError ? (
+      {sessionExpired && !formError ? (
+        <FormMessage
+          tone="error"
+          message="Sua sessão expirou. Entre novamente para continuar."
+        />
+      ) : null}
+
+      {justRegistered && !formError && !sessionExpired ? (
         <FormMessage
           tone="success"
           message="Conta criada com sucesso! Entre com sua senha para continuar."
@@ -128,16 +156,29 @@ export default function LoginForm({
 
       <FormMessage message={formError} />
 
-      <Button
-        type="submit"
-        fullWidth
-        className="mt-1"
-        loading={isLoading}
-        disabled={!canSubmit}
-        icon={<ArrowRight size={20} strokeWidth={2.4} />}
-      >
-        {isLoading ? "Entrando..." : "Entrar"}
-      </Button>
+      <div className="mt-1 flex flex-col gap-2.5">
+        <Button
+          type="submit"
+          fullWidth
+          loading={isLoading}
+          disabled={!canSubmit}
+          icon={<ArrowRight size={20} strokeWidth={2.4} />}
+        >
+          {isLoading ? "Entrando..." : "Entrar"}
+        </Button>
+
+        <Button
+          type="button"
+          variant="secondary"
+          fullWidth
+          loading={isDemoLoading}
+          disabled={isLoading || isDemoLoading}
+          onClick={handleDemoAccess}
+          icon={<Sparkles size={18} strokeWidth={2} className="text-primary" />}
+        >
+          {isDemoLoading ? "Abrindo demonstração..." : "Pular login (Modo Demo)"}
+        </Button>
+      </div>
 
       <p className="text-center text-sm leading-5 text-fg-secondary">
         Ao entrar, você concorda com os{" "}

@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   CloudOff,
-  Loader2,
   Pause,
   Play,
   RefreshCw,
@@ -40,6 +39,8 @@ export default function AcompanhamentoPage() {
   const { data: garage } = useGetVeiculoQuery();
   const vin = garage?.vehicle?.chassi ?? "9BRB29BE0T0048210";
 
+  const [autoAdvance, setAutoAdvance] = useState(() => isAutoAdvanceEnabled());
+
   const {
     data: trackingData,
     isLoading,
@@ -47,15 +48,16 @@ export default function AcompanhamentoPage() {
     isError,
     refetch,
   } = useGetProducaoStatusQuery(vin, {
-    pollingInterval: PRODUCTION_POLLING_INTERVAL_MS,
+    pollingInterval: autoAdvance ? PRODUCTION_POLLING_INTERVAL_MS : 0,
   });
-
-  const [autoAdvance, setAutoAdvance] = useState(() => isAutoAdvanceEnabled());
 
   const handleToggleAutoAdvance = () => {
     const next = !autoAdvance;
     setAutoAdvance(next);
     setAutoAdvanceEnabled(next);
+    if (next) {
+      void refetch();
+    }
   };
 
   const handleSelectStage = (stepIndex: number) => {
@@ -73,27 +75,20 @@ export default function AcompanhamentoPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5" role="status" aria-label="Carregando telemetria da linha de produção">
         <PageHeader
           eyebrow="Produção IIoT"
           title="Status do pedido"
           description="Acompanhe seu Toyota da fábrica até a sua garagem."
         />
-        <Card>
-          <div
-            role="status"
-            className="flex flex-col items-center justify-center gap-3 py-12 text-center"
-          >
-            <Loader2
-              aria-hidden
-              size={32}
-              className="animate-spin text-primary"
-            />
-            <p className="text-base font-medium text-fg-secondary">
-              Carregando telemetria da linha de produção...
-            </p>
+        <div className="h-14 animate-pulse rounded-2xl border border-border bg-surface" />
+        <div className="flex flex-col gap-5 wide:flex-row">
+          <div className="h-80 w-full shrink-0 animate-pulse rounded-2xl border border-border bg-surface wide:w-[380px]" />
+          <div className="flex flex-1 flex-col gap-5">
+            <div className="h-44 animate-pulse rounded-2xl bg-ink/85" />
+            <div className="h-96 animate-pulse rounded-2xl border border-border bg-surface" />
           </div>
-        </Card>
+        </div>
       </div>
     );
   }
@@ -165,10 +160,10 @@ export default function AcompanhamentoPage() {
               <Badge
                 label={
                   autoAdvance
-                    ? "Polling 5s · Avanço IoT Automático"
-                    : "Polling 5s · Estágio Fixo"
+                    ? "Avanço automático ativo (5s)"
+                    : "Estágio fixo · Manual"
                 }
-                tone="info"
+                tone={autoAdvance ? "info" : "neutral"}
               />
               {trackingData.lastTelemetryAt ? (
                 <span className="text-xs font-medium text-fg-muted">
@@ -213,7 +208,7 @@ export default function AcompanhamentoPage() {
             ) : (
               <>
                 <Play aria-hidden size={12} />
-                <span>Retomar avanço automático (5s)</span>
+                <span>Iniciar avanço automático (5s)</span>
               </>
             )}
           </button>

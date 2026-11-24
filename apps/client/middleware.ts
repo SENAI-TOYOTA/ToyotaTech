@@ -3,9 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, TOKEN_COOKIE_KEY } from "@/lib/auth/session";
 
 /**
- * Middleware de proteção de rotas do Portal do Cliente (`/cliente/*`)
+ * Middleware de proteção de rotas do Portal do Cliente (`/cliente/*` e aliases)
  * e do Portal de Gestão (`/admin/*`).
- * Se o token JWT não existir nos cookies, redireciona para `/login`.
+ * Se não houver cookie de sessão ou token JWT, redireciona para `/login`.
  */
 export function middleware(request: NextRequest) {
   const jwtToken =
@@ -23,5 +23,19 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/cliente/:path*", "/admin/:path*", "/admin"],
+  matcher: [
+    "/cliente/:path*",
+    "/acompanhamento",
+    "/financiamento",
+    "/garagem",
+    "/perfil",
+    "/loja",
+    "/servicos/:path*",
+    "/concessionarias",
+    "/recompensas",
+    "/noticias",
+    "/notificacoes",
+    "/admin/:path*",
+    "/admin",
+  ],
 };

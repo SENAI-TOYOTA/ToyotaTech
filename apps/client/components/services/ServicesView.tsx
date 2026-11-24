@@ -54,7 +54,7 @@ export default function ServicesView() {
         title="Serviços"
         description="Tudo o que você precisa para manter seu Toyota em perfeito estado."
       />
-      <div className="grid items-start gap-5 wide:grid-cols-[340px_1fr]">
+      <div className="grid items-start gap-5 wide:grid-cols-[310px_minmax(0,1fr)]">
         <section className="rounded-2xl bg-ink p-6 text-white">
           <p className="text-xs font-bold tracking-[2px] text-primary uppercase">Próxima revisão</p>
           <h2 className="mt-2 text-[28px] leading-8 font-bold">{next.title}</h2>
@@ -80,15 +80,15 @@ export default function ServicesView() {
           </Link>
         </section>
 
-        <Card padded={false}>
-          <ul className="grid tablet:grid-cols-2">
+        <Card padded={false} className="min-w-0">
+          <ul className="grid grid-cols-1 tablet:grid-cols-2 wide:grid-cols-1">
             {serviceLinks.map((link, index) => (
               <li
                 key={link.href}
                 className={cn(
                   index > 0 && "border-t border-border",
-                  index === 1 && "tablet:border-t-0",
-                  index % 2 === 1 && "tablet:border-l tablet:border-border",
+                  index === 1 && "tablet:border-t-0 wide:border-t",
+                  index % 2 === 1 && "tablet:border-l tablet:border-border wide:border-l-0",
                 )}
               >
                 <ListRow

@@ -12,12 +12,24 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const first = (value: string | string[] | undefined) =>
   (Array.isArray(value) ? value[0] : value) ?? "";
 
-export default async function LoginPage({ searchParams }: { searchParams: SearchParams }) {
-  if (await getSession()) {
-    redirect("/cliente/acompanhamento");
+function resolveSafeRedirect(target: string): string {
+  if (target.startsWith("/") && !target.startsWith("//")) {
+    return target;
   }
+  return "/cliente";
+}
 
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const params = await searchParams;
+  const redirectTo = resolveSafeRedirect(first(params.redirect));
+
+  if (await getSession()) {
+    redirect(redirectTo);
+  }
 
   return (
     <AuthShell
@@ -28,8 +40,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
         defaultEmail={first(params.email)}
         defaultName={first(params.nome)}
         justRegistered={first(params.cadastro) === "ok"}
+        sessionExpired={first(params.expired) === "1"}
+        redirectTo={redirectTo}
       />
     </AuthShell>
   );
 }
-

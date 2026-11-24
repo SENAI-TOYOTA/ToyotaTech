@@ -1,6 +1,16 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 import Logo from "@/components/brand/Logo";
 
 export default function PublicFooter() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith("/login") || pathname?.startsWith("/cadastro")) {
+    return null;
+  }
+
   return (
     <footer className="border-t border-border bg-surface">
       <div className="mx-auto flex w-full max-w-content flex-col items-center justify-between gap-3 px-gutter py-6 text-center tablet:flex-row tablet:text-left">

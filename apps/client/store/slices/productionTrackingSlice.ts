@@ -89,36 +89,29 @@ export function useGetProducaoQuery(
   options?: ProductionPollingOptions,
 ) {
   return productionTrackingApi.useGetProducaoQuery(vin, {
-    pollingInterval: PRODUCTION_POLLING_INTERVAL_MS,
+    pollingInterval: 0,
     skipPollingIfUnfocused: true,
     ...options,
   });
 }
 
-/**
- * Hook de status da esteira via `/garage/status` com polling contínuo de 5 segundos.
- */
 export function useGetGarageStatusQuery(
   arg?: void,
   options?: ProductionPollingOptions,
 ) {
   return productionTrackingApi.useGetGarageStatusQuery(arg, {
-    pollingInterval: PRODUCTION_POLLING_INTERVAL_MS,
+    pollingInterval: 0,
     skipPollingIfUnfocused: true,
     ...options,
   });
 }
 
-/**
- * Hook de status da esteira com polling contínuo de 5 segundos (`pollingInterval: 5000`).
- * Aceita um `vin` opcional (consulta `/api/producao/{vin}`) ou sem argumento (`/api/producao/9BRB29BE0T0048210`).
- */
 export function useGetProducaoStatusQuery(
   vin: string = "9BRB29BE0T0048210",
   options?: ProductionPollingOptions,
 ) {
   return productionTrackingApi.useGetProducaoQuery(vin, {
-    pollingInterval: PRODUCTION_POLLING_INTERVAL_MS,
+    pollingInterval: 0,
     skipPollingIfUnfocused: true,
     ...options,
   });

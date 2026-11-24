@@ -10,6 +10,7 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
+import { memo } from "react";
 
 import { Badge } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -29,10 +30,22 @@ export interface ProductionStepperProps {
   className?: string;
 }
 
-export default function ProductionStepper({
-  steps,
-  className,
-}: ProductionStepperProps) {
+function areStepsEqual(a: TrackingStep[], b: TrackingStep[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (
+      a[i].id !== b[i].id ||
+      a[i].status !== b[i].status ||
+      a[i].date !== b[i].date
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function ProductionStepper({ steps, className }: ProductionStepperProps) {
   return (
     <div
       role="list"
@@ -168,4 +181,10 @@ export default function ProductionStepper({
     </div>
   );
 }
+
+export default memo(
+  ProductionStepper,
+  (prev, next) =>
+    prev.className === next.className && areStepsEqual(prev.steps, next.steps),
+);
 

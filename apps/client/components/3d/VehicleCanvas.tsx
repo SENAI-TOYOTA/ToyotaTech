@@ -1,11 +1,42 @@
 "use client";
 
 import { OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Loader2, Rotate3d } from "lucide-react";
-import { Component, type ReactNode, Suspense, useState } from "react";
+import Image from "next/image";
+import { Component, type ReactNode, Suspense, useEffect, useState } from "react";
 
 import CorollaModel from "@/components/3d/CorollaModel";
+
+const SIDE_PROFILE_FOV = 24;
+const CAR_LENGTH_SPAN = 3.4;
+const CAR_HEIGHT_SPAN = 1.05;
+
+function SideProfileCameraRig({ active }: { active: boolean }) {
+  const camera = useThree((state) => state.camera);
+  const size = useThree((state) => state.size);
+  const invalidate = useThree((state) => state.invalidate);
+
+  useEffect(() => {
+    if (!active || size.width <= 0 || size.height <= 0) {
+      return;
+    }
+
+    const aspect = size.width / size.height;
+    const fovRad = (SIDE_PROFILE_FOV * Math.PI) / 180;
+    const tanHalfFov = Math.tan(fovRad / 2);
+
+    const distForHeight = CAR_HEIGHT_SPAN / 0.76 / (2 * tanHalfFov);
+    const distForWidth = CAR_LENGTH_SPAN / 0.86 / (2 * tanHalfFov * aspect);
+    const optimalDistance = Math.max(distForHeight, distForWidth);
+
+    camera.position.set(-optimalDistance, 0, 0);
+    camera.lookAt(0, 0, 0);
+    invalidate();
+  }, [active, camera, size.width, size.height, invalidate]);
+
+  return null;
+}
 
 interface CanvasErrorBoundaryProps {
   children: ReactNode;
@@ -56,25 +87,32 @@ export default function VehicleCanvas({
   const [isModelLoaded, setIsModelLoaded] = useState(false);
 
   const cameraPosition: [number, number, number] = sideProfileOnly
-    ? [-4.85, 0.18, 0]
+    ? [-3.4, 0, 0]
     : [0, 1.35, 4.4];
-  const cameraFov = sideProfileOnly ? 34 : 40;
+  const cameraFov = sideProfileOnly ? SIDE_PROFILE_FOV : 40;
 
   const fallbackView = (
-    <img
-      src="/img/corolla.webp"
-      alt="Toyota Corolla"
-      className="size-full object-cover"
-    />
+    <div className="relative size-full">
+      <Image
+        src="/img/corolla.webp"
+        alt="Toyota Corolla"
+        fill
+        sizes="(min-width: 960px) 600px, 100vw"
+        className="object-cover"
+      />
+    </div>
   );
 
   return (
     <div
       style={{ minHeight: height }}
-      className={`relative w-full overflow-hidden rounded-2xl bg-ink-soft select-none ${className}`}
+      className={`relative w-full min-w-0 overflow-hidden rounded-2xl bg-ink-soft select-none ${className}`}
     >
       <CanvasErrorBoundary fallback={fallbackView}>
         <Canvas
+          dpr={[1, 1.5]}
+          frameloop={sideProfileOnly ? "demand" : "always"}
+          gl={{ antialias: true, powerPreference: "high-performance" }}
           style={{ width: "100%", height: "100%", minHeight: height }}
           camera={{
             position: cameraPosition,
@@ -82,14 +120,17 @@ export default function VehicleCanvas({
             near: 0.1,
             far: 100,
           }}
-          onCreated={({ gl, scene, camera }) => {
+          onCreated={({ gl, scene, camera, invalidate }) => {
             gl.localClippingEnabled = true;
             scene.environmentIntensity = 1.0;
             if (sideProfileOnly) {
-              camera.lookAt(0, 0.05, 0);
+              camera.lookAt(0, 0, 0);
+              invalidate();
             }
           }}
         >
+          <SideProfileCameraRig active={sideProfileOnly} />
+
           <ambientLight intensity={1.35} />
           <hemisphereLight args={["#ffffff", "#232630", 1.05]} />
 
@@ -105,16 +146,17 @@ export default function VehicleCanvas({
             <meshBasicMaterial color="#0b0c10" transparent opacity={0.45} />
           </mesh>
 
-          <OrbitControls
-            enabled={!sideProfileOnly}
-            enableZoom={false}
-            enablePan={false}
-            autoRotate={!sideProfileOnly}
-            autoRotateSpeed={autoRotateSpeed}
-            target={sideProfileOnly ? [0, 0.05, 0] : [0, 0, 0]}
-            maxPolarAngle={Math.PI / 2.1}
-            minPolarAngle={Math.PI / 4}
-          />
+          {!sideProfileOnly ? (
+            <OrbitControls
+              enableZoom={false}
+              enablePan={false}
+              autoRotate
+              autoRotateSpeed={autoRotateSpeed}
+              target={[0, 0, 0]}
+              maxPolarAngle={Math.PI / 2.1}
+              minPolarAngle={Math.PI / 4}
+            />
+          ) : null}
 
           <Suspense fallback={null}>
             <CorollaModel

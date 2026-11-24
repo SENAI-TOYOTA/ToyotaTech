@@ -1,4 +1,5 @@
 import { Radio } from "lucide-react";
+import { memo } from "react";
 
 import { Badge, ProgressBar } from "@/components/ui";
 import type { TrackingStep } from "@/types/tracking";
@@ -8,7 +9,18 @@ export interface ProgressSummaryCardProps {
   vehicleId?: string;
 }
 
-export default function ProgressSummaryCard({
+function areStepsEqual(a: TrackingStep[], b: TrackingStep[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i].id !== b[i].id || a[i].status !== b[i].status) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function ProgressSummaryCard({
   steps,
   vehicleId,
 }: ProgressSummaryCardProps) {
@@ -69,4 +81,10 @@ export default function ProgressSummaryCard({
     </section>
   );
 }
+
+export default memo(
+  ProgressSummaryCard,
+  (prev, next) =>
+    prev.vehicleId === next.vehicleId && areStepsEqual(prev.steps, next.steps),
+);
 

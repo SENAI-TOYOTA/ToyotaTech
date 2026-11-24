@@ -5,51 +5,75 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/cn";
 
-import { clientNavItems, clientTabBarItems, isNavItemActive } from "./client-nav";
+import {
+  clientHeaderNavItems,
+  clientTabBarItems,
+  isNavItemActive,
+} from "./client-nav";
 
-/** Menu lateral (telas largas, ≥ 960px). */
-export function ClientSidebar() {
+export function ClientHeaderNav() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-60 shrink-0 wide:block">
-      <nav aria-label="Painel do cliente" className="sticky top-24">
-        <ul className="flex flex-col gap-1">
-          {clientNavItems.map((item) => {
-            const isActive = isNavItemActive(item, pathname);
-            const Icon = item.icon;
+    <nav
+      aria-label="Navegação principal do cliente"
+      className="hidden min-w-0 items-center gap-0.5 wide:flex"
+    >
+      {clientHeaderNavItems.map((item) => {
+        const isActive = isNavItemActive(item, pathname);
 
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={isActive ? "page" : undefined}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-base outline-none transition-colors",
-                    "focus-visible:ring-3 focus-visible:ring-primary/30",
-                    isActive
-                      ? "bg-surface font-semibold text-fg shadow-card"
-                      : "font-medium text-fg-secondary hover:bg-surface hover:text-fg",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "flex size-8 items-center justify-center rounded-lg transition-colors",
-                      isActive
-                        ? "bg-primary-soft text-primary"
-                        : "text-fg-muted group-hover:text-fg-secondary",
-                    )}
-                  >
-                    <Icon aria-hidden size={18} strokeWidth={isActive ? 2.2 : 1.8} />
-                  </span>
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-    </aside>
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={isActive ? "page" : undefined}
+            className={cn(
+              "rounded-full px-2.5 py-1.5 text-[13px] whitespace-nowrap outline-none transition-colors xl:px-3 xl:text-sm",
+              "focus-visible:ring-3 focus-visible:ring-primary/30",
+              isActive
+                ? "bg-primary-soft font-semibold text-primary"
+                : "font-medium text-fg-secondary hover:bg-surface-muted hover:text-fg",
+            )}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function ClientHeaderSubNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav
+      aria-label="Atalhos do cliente"
+      className="border-t border-border/70 bg-surface wide:hidden"
+    >
+      <div className="mx-auto flex w-full max-w-content items-center gap-1.5 overflow-x-auto px-gutter py-2">
+        {clientHeaderNavItems.map((item) => {
+          const isActive = isNavItemActive(item, pathname);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1 text-xs whitespace-nowrap outline-none transition-colors",
+                "focus-visible:ring-3 focus-visible:ring-primary/30",
+                isActive
+                  ? "bg-primary-soft font-semibold text-primary"
+                  : "bg-surface-muted font-medium text-fg-secondary hover:text-fg",
+              )}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 

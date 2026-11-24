@@ -7,16 +7,19 @@ import {
 } from "@reduxjs/toolkit/query/react";
 
 import {
+  SESSION_COOKIE,
+  TOKEN_COOKIE_KEY,
+} from "@/lib/auth/session";
+import {
   buildProducaoStatusAtStep,
   MOCK_GARAGE_DATA,
   MOCK_TRACKING_STEPS,
 } from "@/lib/mocks/garage";
 
-import { TOKEN_COOKIE_KEY } from "@/lib/auth/session";
-
 export const TOKEN_STORAGE_KEY = "toyotatech.token";
+export const USER_STORAGE_KEY = "toyotatech.user";
 export const LEGACY_SESSION_STORAGE_KEY = "toyotatech.auth.session";
-export { TOKEN_COOKIE_KEY };
+export { SESSION_COOKIE, TOKEN_COOKIE_KEY };
 
 interface RootStateWithAuth {
   auth?: {
@@ -51,6 +54,27 @@ export function setAuthTokenCookie(token: string, maxAgeSeconds = 60 * 60 * 8) {
     const encoded = encodeURIComponent(token);
     document.cookie = `${TOKEN_COOKIE_KEY}=${encoded}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`;
     document.cookie = `token=${encoded}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`;
+  }
+}
+
+/**
+ * Remove token JWT e metadados de sessão do armazenamento do cliente.
+ */
+export function clearAuthTokenCookie() {
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+      window.localStorage.removeItem(USER_STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_SESSION_STORAGE_KEY);
+    } catch {
+      // Ignora falha de acesso ao localStorage
+    }
+  }
+
+  if (typeof document !== "undefined") {
+    document.cookie = `${TOKEN_COOKIE_KEY}=; Path=/; Max-Age=0; SameSite=Lax`;
+    document.cookie = `token=; Path=/; Max-Age=0; SameSite=Lax`;
+    document.cookie = `${SESSION_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
   }
 }
 
@@ -94,8 +118,12 @@ export function resolveAuthToken(state?: unknown): string | null {
   return null;
 }
 
+export const HAS_CONFIGURED_API_URL = Boolean(
+  process.env.NEXT_PUBLIC_API_URL?.trim(),
+);
+
 export const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000"
+  process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:5000"
 ).replace(/\/$/, "");
 
 const rawBaseQuery = fetchBaseQuery({
@@ -114,8 +142,9 @@ const rawBaseQuery = fetchBaseQuery({
 
 // Estado do simulador embutido no RTK Query (quando o backend local não está rodando)
 let simulatedStepCursor = 2;
-let autoAdvanceSimulatedIoT = true;
+let autoAdvanceSimulatedIoT = false;
 let simulateApiError = false;
+let localBackendUnavailable = false;
 
 export function getSimulatedStepCursor(): number {
   return simulatedStepCursor;
@@ -159,12 +188,32 @@ function extractUrlAndMethod(args: string | FetchArgs): {
   };
 }
 
+function isPublicAuthEndpoint(url: string): boolean {
+  return (
+    url.includes("/auth/login") ||
+    url.includes("/auth/register") ||
+    url.includes("/auth/check-email")
+  );
+}
+
+function extractRetryAfterSeconds(error: FetchBaseQueryError): number | null {
+  if (
+    error.data &&
+    typeof error.data === "object" &&
+    "retryAfter" in error.data &&
+    typeof (error.data as { retryAfter?: unknown }).retryAfter === "number"
+  ) {
+    return (error.data as { retryAfter: number }).retryAfter;
+  }
+  return null;
+}
+
 /**
- * BaseQuery com fallback resiliente:
- * 1. Tenta requisitar a API real (.NET / Python).
- * 2. Caso a flag `simulateApiError` esteja ativa, retorna `FetchBaseQueryError` (503) para acionar `isError`.
- * 3. Caso o backend local esteja desligado (`FETCH_ERROR`), resolve com dados mockados no RTK Query,
- *    inclusive avançando as etapas da esteira a cada ciclo de polling (5s).
+ * BaseQuery centralizada com:
+ * 1. Injeção automática de `Authorization: Bearer <token>`.
+ * 2. Tratamento de `401`/`403` (limpeza de sessão e redirecionamento para `/login`).
+ * 3. Tratamento de `429` sem retry automático (respeitando rate limit da AWS).
+ * 4. Fallback local resiliente quando o backend está indisponível (`FETCH_ERROR`).
  */
 const baseQueryWithFallback: BaseQueryFn<
   string | FetchArgs,
@@ -183,15 +232,75 @@ const baseQueryWithFallback: BaseQueryFn<
     };
   }
 
-  const result = await rawBaseQuery(args, apiCtx, extraOptions);
-  if (!result.error || result.error.status !== "FETCH_ERROR") {
-    return result;
+  const { url, method, body } = extractUrlAndMethod(args);
+  let result: Awaited<ReturnType<typeof rawBaseQuery>> | null = null;
+
+  const shouldTryNetwork = HAS_CONFIGURED_API_URL && !localBackendUnavailable;
+
+  if (shouldTryNetwork) {
+    result = await rawBaseQuery(args, apiCtx, extraOptions);
+
+    if (result.error) {
+      const status = result.error.status;
+
+      if ((status === 401 || status === 403) && !isPublicAuthEndpoint(url)) {
+        const hadToken = Boolean(resolveAuthToken(apiCtx.getState()));
+        if (hadToken) {
+          clearAuthTokenCookie();
+          apiCtx.dispatch({ type: "auth/logout" });
+          apiCtx.dispatch(api.util.resetApiState());
+
+          if (
+            typeof window !== "undefined" &&
+            !window.location.pathname.startsWith("/login")
+          ) {
+            const redirectPath = encodeURIComponent(window.location.pathname);
+            window.location.assign(
+              `/login?expired=1&redirect=${redirectPath}`,
+            );
+          }
+        }
+
+        return {
+          error: {
+            status,
+            data: {
+              message:
+                status === 401
+                  ? "Sua sessão expirou. Entre novamente para continuar."
+                  : "Você não tem permissão para acessar este recurso.",
+            },
+          },
+        };
+      }
+
+      if (status === 429) {
+        const retryAfter = extractRetryAfterSeconds(result.error);
+        return {
+          error: {
+            status: 429,
+            data: {
+              retryAfter,
+              message: retryAfter
+                ? `Muitas tentativas em sequência. Aguarde ${retryAfter} segundos para tentar novamente.`
+                : "Muitas tentativas em sequência. Aguarde alguns instantes e tente novamente.",
+            },
+          },
+        };
+      }
+
+      if (status !== "FETCH_ERROR" && status !== "TIMEOUT_ERROR") {
+        return result;
+      }
+
+      localBackendUnavailable = true;
+    } else {
+      return result;
+    }
   }
 
-  // Fallback local do RTK Query quando o backend não está rodando localmente
-  const { url, method, body } = extractUrlAndMethod(args);
-
-  if (method === "POST" && url.includes("/api/auth/login")) {
+  // Fallback local do RTK Query quando o backend está offline (`FETCH_ERROR`/`TIMEOUT_ERROR`)
+  if (method === "POST" && url.includes("/auth/login")) {
     const payload = (body ?? {}) as { email?: string; name?: string };
     const email = (payload.email ?? "cliente@toyota.com.br")
       .trim()
@@ -215,11 +324,24 @@ const baseQueryWithFallback: BaseQueryFn<
     };
   }
 
-  if (method === "POST" && url.includes("/api/auth/register")) {
+  if (method === "POST" && url.includes("/auth/register")) {
     return {
       data: {
         message: "Conta criada com sucesso.",
         requiresEmailVerification: false,
+      },
+    };
+  }
+
+  if (url.includes("/auth/me") || url === "/me") {
+    return {
+      data: {
+        user: {
+          id: "usr_demo_toyota_01",
+          email: "cliente@toyota.com.br",
+          name: "Cliente Toyota",
+          isVerified: true,
+        },
       },
     };
   }
@@ -245,7 +367,6 @@ const baseQueryWithFallback: BaseQueryFn<
 
     const currentStatus = buildProducaoStatusAtStep(simulatedStepCursor, vin);
 
-    // Avança automaticamente a etapa para o próximo ciclo de polling (5s)
     if (autoAdvanceSimulatedIoT) {
       simulatedStepCursor =
         simulatedStepCursor >= MOCK_TRACKING_STEPS.length
@@ -256,7 +377,14 @@ const baseQueryWithFallback: BaseQueryFn<
     return { data: currentStatus };
   }
 
-  return result;
+  return (
+    result ?? {
+      error: {
+        status: 404,
+        data: { message: "Endpoint não encontrado no fallback local." },
+      },
+    }
+  );
 };
 
 export const api = createApi({

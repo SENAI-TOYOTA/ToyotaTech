@@ -7,7 +7,6 @@ import {
   Check,
   CloudOff,
   Copy,
-  Loader2,
   Minus,
   Plus,
   Receipt,
@@ -308,16 +307,16 @@ function SimulatorCard({
 
   return (
     <Card>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary">
             <Sparkles aria-hidden size={20} strokeWidth={2} />
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-fg">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg leading-snug font-bold text-fg">
               Simulador de Antecipação e Entrada
             </h3>
-            <p className="text-xs font-medium text-fg-muted">
+            <p className="mt-0.5 text-xs font-medium text-fg-muted">
               Passos de R$ 1.000 · Juros de 1,1% a.m.
             </p>
           </div>
@@ -325,6 +324,7 @@ function SimulatorCard({
         <Badge
           label={metrics.isSimulated ? "Simulação ativa" : "Contrato original"}
           tone={metrics.isSimulated ? "primary" : "neutral"}
+          className="shrink-0"
         />
       </div>
 
@@ -718,18 +718,22 @@ export default function FinanciamentoPage() {
   const [extraAmortization, setExtraAmortization] = useState(0);
   const [advancedInstallments, setAdvancedInstallments] = useState(0);
 
-  const financing: GarageFinancing | undefined = garage?.financing
-    ? {
-        ...garage.financing,
-        paidInstallments:
-          mode === "settled"
-            ? garage.financing.totalInstallments
-            : garage.financing.paidInstallments,
-        boletoAvailable:
-          mode === "active" ? garage.financing.boletoAvailable : false,
-        status: mode === "settled" ? "Quitado" : "Ativo",
-      }
-    : undefined;
+  const financing: GarageFinancing | undefined = useMemo(
+    () =>
+      garage?.financing
+        ? {
+            ...garage.financing,
+            paidInstallments:
+              mode === "settled"
+                ? garage.financing.totalInstallments
+                : garage.financing.paidInstallments,
+            boletoAvailable:
+              mode === "active" ? garage.financing.boletoAvailable : false,
+            status: mode === "settled" ? "Quitado" : "Ativo",
+          }
+        : undefined,
+    [garage, mode],
+  );
 
   const metrics = useMemo(() => {
     if (!financing) return null;
@@ -747,27 +751,17 @@ export default function FinanciamentoPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6" role="status" aria-label="Carregando dados do financiamento">
         <PageHeader
           eyebrow="Financiamento"
           title="Seu financiamento"
-          description="Acompanhe parcelas, vencimentos e boletos."
+          description="Acompanhe parcelas, vencimentos e simule a conquista do seu Toyota."
         />
-        <Card>
-          <div
-            role="status"
-            className="flex flex-col items-center justify-center gap-3 py-12 text-center"
-          >
-            <Loader2
-              aria-hidden
-              size={32}
-              className="animate-spin text-primary"
-            />
-            <p className="text-base font-medium text-fg-secondary">
-              Carregando dados do financiamento...
-            </p>
-          </div>
-        </Card>
+        <div className="h-[420px] animate-pulse rounded-3xl bg-ink/85" />
+        <div className="flex flex-col gap-5 wide:flex-row">
+          <div className="h-96 flex-1 animate-pulse rounded-2xl border border-border bg-surface" />
+          <div className="h-96 w-full shrink-0 animate-pulse rounded-2xl border border-border bg-surface wide:w-[400px]" />
+        </div>
       </div>
     );
   }
@@ -856,8 +850,8 @@ export default function FinanciamentoPage() {
         <>
           <ConquestStageCard garage={garage} metrics={metrics} />
 
-          <div className="flex flex-col items-start gap-5 wide:flex-row">
-            <div className="w-full min-w-0 flex-1">
+          <div className="grid grid-cols-1 items-start gap-5 min-[1120px]:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+            <div className="w-full min-w-0">
               <SimulatorCard
                 metrics={metrics}
                 extraAmortization={extraAmortization}
@@ -867,7 +861,7 @@ export default function FinanciamentoPage() {
                 onReset={handleReset}
               />
             </div>
-            <div className="flex w-full shrink-0 flex-col gap-5 wide:w-[400px]">
+            <div className="flex w-full min-w-0 flex-col gap-5">
               <FinancingOverview
                 garage={garage}
                 financing={financing}
