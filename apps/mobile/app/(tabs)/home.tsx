@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 import InteractivePressable from "@/components/ui/InteractivePressable";
 import Screen from "@/components/ui/Screen";
 import Skeleton from "@/components/ui/Skeleton";
-import VehicleFallback from "@/components/ui/VehicleFallback";
+import VehicleImage from "@/components/ui/VehicleImage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGarage } from "@/hooks/useGarage";
 import { useHighlights } from "@/hooks/useHighlights";
@@ -188,25 +188,20 @@ export default function HomeScreen() {
             height={300}
             borderRadius={radii.sm}
           />
-        ) : shouldUseVehicleImage ? (
-          <>
-            <Image
-              source={mainCarImage}
-              style={styles.mainImage}
-              resizeMode="cover"
-            />
-            <View style={styles.carLabel}>
-              <Text style={styles.carLabelText}>{vehicleLabel}</Text>
-            </View>
-          </>
         ) : (
-          <VehicleFallback
+          <VehicleImage
             model={vehicle?.model}
             version={vehicle?.version}
             color={vehicle?.color}
             chassi={vehicle?.chassi}
             variant="hero"
-          />
+            imageUrl={vehicle?.imageUrl}
+            fallbackSource={shouldUseVehicleImage ? mainCarImage : undefined}
+          >
+            <View style={styles.carLabel}>
+              <Text style={styles.carLabelText}>{vehicleLabel}</Text>
+            </View>
+          </VehicleImage>
         )}
       </Animated.View>
 
@@ -313,10 +308,6 @@ const styles = StyleSheet.create({
     height: 300,
     borderRadius: radii.sm,
     overflow: "hidden",
-  },
-  mainImage: {
-    width: "100%",
-    height: "100%",
   },
   carLabel: {
     position: "absolute",

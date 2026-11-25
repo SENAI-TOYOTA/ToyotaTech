@@ -6,12 +6,23 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Skeleton from "@/components/ui/Skeleton";
+import VehicleImage from "@/components/ui/VehicleImage";
 import { useGarage } from "@/hooks/useGarage";
 import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
 import { documentStatusLabel } from "@/utils/document";
+import { recallStatusLabel } from "@/utils/recall";
+import { canUseCorollaAltisImage } from "@/utils/vehicle";
+
+const mainCarImage = require("@/assets/images/corolla-main.jpg");
+const vehicleHeroHeight = 300;
+const recallItemHitSlop = {
+  top: spacing.sm,
+  bottom: spacing.sm,
+};
 
 const documentSkeletonIds = [
   "document-1",
@@ -52,6 +63,7 @@ export default function VehicleManagementScreen() {
   const router = useRouter();
   const { garage, isLoading } = useGarage();
 
+  const vehicle = garage?.vehicle;
   const documents = garage?.documents ?? [];
   const recalls = garage?.recalls ?? [];
 
@@ -63,6 +75,31 @@ export default function VehicleManagementScreen() {
           subtitle="Documentos digitais, lembretes e mais!"
           style={styles.sectionHeader}
         />
+      </Animated.View>
+
+      <Animated.View
+        entering={FadeInDown.delay(100).duration(600).springify()}
+        style={styles.vehicleImageContainer}
+      >
+        {isLoading && !garage ? (
+          <Skeleton
+            accessibilityLabel="Carregando veículo"
+            height={vehicleHeroHeight}
+            borderRadius={radii.sm}
+          />
+        ) : (
+          <VehicleImage
+            model={vehicle?.model}
+            version={vehicle?.version}
+            color={vehicle?.color}
+            chassi={vehicle?.chassi}
+            variant="hero"
+            imageUrl={vehicle?.imageUrl}
+            fallbackSource={
+              canUseCorollaAltisImage(vehicle?.model) ? mainCarImage : undefined
+            }
+          />
+        )}
       </Animated.View>
 
       <View style={styles.documentList}>
@@ -136,14 +173,29 @@ export default function VehicleManagementScreen() {
           <View style={styles.recallList}>
             {recalls.length ? (
               recalls.map((recall) => (
-                <View key={recall.id} style={styles.recallItem}>
-                  <Text style={styles.recallItemTitle}>{recall.title}</Text>
+                <InteractivePressable
+                  key={recall.id}
+                  style={styles.recallItem}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/recall/[id]",
+                      params: { id: recall.id },
+                    })
+                  }
+                  hitSlop={recallItemHitSlop}
+                  accessibilityRole="button"
+                  accessibilityLabel={recall.title}
+                >
+                  <View style={styles.recallItemHeaderRow}>
+                    <Text style={styles.recallItemTitle}>{recall.title}</Text>
+                    <Badge label={recallStatusLabel(recall.status)} />
+                  </View>
                   {recall.description ? (
                     <Text style={styles.recallItemDescription}>
                       {recall.description}
                     </Text>
                   ) : null}
-                </View>
+                </InteractivePressable>
               ))
             ) : isLoading ? (
               <Skeleton height={44} borderRadius={radii.sm} />
@@ -162,6 +214,12 @@ export default function VehicleManagementScreen() {
 const styles = StyleSheet.create({
   sectionHeader: {
     marginTop: spacing.lg,
+  },
+  vehicleImageContainer: {
+    marginTop: spacing.md,
+    height: vehicleHeroHeight,
+    borderRadius: radii.sm,
+    overflow: "hidden",
   },
   documentList: {
     marginTop: spacing.xl + spacing.sm + 2,
@@ -214,7 +272,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.sm,
   },
+  recallItemHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
   recallItemTitle: {
+    flex: 1,
     fontFamily: fonts.semiBold,
     fontSize: fontSize.md,
     color: colors.textPrimary,

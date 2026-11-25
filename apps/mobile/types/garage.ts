@@ -8,6 +8,7 @@ export interface GarageVehicle {
   year: string;
   engine: string;
   chassi: string;
+  imageUrl?: string;
 }
 
 export interface GarageOrder {
@@ -42,6 +43,8 @@ export interface GarageRecall {
   title: string;
   description?: string;
   status?: string;
+  severity?: string;
+  dealership?: string;
 }
 
 export interface GarageData {
