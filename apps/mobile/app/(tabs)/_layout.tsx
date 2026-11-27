@@ -1,23 +1,64 @@
 import { Tabs, useRouter } from "expo-router";
 import { CarFront, CircleDollarSign, Home, User } from "lucide-react-native";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { type ColorValue, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+import ChatMascot from "@/components/ChatMascot";
 import Logo from "@/components/Logo";
 import InteractivePressable from "@/components/ui/InteractivePressable";
-import { colors, fontSize, fonts, spacing } from "@/theme";
+import {
+  colors,
+  fontSize,
+  fonts,
+  layout,
+  radii,
+  spacing,
+  touch,
+} from "@/theme";
 
 const iconSize = 20;
 const iconStrokeWidth = 1.8;
+const chatMascotSize = spacing.xl + spacing.sm;
+const chatFloatOffset = 2;
+
+function ChatHeaderButton({ onPress }: { onPress: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  const float = useSharedValue(0);
+
+  useEffect(() => {
+    float.value = withRepeat(withTiming(1, { duration: 1800 }), -1, true);
+  }, [float]);
+
+  const mascotStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -chatFloatOffset * float.value }],
+  }));
+
+  return (
+    <InteractivePressable
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      accessibilityRole="button"
+      accessibilityLabel="Abrir assistente Toyota"
+      style={[styles.chatButton, hovered && styles.chatButtonHover]}
+    >
+      <Animated.View style={mascotStyle}>
+        <ChatMascot size={chatMascotSize} mood="idle" />
+      </Animated.View>
+    </InteractivePressable>
+  );
+}
 
 function TabsHeader() {
   const router = useRouter();
@@ -33,6 +74,7 @@ function TabsHeader() {
         >
           <Logo size={fontSize.xxl + spacing.xs} />
         </InteractivePressable>
+        <ChatHeaderButton onPress={() => router.push("/chat")} />
       </View>
     </SafeAreaView>
   );
@@ -154,15 +196,27 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingTop: spacing.md + spacing.xs,
     paddingLeft: spacing.lg + 3,
+    paddingRight: layout.screenPadding,
     paddingBottom: spacing.sm + 2,
-    alignItems: "flex-start",
-    justifyContent: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: colors.background,
   },
   logoPressable: {
     minWidth: 44,
     minHeight: 44,
     justifyContent: "center",
+  },
+  chatButton: {
+    minWidth: touch.minTarget,
+    minHeight: touch.minTarget,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radii.md,
+  },
+  chatButtonHover: {
+    backgroundColor: colors.grayLight,
   },
   tabBar: {
     backgroundColor: colors.background,

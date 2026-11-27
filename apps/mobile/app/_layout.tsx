@@ -72,7 +72,14 @@ function AppNavigator() {
       screenOptions={{
         headerShown: false,
       }}
-    />
+    >
+      <Stack.Screen
+        name="chat"
+        options={{
+          animation: "slide_from_bottom",
+        }}
+      />
+    </Stack>
   );
 }
 
