@@ -32,8 +32,8 @@ export default function FinancingScreen() {
     <Screen>
       <Animated.View entering={FadeInDown.duration(600).springify()}>
         <ScreenSectionHeader
-          title="Financiamento"
-          subtitle="Acompanhe o seu financiamento"
+          title="Finanças"
+          subtitle="Acompanhe as finanças do seu Toyota"
           style={styles.sectionHeader}
         />
       </Animated.View>
@@ -42,62 +42,13 @@ export default function FinancingScreen() {
         <Animated.View
           entering={FadeInDown.delay(200).duration(600).springify()}
         >
-          <Card style={styles.financeCard}>
-            <Text style={styles.carTitle}>{vehicleTitle}</Text>
-
-            <View style={styles.installmentRow}>
-              <Text style={styles.installmentLabel}>Parcelas pagas:</Text>
-              <View style={styles.installmentBadgeWrapper}>
-                <View style={styles.installmentBadgeShadow} />
-                <Badge
-                  label={paidInstallments}
-                  style={styles.installmentBadge}
-                  textStyle={styles.installmentText}
-                />
-              </View>
-            </View>
-
-            <Text style={styles.bankInfo}>
-              Instituição financeira:{" "}
-              <Text style={styles.bankName}>{financing.bank}</Text>
+          <Card style={styles.paymentCard}>
+            <Text style={styles.paymentTitle}>Próxima parcela</Text>
+            <Text style={styles.paymentAmount}>
+              {financing.installmentAmount}
             </Text>
-            {financing.contractNumber ? (
-              <Text style={styles.contractInfo}>
-                Contrato: {financing.contractNumber}
-              </Text>
-            ) : null}
-            <Text style={styles.invoiceDescription}>
-              Parcela {financing.installmentAmount} | Vencimento{" "}
-              {financing.nextDueDate}
-            </Text>
-          </Card>
-        </Animated.View>
-      ) : isLoading ? (
-        <Skeleton
-          accessibilityLabel="Carregando financiamento"
-          height={160}
-          borderRadius={radii.sm}
-          style={styles.financeCard}
-        />
-      ) : (
-        <Animated.View
-          entering={FadeInDown.delay(200).duration(600).springify()}
-          style={styles.emptyCard}
-        >
-          <Text style={styles.emptyText}>
-            {error ?? "Financiamento ainda não vinculado."}
-          </Text>
-        </Animated.View>
-      )}
-
-      {garage && financing ? (
-        <Animated.View
-          entering={FadeInDown.delay(400).duration(600).springify()}
-        >
-          <Card style={styles.invoiceCard}>
-            <Text style={styles.invoiceTitle}>2ª via do boleto</Text>
-            <Text style={styles.invoiceDescription}>
-              Emita a segunda via e pague pelo app do seu banco
+            <Text style={styles.paymentInfo}>
+              Vencimento {financing.nextDueDate} | {financing.bank}
             </Text>
 
             <Button
@@ -111,7 +62,7 @@ export default function FinancingScreen() {
               onPress={
                 boletoAvailable ? () => router.push("/boleto") : undefined
               }
-              style={styles.invoiceButton}
+              style={styles.boletoButton}
             />
             {!boletoAvailable ? (
               <Text style={styles.boletoUnavailableText}>
@@ -123,10 +74,55 @@ export default function FinancingScreen() {
         </Animated.View>
       ) : isLoading ? (
         <Skeleton
-          accessibilityLabel="Carregando boleto"
-          height={142}
+          accessibilityLabel="Carregando informações financeiras"
+          height={180}
           borderRadius={radii.sm}
-          style={styles.invoiceCard}
+          style={styles.paymentCard}
+        />
+      ) : (
+        <Animated.View
+          entering={FadeInDown.delay(200).duration(600).springify()}
+          style={styles.emptyCard}
+        >
+          <Text style={styles.emptyText}>
+            {error ?? "Nenhuma informação financeira disponível."}
+          </Text>
+        </Animated.View>
+      )}
+
+      {garage && financing ? (
+        <Animated.View
+          entering={FadeInDown.delay(400).duration(600).springify()}
+        >
+          <Card style={styles.financingCard}>
+            <Text style={styles.financingTitle}>Financiamento</Text>
+            <Text style={styles.vehicleName}>{vehicleTitle}</Text>
+
+            {financing.contractNumber ? (
+              <Text style={styles.contractInfo}>
+                Contrato: {financing.contractNumber}
+              </Text>
+            ) : null}
+
+            <View style={styles.installmentRow}>
+              <Text style={styles.installmentLabel}>Parcelas pagas:</Text>
+              <View style={styles.installmentBadgeWrapper}>
+                <View style={styles.installmentBadgeShadow} />
+                <Badge
+                  label={paidInstallments}
+                  style={styles.installmentBadge}
+                  textStyle={styles.installmentText}
+                />
+              </View>
+            </View>
+          </Card>
+        </Animated.View>
+      ) : isLoading ? (
+        <Skeleton
+          accessibilityLabel="Carregando financiamento"
+          height={160}
+          borderRadius={radii.sm}
+          style={styles.financingCard}
         />
       ) : null}
     </Screen>
@@ -137,34 +133,89 @@ const styles = StyleSheet.create({
   sectionHeader: {
     marginTop: spacing.lg,
   },
-  financeCard: {
+  paymentCard: {
     marginTop: spacing.xl + spacing.md - 1,
     borderRadius: radii.sm,
-    minHeight: 160,
+    minHeight: 180,
     paddingHorizontal: spacing.sm + 5,
     paddingTop: spacing.sm,
     paddingBottom: spacing.md - 2,
   },
-  carTitle: {
+  paymentTitle: {
     fontFamily: fonts.semiBold,
     fontSize: fontSize.xl + spacing.xs,
+    color: colors.textPrimary,
+  },
+  paymentAmount: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.bold,
+    fontSize: fontSize.xxl,
+    color: colors.primary,
+  },
+  paymentInfo: {
+    marginTop: spacing.xs - 2,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  boletoButton: {
+    width: 219,
+    marginTop: spacing.md - 1,
+  },
+  boletoUnavailableText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  emptyCard: {
+    marginTop: spacing.xl + spacing.md - 1,
+    borderWidth: borders.thin,
+    borderColor: colors.black,
+    borderRadius: radii.sm,
+    minHeight: 96,
+    paddingHorizontal: spacing.sm + 5,
+    paddingVertical: spacing.md,
+    justifyContent: "center",
+  },
+  emptyText: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+  },
+  financingCard: {
+    marginTop: spacing.xl + spacing.xs + 1,
+    borderRadius: radii.sm,
+    minHeight: 160,
+    paddingHorizontal: spacing.sm + 5,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm + 4,
+  },
+  financingTitle: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.xl + spacing.xs,
+    color: colors.textPrimary,
+  },
+  vehicleName: {
+    marginTop: spacing.xs - 2,
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.md,
     color: colors.textPrimary,
   },
   installmentRow: {
     marginTop: spacing.md - 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
   installmentLabel: {
     fontFamily: fonts.semiBold,
     fontSize: fontSize.md,
     color: colors.textPrimary,
-    width: 108,
   },
   installmentBadgeWrapper: {
     width: 100,
     height: 39,
-    marginLeft: spacing.md + 1,
   },
   installmentBadgeShadow: {
     position: "absolute",
@@ -193,61 +244,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xl,
     color: colors.white,
   },
-  bankInfo: {
-    marginTop: spacing.md + 1,
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.md,
-    color: colors.textPrimary,
-  },
-  bankName: {
-    color: colors.primary,
-  },
   contractInfo: {
     marginTop: spacing.xs - 2,
-    fontFamily: fonts.regular,
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-  },
-  emptyCard: {
-    marginTop: spacing.xl + spacing.md - 1,
-    borderWidth: borders.thin,
-    borderColor: colors.black,
-    borderRadius: radii.sm,
-    minHeight: 96,
-    paddingHorizontal: spacing.sm + 5,
-    paddingVertical: spacing.md,
-    justifyContent: "center",
-  },
-  emptyText: {
-    fontFamily: fonts.regular,
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-  },
-  invoiceCard: {
-    marginTop: spacing.xl + spacing.xs + 1,
-    borderRadius: radii.sm,
-    minHeight: 142,
-    paddingHorizontal: spacing.sm + 5,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm + 4,
-  },
-  invoiceTitle: {
-    fontFamily: fonts.semiBold,
-    fontSize: fontSize.xl + spacing.xs,
-    color: colors.textPrimary,
-  },
-  invoiceDescription: {
-    marginTop: spacing.xs - 2,
-    fontFamily: fonts.regular,
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-  },
-  invoiceButton: {
-    width: 219,
-    marginTop: spacing.md - 1,
-  },
-  boletoUnavailableText: {
-    marginTop: spacing.xs,
     fontFamily: fonts.regular,
     fontSize: fontSize.sm,
     color: colors.textSecondary,

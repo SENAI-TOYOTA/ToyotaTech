@@ -1,16 +1,8 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 import HomeScreen from "@/app/(tabs)/home";
-import VehicleManagementScreen from "@/app/(tabs)/vehicle-management";
 import VehicleImage from "@/components/ui/VehicleImage";
 import type { GarageData } from "@/types/garage";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  jest,
-} from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 import { cleanup, fireEvent, render } from "@testing-library/react-native";
 import { StyleSheet, Text } from "react-native";
 
@@ -317,49 +309,6 @@ describe("HomeScreen imagem do veiculo", () => {
     setGarage(null, true);
 
     const screen = await render(<HomeScreen />);
-    const skeleton = screen.getByLabelText("Carregando veículo");
-
-    expect(StyleSheet.flatten(skeleton.props.style).height).toBe(300);
-  });
-});
-
-describe("VehicleManagementScreen imagem do veiculo", () => {
-  beforeEach(() => {
-    setGarage(buildGarage());
-  });
-
-  afterEach(async () => {
-    await cleanup();
-  });
-
-  it("renderiza a imagem remota do veiculo", async () => {
-    setGarage(buildGarage({ imageUrl: "https://exemplo.com/corolla.jpg" }));
-
-    const screen = await render(<VehicleManagementScreen />);
-
-    expect(
-      getRenderedImage(screen, { uri: "https://exemplo.com/corolla.jpg" }).props
-        .source
-    ).toEqual({
-      uri: "https://exemplo.com/corolla.jpg",
-    });
-  });
-
-  it("mantem o placeholder e os documentos sem imagem", async () => {
-    const screen = await render(<VehicleManagementScreen />);
-    const serialized = JSON.stringify(screen.toJSON());
-
-    expect(screen.getByText("Imagem ilustrativa indisponível")).toBeTruthy();
-    expect(screen.getByText("CRLV-e")).toBeTruthy();
-    expect(serialized.indexOf("VEÍCULO VINCULADO")).toBeLessThan(
-      serialized.indexOf("CRLV-e")
-    );
-  });
-
-  it("mostra skeleton de altura fixa no carregamento inicial", async () => {
-    setGarage(null, true);
-
-    const screen = await render(<VehicleManagementScreen />);
     const skeleton = screen.getByLabelText("Carregando veículo");
 
     expect(StyleSheet.flatten(skeleton.props.style).height).toBe(300);

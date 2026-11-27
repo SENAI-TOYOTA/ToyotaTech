@@ -10,15 +10,11 @@ import InteractivePressable from "@/components/ui/InteractivePressable";
 import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Skeleton from "@/components/ui/Skeleton";
-import VehicleImage from "@/components/ui/VehicleImage";
 import { useGarage } from "@/hooks/useGarage";
 import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
 import { documentStatusLabel } from "@/utils/document";
 import { recallStatusLabel } from "@/utils/recall";
-import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
-const mainCarImage = require("@/assets/images/corolla-main.jpg");
-const vehicleHeroHeight = 300;
 const recallItemHitSlop = {
   top: spacing.sm,
   bottom: spacing.sm,
@@ -63,7 +59,6 @@ export default function VehicleManagementScreen() {
   const router = useRouter();
   const { garage, isLoading } = useGarage();
 
-  const vehicle = garage?.vehicle;
   const documents = garage?.documents ?? [];
   const recalls = garage?.recalls ?? [];
 
@@ -75,31 +70,6 @@ export default function VehicleManagementScreen() {
           subtitle="Documentos digitais, lembretes e mais!"
           style={styles.sectionHeader}
         />
-      </Animated.View>
-
-      <Animated.View
-        entering={FadeInDown.delay(100).duration(600).springify()}
-        style={styles.vehicleImageContainer}
-      >
-        {isLoading && !garage ? (
-          <Skeleton
-            accessibilityLabel="Carregando veículo"
-            height={vehicleHeroHeight}
-            borderRadius={radii.sm}
-          />
-        ) : (
-          <VehicleImage
-            model={vehicle?.model}
-            version={vehicle?.version}
-            color={vehicle?.color}
-            chassi={vehicle?.chassi}
-            variant="hero"
-            imageUrl={vehicle?.imageUrl}
-            fallbackSource={
-              canUseCorollaAltisImage(vehicle?.model) ? mainCarImage : undefined
-            }
-          />
-        )}
       </Animated.View>
 
       <View style={styles.documentList}>
@@ -214,12 +184,6 @@ export default function VehicleManagementScreen() {
 const styles = StyleSheet.create({
   sectionHeader: {
     marginTop: spacing.lg,
-  },
-  vehicleImageContainer: {
-    marginTop: spacing.md,
-    height: vehicleHeroHeight,
-    borderRadius: radii.sm,
-    overflow: "hidden",
   },
   documentList: {
     marginTop: spacing.xl + spacing.sm + 2,

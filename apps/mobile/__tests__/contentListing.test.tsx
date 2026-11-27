@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 import ContentListingScreen from "@/app/content/index";
-import { HighlightItem } from "@/types/content";
+import { CONTENT_PAGE_SIZE } from "@/hooks/useContentListing";
+import type { ContentSort, ContentType, HighlightItem } from "@/types/content";
 import {
   afterEach,
   beforeEach,
@@ -9,7 +10,8 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import { cleanup, fireEvent, render } from "@testing-library/react-native";
+import { act, cleanup, fireEvent, render } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 
 const mockPush = jest.fn<(...args: unknown[]) => void>();
 const mockReplace = jest.fn<(...args: unknown[]) => void>();
@@ -41,8 +43,18 @@ jest.mock("lucide-react-native", () => {
 
   return {
     ArrowLeft: () => <View />,
+    ArrowUpDown: () => <View />,
   };
 });
+
+jest.mock("expo-router", () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    back: jest.fn(),
+    canGoBack: () => mockCanGoBack,
+  }),
+}));
 
 jest.mock("@/components/ui/Screen", () => {
   const { Pressable, View } = require("react-native");
@@ -68,106 +80,155 @@ jest.mock("@/components/ui/Screen", () => {
   return { __esModule: true, default: MockScreen };
 });
 
-jest.mock("expo-router", () => ({
-  useRouter: () => ({
-    push: mockPush,
-    replace: mockReplace,
-    back: jest.fn(),
-    canGoBack: () => mockCanGoBack,
-  }),
-}));
+interface MockListingParams {
+  type?: ContentType;
+  category?: string;
+  query?: string;
+  sort?: ContentSort;
+}
 
-let mockHighlightsState: {
+interface MockListingState {
   highlights: HighlightItem[];
+  categories: string[];
+  total: number;
+  hasMore: boolean;
   isLoading: boolean;
+  isRefreshing: boolean;
+  isLoadingMore: boolean;
   error: string | null;
   reload: jest.Mock;
-};
-
-jest.mock("@/hooks/useHighlights", () => ({
-  useHighlights: () => mockHighlightsState,
-}));
-
-function setHighlights(
-  highlights: HighlightItem[],
-  isLoading = false,
-  error: string | null = null
-) {
-  mockHighlightsState = {
-    highlights,
-    isLoading,
-    error,
-    reload: jest.fn(),
-  };
+  loadMore: jest.Mock;
 }
+
+let mockListingParams: MockListingParams = {};
+let mockListingState: MockListingState;
+
+jest.mock("@/hooks/useContentListing", () => ({
+  CONTENT_PAGE_SIZE: 4,
+  useContentListing: (params: MockListingParams) => {
+    mockListingParams = params;
+    return mockListingState;
+  },
+}));
 
 const corolla: HighlightItem = {
   id: "corolla",
   title: "Corolla Altis",
   imageKey: "corolla-main",
+  category: "guide",
+  categoryLabel: "LANÇAMENTO",
 };
-
 const yaris: HighlightItem = {
   id: "yaris",
   title: "Yaris Cross",
   imageKey: "yaris-cross",
+  category: "guide",
+  categoryLabel: "SUV COMPACTO",
 };
+
+function setListing(overrides: Partial<MockListingState> = {}) {
+  mockListingState = {
+    highlights: [corolla, yaris],
+    categories: ["LANÇAMENTO", "SUV COMPACTO"],
+    total: 2,
+    hasMore: false,
+    isLoading: false,
+    isRefreshing: false,
+    isLoadingMore: false,
+    error: null,
+    reload: jest.fn(),
+    loadMore: jest.fn(),
+    ...overrides,
+  };
+}
 
 describe("ContentListingScreen", () => {
   beforeEach(() => {
     mockPush.mockReset();
     mockReplace.mockReset();
-    setHighlights([corolla, yaris]);
+    mockListingParams = {};
+    setListing();
   });
 
   afterEach(async () => {
     await cleanup();
     jest.restoreAllMocks();
+    jest.useRealTimers();
     mockCanGoBack = true;
   });
 
-  it("exibe os itens da listagem", async () => {
+  it("exibe os itens e a contagem de resultados", async () => {
     const screen = await render(<ContentListingScreen />);
 
     expect(screen.getByText("Corolla Altis")).toBeTruthy();
     expect(screen.getByText("Yaris Cross")).toBeTruthy();
+    expect(screen.getByText("2 resultados")).toBeTruthy();
   });
 
-  it("filtra por titulo sem diferenciar maiusculas", async () => {
+  it("filtra por tipo ao tocar no chip", async () => {
+    const screen = await render(<ContentListingScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Guias"));
+
+    expect(mockListingParams.type).toBe("guide");
+  });
+
+  it("filtra por categoria ao tocar no chip", async () => {
+    const screen = await render(<ContentListingScreen />);
+
+    await fireEvent.press(screen.getByLabelText("LANÇAMENTO"));
+
+    expect(mockListingParams.category).toBe("LANÇAMENTO");
+  });
+
+  it("alterna a ordenacao entre recentes e antigos", async () => {
+    const screen = await render(<ContentListingScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Mais recentes"));
+
+    expect(mockListingParams.sort).toBe("oldest");
+    expect(screen.getByText("Mais antigos")).toBeTruthy();
+  });
+
+  it("aplica debounce na busca", async () => {
+    jest.useFakeTimers();
     const screen = await render(<ContentListingScreen />);
 
     await fireEvent.changeText(
-      screen.getByPlaceholderText("Título do guia ou notícia"),
+      screen.getByPlaceholderText("Título ou resumo do guia ou notícia"),
       "corolla"
     );
 
-    expect(screen.getByText("Corolla Altis")).toBeTruthy();
-    expect(screen.queryByText("Yaris Cross")).toBeNull();
+    expect(mockListingParams.query).toBeUndefined();
+
+    await act(async () => {
+      jest.advanceTimersByTime(400);
+    });
+
+    expect(mockListingParams.query).toBe("corolla");
   });
 
-  it("exibe estado vazio com o termo buscado", async () => {
+  it("carrega mais ao tocar no botao", async () => {
+    setListing({ hasMore: true });
     const screen = await render(<ContentListingScreen />);
 
-    await fireEvent.changeText(
-      screen.getByPlaceholderText("Título do guia ou notícia"),
-      "sedan"
-    );
+    await fireEvent.press(screen.getByLabelText("Carregar mais"));
 
-    expect(screen.getByText('Nenhum resultado para "sedan".')).toBeTruthy();
-    expect(screen.getByText("Limpar busca")).toBeTruthy();
+    expect(mockListingState.loadMore).toHaveBeenCalled();
   });
 
-  it("limpar busca restaura a lista completa", async () => {
+  it("nao exibe carregar mais no fim da lista", async () => {
     const screen = await render(<ContentListingScreen />);
 
-    await fireEvent.changeText(
-      screen.getByPlaceholderText("Título do guia ou notícia"),
-      "sedan"
-    );
-    await fireEvent.press(screen.getByText("Limpar busca"));
+    expect(screen.queryByText("Carregar mais")).toBeNull();
+  });
 
-    expect(screen.getByText("Corolla Altis")).toBeTruthy();
-    expect(screen.getByText("Yaris Cross")).toBeTruthy();
+  it("recarrega ao puxar para atualizar", async () => {
+    const screen = await render(<ContentListingScreen />);
+
+    await fireEvent.press(screen.getByLabelText("Atualizar"));
+
+    expect(mockListingState.reload).toHaveBeenCalled();
   });
 
   it("navega para o detalhe ao tocar no item", async () => {
@@ -181,76 +242,53 @@ describe("ContentListingScreen", () => {
     });
   });
 
-  it("exibe estado vazio quando nao ha itens", async () => {
-    setHighlights([]);
+  it("exibe erro com acao de tentar novamente", async () => {
+    setListing({
+      highlights: [],
+      categories: [],
+      total: 0,
+      error: "Falha ao carregar.",
+    });
+    const screen = await render(<ContentListingScreen />);
+
+    expect(screen.getByText("Falha ao carregar.")).toBeTruthy();
+    await fireEvent.press(screen.getByText("Tentar novamente"));
+
+    expect(mockListingState.reload).toHaveBeenCalled();
+  });
+
+  it("exibe estado vazio sem filtros", async () => {
+    setListing({ highlights: [], categories: [], total: 0 });
     const screen = await render(<ContentListingScreen />);
 
     expect(screen.getByText("Nenhum guia ou notícia disponível.")).toBeTruthy();
+    expect(screen.queryByText("Limpar filtros")).toBeNull();
   });
 
-  it("recarrega ao puxar para atualizar", async () => {
+  it("exibe estado vazio com filtros e limpa", async () => {
+    setListing({ highlights: [], categories: [], total: 0 });
     const screen = await render(<ContentListingScreen />);
-    await fireEvent.press(screen.getByLabelText("Atualizar"));
 
-    expect(mockHighlightsState.reload).toHaveBeenCalled();
-  });
-
-  it("exibe erro com acao de tentar novamente", async () => {
-    setHighlights([], false, "Não foi possível carregar as novidades.");
-    const screen = await render(<ContentListingScreen />);
+    await fireEvent.press(screen.getByLabelText("Guias"));
 
     expect(
-      screen.getByText("Não foi possível carregar as novidades.")
+      screen.getByText("Nenhum resultado para os filtros selecionados.")
     ).toBeTruthy();
-    await fireEvent.press(screen.getByText("Tentar novamente"));
+    await fireEvent.press(screen.getByText("Limpar filtros"));
 
-    expect(mockHighlightsState.reload).toHaveBeenCalled();
-  });
-
-  it("avisa sobre falha de atualizacao mantendo os itens em cache", async () => {
-    setHighlights([corolla], false, "Não foi possível atualizar as novidades.");
-    const screen = await render(<ContentListingScreen />);
-
-    expect(screen.getByText("Corolla Altis")).toBeTruthy();
-    expect(
-      screen.getByText("Não foi possível atualizar as novidades.")
-    ).toBeTruthy();
-    expect(screen.queryByText("Tentar novamente")).toBeNull();
-  });
-
-  it("encontra titulos acentuados ao buscar sem acento", async () => {
-    setHighlights([
-      {
-        id: "noticia",
-        title: "Notícia de lançamento",
-        imageKey: "corolla-news",
-      },
-    ]);
-    const screen = await render(<ContentListingScreen />);
-
-    await fireEvent.changeText(
-      screen.getByPlaceholderText("Título do guia ou notícia"),
-      "noticia"
-    );
-
-    expect(screen.getByText("Notícia de lançamento")).toBeTruthy();
-  });
-
-  it("volta para a home quando nao ha historico", async () => {
-    mockCanGoBack = false;
-    const screen = await render(<ContentListingScreen />);
-
-    await fireEvent.press(screen.getByLabelText("Voltar"));
-
-    expect(mockReplace).toHaveBeenCalledWith("/home");
+    expect(mockListingParams.type).toBeUndefined();
   });
 
   it("exibe skeleton com um unico rotulo de acessibilidade", async () => {
-    setHighlights([], true);
+    setListing({ highlights: [], categories: [], total: 0, isLoading: true });
     const screen = await render(<ContentListingScreen />);
+    const skeletons =
+      screen.root?.queryAll((node) => {
+        const style = StyleSheet.flatten(node.props.style);
+        return style?.height === 94;
+      }) ?? [];
 
-    expect(
-      screen.getAllByLabelText("Carregando guias e notícias")
-    ).toHaveLength(1);
+    expect(skeletons).toHaveLength(CONTENT_PAGE_SIZE);
+    expect(screen.getByLabelText("Carregando guias e notícias")).toBeTruthy();
   });
 });

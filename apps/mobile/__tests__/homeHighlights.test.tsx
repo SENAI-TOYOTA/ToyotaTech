@@ -109,11 +109,17 @@ function setHighlights(
 describe("HomeScreen novidades", () => {
   beforeEach(() => {
     setHighlights([
+      { id: "api-1", title: "Novidade 1", imageKey: "corolla-main" },
+      { id: "api-2", title: "Novidade 2", imageKey: "corolla-main" },
+      { id: "api-3", title: "Novidade 3", imageKey: "corolla-main" },
       {
-        id: "api-1",
-        title: "Novidade da API",
+        id: "api-4",
+        title: "Guia 4",
         imageKey: "corolla-main",
+        categoryLabel: "MANUTENÇÃO",
+        description: "Descrição do guia 4.",
       },
+      { id: "api-5", title: "Guia 5", imageKey: "corolla-main" },
     ]);
   });
 
@@ -121,23 +127,67 @@ describe("HomeScreen novidades", () => {
     await cleanup();
   });
 
-  it("renderiza as novidades recebidas da api", async () => {
+  it("renderiza as novidades recebidas da api e separa os guias", async () => {
     const screen = await render(<HomeScreen />);
 
-    expect(screen.getByText("Novidade da API")).toBeTruthy();
+    expect(screen.getByText("Novidade 1")).toBeTruthy();
+    expect(screen.getByText("Novidade 2")).toBeTruthy();
+    expect(screen.getByText("Novidade 3")).toBeTruthy();
+    expect(screen.getByText("Guia 4")).toBeTruthy();
+    expect(screen.getByText("Guia 5")).toBeTruthy();
+    expect(screen.getByText("MANUTENÇÃO")).toBeTruthy();
+    expect(screen.getByText("Descrição do guia 4.")).toBeTruthy();
     expect(screen.getByText("Guias e Notícias")).toBeTruthy();
+  });
+
+  it("adapta o card quando tag e descrição não existem", async () => {
+    setHighlights([
+      { id: "api-1", title: "Novidade 1", imageKey: "corolla-main" },
+      { id: "api-2", title: "Novidade 2", imageKey: "corolla-main" },
+      { id: "api-3", title: "Novidade 3", imageKey: "corolla-main" },
+      {
+        id: "sem-meta",
+        title: "Sem metadados",
+        imageKey: "corolla-main",
+      },
+    ]);
+    const screen = await render(<HomeScreen />);
+
+    expect(screen.getByText("Sem metadados")).toBeTruthy();
+    expect(screen.queryByText("MANUTENÇÃO")).toBeNull();
   });
 
   it("navega para o detalhe ao tocar na novidade", async () => {
     mockPush.mockReset();
     const screen = await render(<HomeScreen />);
 
-    await fireEvent.press(screen.getByLabelText("Novidade da API"));
+    await fireEvent.press(screen.getByTestId("highlight-card-api-1"));
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/content/[id]",
       params: { id: "api-1" },
     });
+  });
+
+  it("navega para o detalhe ao tocar em guias e notícias", async () => {
+    mockPush.mockReset();
+    const screen = await render(<HomeScreen />);
+
+    await fireEvent.press(screen.getByTestId("news-card-api-4"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/content/[id]",
+      params: { id: "api-4" },
+    });
+  });
+
+  it("limita novidades a três e não duplica os cards na home", async () => {
+    const screen = await render(<HomeScreen />);
+
+    expect(screen.getAllByTestId(/^highlight-card-/)).toHaveLength(3);
+    expect(screen.getAllByTestId(/^news-card-/)).toHaveLength(2);
+    expect(screen.queryByTestId("news-card-api-1")).toBeNull();
+    expect(screen.queryByTestId("highlight-card-api-4")).toBeNull();
   });
 
   it("mostra estado vazio explicito sem novidades", async () => {
@@ -157,7 +207,7 @@ describe("HomeScreen novidades", () => {
     expect(screen.getByText("Tentar novamente")).toBeTruthy();
   });
 
-  it("mostra quatro skeletons de dimensao fixa no carregamento", async () => {
+  it("mostra três skeletons de dimensao fixa no carregamento", async () => {
     setHighlights([], null, true);
     const screen = await render(<HomeScreen />);
     const skeletons =
@@ -166,7 +216,7 @@ describe("HomeScreen novidades", () => {
         return style?.height === 180 && style?.width === 180;
       }) ?? [];
 
-    expect(skeletons).toHaveLength(4);
+    expect(skeletons).toHaveLength(3);
     expect(screen.getByLabelText("Carregando novidades")).toBeTruthy();
   });
 

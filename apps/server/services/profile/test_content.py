@@ -3,12 +3,62 @@ from typing import Any, Dict, Optional
 
 PROFILE_MODULES = ("content", "flows", "handler", "validation")
 
-DEFAULT_IDS = ["corolla", "yaris", "services", "lifestyle"]
+DEFAULT_IDS = ["economia-hibrida", "toyota-safety-sense", "acessorios-originais"]
 
 PAGINATION_ITEMS = [
     {"id": "um", "title": "Um", "imageKey": "corolla-main"},
     {"id": "dois", "title": "Dois", "imageKey": "corolla-side"},
     {"id": "tres", "title": "Três", "imageKey": "corolla-news"},
+]
+
+TYPE_ITEMS = [
+    {"id": "guia", "title": "Guia", "imageKey": "corolla-main", "category": "guide"},
+    {
+        "id": "noticia",
+        "title": "Notícia",
+        "imageKey": "corolla-news",
+        "category": "news",
+    },
+    {"id": "sem", "title": "Sem categoria", "imageKey": "corolla-side"},
+]
+
+FILTER_ITEMS = [
+    {
+        "id": "hibrido",
+        "title": "Economia Híbrida",
+        "summary": "Dicas de consumo",
+        "imageKey": "corolla-main",
+        "category": "guide",
+        "categoryLabel": "MANUTENÇÃO",
+        "publishedAt": "26/11/2026",
+    },
+    {
+        "id": "seguranca",
+        "title": "Toyota Safety Sense",
+        "summary": "Radares de frenagem",
+        "imageKey": "corolla-news",
+        "category": "guide",
+        "categoryLabel": "TECNOLOGIA",
+        "publishedAt": "25/11/2026",
+    },
+    {
+        "id": "acessorios",
+        "title": "Acessórios Originais",
+        "summary": "Customização de fábrica",
+        "imageKey": "corolla-side",
+        "category": "news",
+        "categoryLabel": "ESTILO",
+        "publishedAt": "24/11/2026",
+    },
+    {
+        "id": "servicos",
+        "title": "Serviços Toyota",
+        "summary": "Revisão programada",
+        "imageKey": "corolla-main",
+        "category": "news",
+        "categoryLabel": "SERVIÇOS",
+        "publishedAt": "23/11/2026",
+    },
 ]
 
 
@@ -42,11 +92,17 @@ def test_highlights_usa_padrao_quando_tabela_esta_vazia(dynamodb, service_loader
 
     assert result["statusCode"] == 200
     body = response_body(result)
-    assert [item["id"] for item in body["highlights"]] == DEFAULT_IDS
+    assert len(body["highlights"]) == 32
+    assert [item["id"] for item in body["highlights"][:3]] == DEFAULT_IDS
     assert body["highlights"][0] == {
-        "id": "corolla",
-        "title": "Corolla Altis",
-        "imageKey": "corolla-main",
+        "id": "economia-hibrida",
+        "title": "Economia Híbrida",
+        "imageKey": "economia-hibrida",
+        "categoryLabel": "HÍBRIDOS",
+        "description": "Dicas para maximizar o uso elétrico no seu Corolla.",
+        "category": "guide",
+        "summary": "Veja como usar o modo elétrico com mais frequência no dia a dia.",
+        "publishedAt": "26/11/2026",
     }
 
 
@@ -59,6 +115,11 @@ def test_highlights_le_item_persistido_e_ignora_invalidos(dynamodb, service_load
                     "id": "campanha",
                     "title": "Campanha Toyota",
                     "imageKey": "corolla-news",
+                    "categoryLabel": "CAMPANHA",
+                    "description": "Descrição da campanha.",
+                    "category": "news",
+                    "summary": "Resumo da campanha.",
+                    "publishedAt": "24/11/2026",
                     "extra": "ignorado",
                 },
                 {"id": "", "title": "Sem id", "imageKey": "corolla-main"},
@@ -79,6 +140,11 @@ def test_highlights_le_item_persistido_e_ignora_invalidos(dynamodb, service_load
                 "id": "campanha",
                 "title": "Campanha Toyota",
                 "imageKey": "corolla-news",
+                "categoryLabel": "CAMPANHA",
+                "description": "Descrição da campanha.",
+                "category": "news",
+                "summary": "Resumo da campanha.",
+                "publishedAt": "24/11/2026",
             }
         ]
     }
@@ -96,6 +162,122 @@ def test_highlights_respeita_lista_vazia_persistida(dynamodb, service_loader):
     assert response_body(result) == {"highlights": []}
 
 
+def test_highlights_filtra_por_type(dynamodb, service_loader):
+    seed_highlights(dynamodb, TYPE_ITEMS)
+
+    with service_loader("profile", PROFILE_MODULES) as modules:
+
+        def request(params: Dict[str, str]) -> list:
+            result = modules["handler"].lambda_handler(
+                api_event("GET", "/content/highlights", params), None
+            )
+            assert result["statusCode"] == 200
+            return [item["id"] for item in response_body(result)["highlights"]]
+
+        assert request({"type": "guide"}) == ["guia"]
+        assert request({"type": "NEWS"}) == ["noticia"]
+        assert request({"type": "invalido"}) == ["guia", "noticia", "sem"]
+
+
+def test_highlights_busca_em_titulo_e_resumo(dynamodb, service_loader):
+    seed_highlights(dynamodb, FILTER_ITEMS)
+
+    with service_loader("profile", PROFILE_MODULES) as modules:
+
+        def request(params: Dict[str, str]) -> list:
+            result = modules["handler"].lambda_handler(
+                api_event("GET", "/content/highlights", params), None
+            )
+            assert result["statusCode"] == 200
+            return [item["id"] for item in response_body(result)["highlights"]]
+
+        assert request({"q": "hibrida"}) == ["hibrido"]
+        assert request({"q": "revisao"}) == ["servicos"]
+        assert request({"q": "TOYOTA"}) == ["seguranca", "servicos"]
+
+
+def test_highlights_filtra_por_categoria(dynamodb, service_loader):
+    seed_highlights(dynamodb, FILTER_ITEMS)
+
+    with service_loader("profile", PROFILE_MODULES) as modules:
+
+        def request(params: Dict[str, str]) -> list:
+            result = modules["handler"].lambda_handler(
+                api_event("GET", "/content/highlights", params), None
+            )
+            assert result["statusCode"] == 200
+            return [item["id"] for item in response_body(result)["highlights"]]
+
+        assert request({"category": "estilo"}) == ["acessorios"]
+        assert request({"category": "MANUTENÇÃO"}) == ["hibrido"]
+        assert request({"type": "guide", "category": "TECNOLOGIA"}) == ["seguranca"]
+        assert request({"type": "news", "category": "TECNOLOGIA"}) == []
+
+
+def test_highlights_ordena_e_pagina(dynamodb, service_loader):
+    seed_highlights(dynamodb, FILTER_ITEMS)
+
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        first = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights", {"limit": "2"}), None
+        )
+        second = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights", {"limit": "2", "offset": "2"}),
+            None,
+        )
+        oldest = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights", {"limit": "1", "sort": "oldest"}),
+            None,
+        )
+        invalid_sort = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights", {"limit": "1", "sort": "x"}),
+            None,
+        )
+
+    first_body = response_body(first)
+    second_body = response_body(second)
+    assert [item["id"] for item in first_body["highlights"]] == [
+        "hibrido",
+        "seguranca",
+    ]
+    assert first_body["hasMore"] is True
+    assert first_body["nextOffset"] == 2
+    assert first_body["total"] == 4
+    assert first_body["categories"] == [
+        "MANUTENÇÃO",
+        "TECNOLOGIA",
+        "ESTILO",
+        "SERVIÇOS",
+    ]
+    assert [item["id"] for item in second_body["highlights"]] == [
+        "acessorios",
+        "servicos",
+    ]
+    assert second_body["hasMore"] is False
+    assert second_body["nextOffset"] is None
+    assert [item["id"] for item in response_body(oldest)["highlights"]] == ["servicos"]
+    assert [item["id"] for item in response_body(invalid_sort)["highlights"]] == [
+        "hibrido"
+    ]
+
+
+def test_highlights_categorias_refletem_filtros(dynamodb, service_loader):
+    seed_highlights(dynamodb, FILTER_ITEMS)
+
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        guides = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights", {"type": "guide", "limit": "2"}),
+            None,
+        )
+        search = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights", {"q": "revisao", "limit": "2"}),
+            None,
+        )
+
+    assert response_body(guides)["categories"] == ["MANUTENÇÃO", "TECNOLOGIA"]
+    assert response_body(search)["categories"] == ["SERVIÇOS"]
+
+
 def test_highlights_respeita_limit_na_query_string(dynamodb, service_loader):
     seed_highlights(dynamodb, PAGINATION_ITEMS)
 
@@ -107,6 +289,10 @@ def test_highlights_respeita_limit_na_query_string(dynamodb, service_loader):
     assert result["statusCode"] == 200
     body = response_body(result)
     assert [item["id"] for item in body["highlights"]] == ["um", "dois"]
+    assert body["hasMore"] is True
+    assert body["nextOffset"] == 2
+    assert body["total"] == 3
+    assert body["categories"] == []
 
 
 def test_highlights_aplica_offset_com_limit(dynamodb, service_loader):
@@ -121,6 +307,9 @@ def test_highlights_aplica_offset_com_limit(dynamodb, service_loader):
     assert result["statusCode"] == 200
     body = response_body(result)
     assert [item["id"] for item in body["highlights"]] == ["dois", "tres"]
+    assert body["hasMore"] is False
+    assert body["nextOffset"] is None
+    assert body["total"] == 3
 
 
 def test_highlights_limit_apos_normalizacao(dynamodb, service_loader):
@@ -203,7 +392,13 @@ def test_highlights_limit_zero_retorna_lista_vazia(dynamodb, service_loader):
         )
 
     assert result["statusCode"] == 200
-    assert response_body(result) == {"highlights": []}
+    assert response_body(result) == {
+        "highlights": [],
+        "hasMore": False,
+        "nextOffset": None,
+        "total": 3,
+        "categories": [],
+    }
 
 
 def test_highlights_rejeita_imageurl_inseguro(dynamodb, service_loader):
@@ -349,12 +544,16 @@ DETAIL_ITEM = {
     "title": "Corolla Altis",
     "imageKey": "corolla-main",
     "imageUrl": "https://example.com/corolla.jpg",
+    "categoryLabel": "LANÇAMENTO",
+    "description": "Descrição do conteúdo.",
     "category": "guide",
     "author": "Equipe ToyotaTech",
     "publishedAt": "22/11/2026",
     "readingTime": 4,
     "summary": "Resumo do conteúdo.",
     "body": ["Primeiro parágrafo.", "Segundo parágrafo."],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://example.com/noticia",
 }
 
 
@@ -373,6 +572,8 @@ def test_content_detail_retorna_conteudo_completo(dynamodb, service_loader):
     assert content["author"] == "Equipe ToyotaTech"
     assert content["readingTime"] == 4
     assert content["body"] == ["Primeiro parágrafo.", "Segundo parágrafo."]
+    assert content["sourceName"] == "Toyota Comunica"
+    assert content["sourceUrl"] == "https://example.com/noticia"
 
 
 def test_content_detail_desconhecido_retorna_404(dynamodb, service_loader):
@@ -390,10 +591,26 @@ def test_content_detail_desconhecido_retorna_404(dynamodb, service_loader):
 def test_content_detail_sem_tabela_retorna_404(dynamodb, service_loader):
     with service_loader("profile", PROFILE_MODULES) as modules:
         result = modules["handler"].lambda_handler(
-            api_event("GET", "/content/highlights/corolla"), None
+            api_event("GET", "/content/highlights/inexistente"), None
         )
 
     assert result["statusCode"] == 404
+
+
+def test_content_detail_usa_padrao_quando_tabela_esta_vazia(dynamodb, service_loader):
+    with service_loader("profile", PROFILE_MODULES) as modules:
+        result = modules["handler"].lambda_handler(
+            api_event("GET", "/content/highlights/economia-hibrida"), None
+        )
+
+    assert result["statusCode"] == 200
+    content = response_body(result)["content"]
+    assert content["id"] == "economia-hibrida"
+    assert content["category"] == "guide"
+    assert content["summary"] == (
+        "Veja como usar o modo elétrico com mais frequência no dia a dia."
+    )
+    assert len(content["body"]) == 2
 
 
 def test_content_detail_normaliza_campos_invalidos(dynamodb, service_loader):
@@ -407,6 +624,7 @@ def test_content_detail_normaliza_campos_invalidos(dynamodb, service_loader):
                 "category": "outro",
                 "readingTime": "abc",
                 "body": "texto solto",
+                "sourceUrl": "http://example.com/inseguro",
             }
         ],
     )
@@ -420,6 +638,7 @@ def test_content_detail_normaliza_campos_invalidos(dynamodb, service_loader):
     content = response_body(result)["content"]
     assert "category" not in content
     assert "readingTime" not in content
+    assert "sourceUrl" not in content
     assert content["body"] == []
 
 
@@ -433,4 +652,14 @@ def test_highlights_lista_nao_inclui_campos_de_detalhe(dynamodb, service_loader)
 
     assert result["statusCode"] == 200
     item = response_body(result)["highlights"][0]
-    assert set(item) == {"id", "title", "imageKey", "imageUrl"}
+    assert set(item) == {
+        "id",
+        "title",
+        "imageKey",
+        "imageUrl",
+        "categoryLabel",
+        "description",
+        "category",
+        "summary",
+        "publishedAt",
+    }

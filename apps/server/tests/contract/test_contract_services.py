@@ -142,12 +142,16 @@ def contract(monkeypatch):
                         "title": "Corolla Altis",
                         "imageKey": "corolla-main",
                         "imageUrl": "https://example.com/highlight.jpg",
+                        "categoryLabel": "LANÇAMENTO",
+                        "description": "Descrição do conteúdo.",
                         "category": "guide",
                         "author": "Equipe ToyotaTech",
                         "publishedAt": "22/11/2026",
                         "readingTime": 4,
                         "summary": "Resumo do conteúdo.",
                         "body": ["Primeiro parágrafo.", "Segundo parágrafo."],
+                        "sourceName": "Toyota Comunica",
+                        "sourceUrl": "https://example.com/source",
                     }
                 ],
             }
@@ -183,7 +187,7 @@ def contract(monkeypatch):
         yield ContractContext(cognito, dynamodb, pool_id, client_id)
 
 
-def call(handler, method, path, body=None, token=None):
+def call(handler, method, path, body=None, token=None, query=None):
     event = {
         "rawPath": path,
         "requestContext": {
@@ -198,6 +202,8 @@ def call(handler, method, path, body=None, token=None):
         event["body"] = json.dumps(body, ensure_ascii=False)
     if token:
         event["headers"] = {"Authorization": f"Bearer {token}"}
+    if query:
+        event["queryStringParameters"] = query
     result = handler.lambda_handler(event, None)
     parsed = json.loads(result["body"]) if result.get("body") else {}
     return result["statusCode"], result.get("headers", {}), parsed
@@ -408,6 +414,13 @@ def build_contract_cases(contract):
             profile_handler, "GET", "/content/highlights"
         )
         assert highlights_status == 200, highlights_body
+        page_status, _, content_page_body = call(
+            profile_handler,
+            "GET",
+            "/content/highlights",
+            query={"limit": "1"},
+        )
+        assert page_status == 200, content_page_body
         detail_status, _, content_detail_body = call(
             profile_handler, "GET", "/content/highlights/corolla"
         )
@@ -432,6 +445,7 @@ def build_contract_cases(contract):
         ("profileRead", "ProfileResponse", profile_body),
         ("me", "meResponse", me_body),
         ("highlights", "HighlightsResponse", highlights_body),
+        ("contentPage", "ContentPageResponse", content_page_body),
         ("contentDetail", "ContentDetailResponse", content_detail_body),
         ("garageCurrent", "garageBody", garage_body),
         ("garageResolve", "resolveResponse", resolve_body),
@@ -443,6 +457,7 @@ def write_contract_file(cases):
     lines = [
         'import type { ProfileResponse } from "@/types/profile";',
         'import type { HighlightsResponse } from "@/types/content";',
+        'import type { ContentPageResponse } from "@/types/content";',
         'import type { ContentDetailResponse } from "@/types/content";',
         'import type { AuthUser } from "@/types/auth";',
         'import type { GarageData } from "@/types/garage";',

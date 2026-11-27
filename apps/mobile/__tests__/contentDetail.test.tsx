@@ -16,6 +16,7 @@ import {
   render,
   waitFor,
 } from "@testing-library/react-native";
+import { Linking } from "react-native";
 
 const mockFetchContentDetail =
   jest.fn<(id: string) => Promise<ContentDetailResponse>>();
@@ -56,6 +57,7 @@ jest.mock("lucide-react-native", () => {
 
   return {
     ArrowLeft: () => <View />,
+    ExternalLink: () => <View />,
   };
 });
 
@@ -84,6 +86,8 @@ const detail: ContentDetailResponse = {
     readingTime: 4,
     summary: "Resumo do conteúdo.",
     body: ["Primeiro parágrafo.", "Segundo parágrafo."],
+    sourceName: "Toyota Comunica",
+    sourceUrl: "https://example.com/fonte",
   },
 };
 
@@ -112,6 +116,23 @@ describe("ContentDetailScreen", () => {
     expect(screen.getByText("Resumo do conteúdo.")).toBeTruthy();
     expect(screen.getByText("Primeiro parágrafo.")).toBeTruthy();
     expect(screen.getByText("Segundo parágrafo.")).toBeTruthy();
+    expect(screen.getByText("Ler na fonte: Toyota Comunica")).toBeTruthy();
+  });
+
+  it("abre a fonte no navegador", async () => {
+    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+    mockFetchContentDetail.mockResolvedValue(detail);
+    const screen = await render(<ContentDetailScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Novidade da API")).toBeTruthy()
+    );
+    await fireEvent.press(
+      screen.getByLabelText("Ler na fonte: Toyota Comunica")
+    );
+
+    expect(openURL).toHaveBeenCalledWith("https://example.com/fonte");
+    openURL.mockRestore();
   });
 
   it("mostra skeleton enquanto carrega", async () => {
