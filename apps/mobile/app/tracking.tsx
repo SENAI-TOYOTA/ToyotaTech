@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { ArrowLeft, Check } from "lucide-react-native";
 import { useCallback, useRef, useState } from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 
 import InteractivePressable from "@/components/ui/InteractivePressable";
 import Screen from "@/components/ui/Screen";
@@ -119,12 +119,14 @@ export default function TrackingScreen() {
         header={header}
         contentStyle={styles.contentContainer}
       >
-        <Skeleton
-          accessibilityLabel="Carregando status do veículo"
-          height={300}
-          borderRadius={radii.sm}
-          style={styles.carCard}
-        />
+        <View style={[styles.carCard, styles.carLoadingCard]}>
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+            accessibilityRole="progressbar"
+            accessibilityLabel="Carregando status do veículo"
+          />
+        </View>
         <Skeleton
           height={24}
           width={140}
@@ -383,6 +385,11 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     backgroundColor: colors.white,
     padding: spacing.md,
+  },
+  carLoadingCard: {
+    height: 300,
+    alignItems: "center",
+    justifyContent: "center",
   },
   carImageContainer: {
     height: 180,

@@ -6,12 +6,19 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Skeleton from "@/components/ui/Skeleton";
 import { useGarage } from "@/hooks/useGarage";
 import { borders, colors, fontSize, fonts, radii, spacing } from "@/theme";
 import { documentStatusLabel } from "@/utils/document";
+import { recallStatusLabel } from "@/utils/recall";
+
+const recallItemHitSlop = {
+  top: spacing.sm,
+  bottom: spacing.sm,
+};
 
 const documentSkeletonIds = [
   "document-1",
@@ -24,6 +31,21 @@ const documentSkeletonIds = [
 
 const documentDatePattern =
   /(?:\s*[-|,]\s*)?(?:\(?\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b\)?|\(?\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b\)?)/g;
+
+type DocumentRoute =
+  | "/crlv"
+  | "/nota-fiscal"
+  | "/garantia-toyota"
+  | "/manual-do-veiculo"
+  | "/plano-de-revisoes";
+
+const documentRoutes: Partial<Record<string, DocumentRoute>> = {
+  crlv: "/crlv",
+  invoice: "/nota-fiscal",
+  warranty: "/garantia-toyota",
+  manual: "/manual-do-veiculo",
+  "maintenance-plan": "/plano-de-revisoes",
+};
 
 function getDocumentDisplayTitle(title: string) {
   const sanitizedTitle = title
@@ -53,11 +75,8 @@ export default function VehicleManagementScreen() {
       <View style={styles.documentList}>
         {documents.length ? (
           documents.map((document, index) => {
-            const documentTitle =
-              document.id === "manual"
-                ? "Manual do Toyota"
-                : getDocumentDisplayTitle(document.title);
-
+            const documentTitle = getDocumentDisplayTitle(document.title);
+            const documentRoute = documentRoutes[document.id];
             const isPending = document.status === "pending";
             const documentButton = (
               <Button
@@ -72,9 +91,7 @@ export default function VehicleManagementScreen() {
                   />
                 }
                 onPress={
-                  document.id === "crlv"
-                    ? () => router.push("/crlv")
-                    : undefined
+                  documentRoute ? () => router.push(documentRoute) : undefined
                 }
                 style={isPending ? styles.documentButton : undefined}
               />
@@ -126,14 +143,29 @@ export default function VehicleManagementScreen() {
           <View style={styles.recallList}>
             {recalls.length ? (
               recalls.map((recall) => (
-                <View key={recall.id} style={styles.recallItem}>
-                  <Text style={styles.recallItemTitle}>{recall.title}</Text>
+                <InteractivePressable
+                  key={recall.id}
+                  style={styles.recallItem}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/recall/[id]",
+                      params: { id: recall.id },
+                    })
+                  }
+                  hitSlop={recallItemHitSlop}
+                  accessibilityRole="button"
+                  accessibilityLabel={recall.title}
+                >
+                  <View style={styles.recallItemHeaderRow}>
+                    <Text style={styles.recallItemTitle}>{recall.title}</Text>
+                    <Badge label={recallStatusLabel(recall.status)} />
+                  </View>
                   {recall.description ? (
                     <Text style={styles.recallItemDescription}>
                       {recall.description}
                     </Text>
                   ) : null}
-                </View>
+                </InteractivePressable>
               ))
             ) : isLoading ? (
               <Skeleton height={44} borderRadius={radii.sm} />
@@ -204,7 +236,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.sm,
   },
+  recallItemHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
   recallItemTitle: {
+    flex: 1,
     fontFamily: fonts.semiBold,
     fontSize: fontSize.md,
     color: colors.textPrimary,

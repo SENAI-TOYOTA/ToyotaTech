@@ -1,22 +1,51 @@
 import { useRouter } from "expo-router";
-import { ArrowRight } from "lucide-react-native";
-import { StyleSheet, Text } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import {
+  Accessibility as AccessibilityIcon,
+  ArrowRight,
+  ChevronRight,
+} from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { AccessibilityInfo, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  FadeInDown,
+  useReducedMotion,
+} from "react-native-reanimated";
 
 import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import InteractivePressable from "@/components/ui/InteractivePressable";
 import Screen from "@/components/ui/Screen";
 import ScreenSectionHeader from "@/components/ui/ScreenSectionHeader";
 import Skeleton from "@/components/ui/Skeleton";
 import TextField from "@/components/ui/TextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileForm } from "@/hooks/useProfileForm";
-import { colors, fontSize, fonts, radii, sizes, spacing } from "@/theme";
+import {
+  borders,
+  colors,
+  fontSize,
+  fonts,
+  radii,
+  sizes,
+  spacing,
+  textStyles,
+} from "@/theme";
 
-const profileFieldIds = ["fullName", "birthDate", "cpf", "email", "password"];
+const profileLoadingSlots = [
+  "fullName",
+  "birthDate",
+  "cpf",
+  "email",
+  "password",
+];
+
+const accessibilityIconBoxSize = spacing.xxl + spacing.md;
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const { signOut, user, token, sessionPersistence } = useAuth();
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const {
     fullName,
     setFullName,
@@ -32,12 +61,52 @@ export default function ProfileScreen() {
     formatBirthDate,
     formatCpf,
   } = useProfileForm();
-  const email = user?.email ?? "";
-  const password = "********";
+  const email = user?.email || "Não informado";
+
+  useEffect(() => {
+    if (!formError) {
+      return;
+    }
+    setSaveSuccess(false);
+    AccessibilityInfo.announceForAccessibility(formError);
+  }, [formError]);
+
+  useEffect(() => {
+    if (saveSuccess) {
+      AccessibilityInfo.announceForAccessibility("Perfil salvo com sucesso.");
+    }
+  }, [saveSuccess]);
+
+  const handleFullNameChange = (value: string) => {
+    setFullName(value);
+    setSaveSuccess(false);
+  };
+
+  const handleBirthDateChange = (value: string) => {
+    setBirthDate(formatBirthDate(value));
+    setSaveSuccess(false);
+  };
+
+  const handleCpfChange = (value: string) => {
+    setCpf(formatCpf(value));
+    setSaveSuccess(false);
+  };
+
+  const handleSave = async () => {
+    setSaveSuccess(false);
+    const saved = await saveProfile();
+    if (saved) {
+      setSaveSuccess(true);
+    }
+  };
 
   return (
     <Screen keyboardAvoiding contentStyle={styles.contentContainer}>
-      <Animated.View entering={FadeInDown.duration(600).springify()}>
+      <Animated.View
+        entering={
+          reduceMotion ? undefined : FadeInDown.duration(600).springify()
+        }
+      >
         <ScreenSectionHeader
           title="Perfil"
           subtitle="Suas informações pessoais"
@@ -46,14 +115,18 @@ export default function ProfileScreen() {
       </Animated.View>
 
       <Animated.View
-        entering={FadeInDown.delay(200).duration(600).springify()}
+        entering={
+          reduceMotion
+            ? undefined
+            : FadeInDown.delay(200).duration(600).springify()
+        }
         style={styles.formContainer}
       >
         {isLoadingProfile ? (
-          profileFieldIds.map((fieldId, index) => (
+          profileLoadingSlots.map((slotId, index) => (
             <Skeleton
-              key={fieldId}
-              height={50}
+              key={slotId}
+              height={sizes.inputField}
               borderRadius={radii.sm}
               accessibilityLabel={index === 0 ? "Carregando perfil" : undefined}
             />
@@ -63,7 +136,8 @@ export default function ProfileScreen() {
             <TextField
               label="Nome completo"
               value={fullName}
-              onChangeText={setFullName}
+              onChangeText={handleFullNameChange}
+              accessibilityLabel="Nome completo"
               containerStyle={styles.inputContainer}
               style={styles.inputText}
             />
@@ -71,41 +145,64 @@ export default function ProfileScreen() {
               label="Data de nascimento"
               placeholder="DD/MM/AAAA"
               value={birthDate}
-              onChangeText={(text) => setBirthDate(formatBirthDate(text))}
+              onChangeText={handleBirthDateChange}
               keyboardType="numeric"
               maxLength={10}
+              accessibilityLabel="Data de nascimento"
+              accessibilityHint="Informe no formato dia, mês e ano"
               containerStyle={styles.inputContainer}
               style={styles.inputText}
             />
-            <TextField
-              label="CPF"
-              value={cpf}
-              onChangeText={(text) => setCpf(formatCpf(text))}
-              keyboardType="numeric"
-              maxLength={14}
-              editable={!isCpfLocked}
-              containerStyle={styles.inputContainer}
-              style={styles.inputText}
-            />
-            <TextField
-              label="Email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              editable={false}
-              containerStyle={styles.inputContainer}
-              style={styles.inputText}
-            />
-            <TextField
-              label="Senha"
-              secureTextEntry
-              value={password}
-              editable={false}
-              containerStyle={styles.inputContainer}
-              style={styles.inputText}
-            />
+            <View style={styles.cpfGroup}>
+              <TextField
+                label="CPF"
+                value={cpf}
+                onChangeText={handleCpfChange}
+                keyboardType="numeric"
+                maxLength={14}
+                editable={!isCpfLocked}
+                accessibilityLabel="CPF"
+                accessibilityHint={
+                  isCpfLocked ? "CPF não pode ser alterado" : undefined
+                }
+                accessibilityState={
+                  isCpfLocked ? { disabled: true } : undefined
+                }
+                containerStyle={styles.inputContainer}
+                style={[
+                  styles.inputText,
+                  isCpfLocked && styles.inputTextLocked,
+                ]}
+              />
+              {isCpfLocked ? (
+                <Text style={textStyles.caption}>
+                  CPF não pode ser alterado.
+                </Text>
+              ) : null}
+            </View>
+            <Card padding={0}>
+              <View
+                accessible
+                accessibilityLabel={`Email: ${email}`}
+                style={styles.accountRow}
+              >
+                <Text style={styles.accountLabel}>Email</Text>
+                <Text
+                  numberOfLines={1}
+                  ellipsizeMode="middle"
+                  style={styles.accountValue}
+                >
+                  {email}
+                </Text>
+              </View>
+            </Card>
             {formError ? (
               <Text style={styles.formErrorText}>{formError}</Text>
+            ) : null}
+            {saveSuccess ? (
+              <Text style={styles.saveSuccessText}>
+                Perfil salvo com sucesso.
+              </Text>
             ) : null}
             {sessionPersistence !== "persistent" ? (
               <Text style={styles.formErrorText}>
@@ -117,7 +214,47 @@ export default function ProfileScreen() {
         )}
       </Animated.View>
       <Animated.View
-        entering={FadeInDown.delay(400).duration(600).springify()}
+        entering={
+          reduceMotion
+            ? undefined
+            : FadeInDown.delay(300).duration(600).springify()
+        }
+        style={styles.accessibilitySection}
+      >
+        <InteractivePressable
+          onPress={() => router.push("/accessibility")}
+          accessibilityRole="button"
+          accessibilityLabel="Acessibilidade"
+          accessibilityHint="Abre as opções de acessibilidade"
+        >
+          <Card style={styles.accessibilityCard}>
+            <View style={styles.accessibilityIconBox}>
+              <AccessibilityIcon
+                size={fontSize.xxl}
+                strokeWidth={borders.strong}
+                color={colors.white}
+              />
+            </View>
+            <View style={styles.accessibilityText}>
+              <Text style={styles.accessibilityTitle}>Acessibilidade</Text>
+              <Text style={styles.accessibilitySubtitle}>
+                Leitor de tela, movimento e texto
+              </Text>
+            </View>
+            <ChevronRight
+              size={fontSize.xl}
+              strokeWidth={borders.strong}
+              color={colors.black}
+            />
+          </Card>
+        </InteractivePressable>
+      </Animated.View>
+      <Animated.View
+        entering={
+          reduceMotion
+            ? undefined
+            : FadeInDown.delay(400).duration(600).springify()
+        }
         style={styles.actionContainer}
       >
         <Button
@@ -131,6 +268,7 @@ export default function ProfileScreen() {
         />
         <Button
           title="Salvar"
+          shadowPosition="right"
           loading={isSaving}
           style={styles.saveButton}
           icon={
@@ -143,9 +281,7 @@ export default function ProfileScreen() {
             />
           }
           disabled={isSaving || isLoadingProfile || !token}
-          onPress={async () => {
-            await saveProfile();
-          }}
+          onPress={handleSave}
         />
       </Animated.View>
     </Screen>
@@ -154,17 +290,17 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   contentContainer: {
-    paddingBottom: spacing.xxl + spacing.xxl + spacing.xl,
+    paddingBottom: spacing.xxl,
   },
   sectionHeader: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
   },
   formContainer: {
-    marginTop: spacing.xl + spacing.sm + 2,
+    marginTop: spacing.lg,
     gap: spacing.md,
   },
   inputContainer: {
-    height: sizes.inputField,
+    minHeight: sizes.inputField,
     paddingVertical: 0,
     paddingHorizontal: spacing.md - 2,
     borderRadius: radii.sm,
@@ -175,14 +311,79 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     color: colors.textPrimary,
   },
+  inputTextLocked: {
+    color: colors.textSecondary,
+  },
+  cpfGroup: {
+    gap: spacing.xs,
+  },
+  accountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md - spacing.xs,
+  },
+  accountLabel: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+  },
+  accountValue: {
+    flexShrink: 1,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+    textAlign: "right",
+  },
+  accessibilitySection: {
+    marginTop: spacing.lg,
+  },
+  accessibilityCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  accessibilityIconBox: {
+    width: accessibilityIconBoxSize,
+    height: accessibilityIconBoxSize,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: borders.thin,
+    borderColor: colors.black,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primary,
+  },
+  accessibilityText: {
+    flex: 1,
+    gap: spacing.xs - 2,
+  },
+  accessibilityTitle: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.lg,
+    color: colors.textPrimary,
+  },
+  accessibilitySubtitle: {
+    fontFamily: fonts.regular,
+    fontSize: fontSize.sm,
+    lineHeight: fontSize.md + spacing.xs,
+    color: colors.textSecondary,
+  },
   formErrorText: {
     marginTop: spacing.xs,
     fontFamily: fonts.medium,
     fontSize: fontSize.sm,
     color: colors.primary,
   },
+  saveSuccessText: {
+    marginTop: spacing.xs,
+    fontFamily: fonts.medium,
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+  },
   actionContainer: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     gap: spacing.sm,
   },
   logoutButton: {

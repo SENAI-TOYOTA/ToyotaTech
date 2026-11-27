@@ -1,63 +1,41 @@
 import { useRouter } from "expo-router";
 import { ArrowRight } from "lucide-react-native";
-import type { ImageSourcePropType } from "react-native";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 
 import Button from "@/components/ui/Button";
 import InteractivePressable from "@/components/ui/InteractivePressable";
 import Screen from "@/components/ui/Screen";
 import Skeleton from "@/components/ui/Skeleton";
-import VehicleFallback from "@/components/ui/VehicleFallback";
+import VehicleImage from "@/components/ui/VehicleImage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGarage } from "@/hooks/useGarage";
 import { useHighlights } from "@/hooks/useHighlights";
 import { borders, colors, fonts, fontSize, radii, spacing } from "@/theme";
 import type { HighlightItem } from "@/types/content";
-import { highlightImageSource } from "@/utils/highlight";
+import {
+  highlightFallbackImage,
+  highlightImages,
+  highlightImageSource,
+} from "@/utils/highlight";
 import { canUseCorollaAltisImage } from "@/utils/vehicle";
 
 const mainCarImage = require("@/assets/images/corolla-main.jpg");
-const sideCarImage = require("@/assets/images/corolla-side.jpg");
-const newsImage = require("@/assets/images/corolla-news.jpg");
-const yarisImage = require("@/assets/images/yaris-cross.jpg");
 
 const highlightCardSize = 180;
-const highlightSkeletonCount = 4;
+const novidadesPreviewCount = 3;
+const guidesPreviewCount = 4;
+const highlightSkeletonCount = novidadesPreviewCount;
+const newsHeaderHitSlop = {
+  top: spacing.sm,
+  bottom: spacing.sm,
+};
 const highlightsRetryHitSlop = {
   top: spacing.md,
   bottom: spacing.md,
   left: spacing.md,
   right: spacing.md,
 };
-const highlightImages: Record<string, ImageSourcePropType> = {
-  "corolla-main": mainCarImage,
-  "corolla-side": sideCarImage,
-  "corolla-news": newsImage,
-  "yaris-cross": yarisImage,
-};
-
-const toyotaTips = [
-  {
-    id: "tip-1",
-    title: "Economia Híbrida",
-    description: "Dicas para maximizar o uso elétrico no seu Corolla.",
-    category: "MANUTENÇÃO",
-  },
-  {
-    id: "tip-2",
-    title: "Toyota Safety Sense",
-    description:
-      "Saiba como funcionam os radares de frenagem antes da colisão.",
-    category: "TECNOLOGIA",
-  },
-  {
-    id: "tip-3",
-    title: "Acessórios Originais",
-    description: "Customize sua Toyota com garantia e qualidade de fábrica.",
-    category: "ESTILO",
-  },
-];
 
 interface HighlightsSectionProps {
   highlights: HighlightItem[];
@@ -111,22 +89,27 @@ function HighlightsSection({
           style={styles.highlightScroll}
         >
           {highlights.map((card) => (
-            <InteractivePressable
+            <Pressable
               key={card.id}
+              testID={`highlight-card-${card.id}`}
               style={styles.highlightCard}
               onPress={() => onOpen(card.id)}
               accessibilityRole="button"
               accessibilityLabel={card.title}
             >
               <Image
-                source={highlightImageSource(card, highlightImages, newsImage)}
+                source={highlightImageSource(
+                  card,
+                  highlightImages,
+                  highlightFallbackImage
+                )}
                 style={styles.highlightImage}
                 resizeMode="cover"
               />
               <View style={styles.highlightLabel}>
                 <Text style={styles.highlightLabelText}>{card.title}</Text>
               </View>
-            </InteractivePressable>
+            </Pressable>
           ))}
         </Animated.ScrollView>
       ) : (
@@ -164,6 +147,14 @@ export default function HomeScreen() {
   const vehicle = garage?.vehicle;
   const vehicleLabel = vehicle?.model ?? "Sua Toyota";
   const shouldUseVehicleImage = canUseCorollaAltisImage(vehicle?.model);
+  const novidades = highlights.slice(0, novidadesPreviewCount);
+  const guidesPreview = highlights.slice(
+    novidadesPreviewCount,
+    novidadesPreviewCount + guidesPreviewCount
+  );
+  const openContent = (id: string) => {
+    router.push({ pathname: "/content/[id]", params: { id } });
+  };
 
   return (
     <Screen>
@@ -184,25 +175,20 @@ export default function HomeScreen() {
             height={300}
             borderRadius={radii.sm}
           />
-        ) : shouldUseVehicleImage ? (
-          <>
-            <Image
-              source={mainCarImage}
-              style={styles.mainImage}
-              resizeMode="cover"
-            />
-            <View style={styles.carLabel}>
-              <Text style={styles.carLabelText}>{vehicleLabel}</Text>
-            </View>
-          </>
         ) : (
-          <VehicleFallback
+          <VehicleImage
             model={vehicle?.model}
             version={vehicle?.version}
             color={vehicle?.color}
             chassi={vehicle?.chassi}
             variant="hero"
-          />
+            imageUrl={vehicle?.imageUrl}
+            fallbackSource={shouldUseVehicleImage ? mainCarImage : undefined}
+          >
+            <View style={styles.carLabel}>
+              <Text style={styles.carLabelText}>{vehicleLabel}</Text>
+            </View>
+          </VehicleImage>
         )}
       </Animated.View>
 
@@ -239,13 +225,11 @@ export default function HomeScreen() {
       </Animated.View>
 
       <HighlightsSection
-        highlights={highlights}
+        highlights={novidades}
         isLoading={isHighlightsLoading}
         error={highlightsError}
         onReload={reloadHighlights}
-        onOpen={(id) =>
-          router.push({ pathname: "/content/[id]", params: { id } })
-        }
+        onOpen={openContent}
       />
 
       <View style={styles.newsHeaderRow}>
@@ -256,26 +240,42 @@ export default function HomeScreen() {
           Guias e Notícias
         </Animated.Text>
         <Animated.View entering={FadeInDown.delay(600).duration(600)}>
-          <View style={styles.newsHeaderButton}>
+          <InteractivePressable
+            style={styles.newsHeaderButton}
+            hitSlop={newsHeaderHitSlop}
+            onPress={() => router.push("/content")}
+            accessibilityRole="button"
+            accessibilityLabel="Ver todos"
+          >
             <Text style={styles.newsHeaderText}>Ver todos</Text>
             <ArrowRight size={18} strokeWidth={1.6} color={colors.black} />
-          </View>
+          </InteractivePressable>
         </Animated.View>
       </View>
 
       <View style={styles.newsList}>
-        {toyotaTips.map((tip, index) => (
+        {guidesPreview.map((item, index) => (
           <Animated.View
-            key={tip.id}
+            key={item.id}
             entering={FadeInDown.delay(700 + index * 100).duration(600)}
           >
-            <View style={styles.newsCard}>
-              <Text style={styles.newsMeta}>{tip.category}</Text>
-              <Text style={styles.newsTitle}>{tip.title}</Text>
-              <Text style={styles.newsDescription} numberOfLines={2}>
-                {tip.description}
-              </Text>
-            </View>
+            <InteractivePressable
+              testID={`news-card-${item.id}`}
+              style={styles.newsCard}
+              onPress={() => openContent(item.id)}
+              accessibilityRole="button"
+              accessibilityLabel={item.title}
+            >
+              {item.categoryLabel ? (
+                <Text style={styles.newsMeta}>{item.categoryLabel}</Text>
+              ) : null}
+              <Text style={styles.newsTitle}>{item.title}</Text>
+              {item.description ? (
+                <Text style={styles.newsDescription} numberOfLines={2}>
+                  {item.description}
+                </Text>
+              ) : null}
+            </InteractivePressable>
           </Animated.View>
         ))}
       </View>
@@ -303,10 +303,6 @@ const styles = StyleSheet.create({
     height: 300,
     borderRadius: radii.sm,
     overflow: "hidden",
-  },
-  mainImage: {
-    width: "100%",
-    height: "100%",
   },
   carLabel: {
     position: "absolute",
@@ -370,7 +366,6 @@ const styles = StyleSheet.create({
   },
   highlightContent: {
     gap: spacing.md,
-    paddingRight: spacing.xl,
   },
   highlightCard: {
     width: highlightCardSize,

@@ -1,8 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, ExternalLink } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import type { ImageSourcePropType } from "react-native";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, StyleSheet, Text, View } from "react-native";
 
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -22,19 +21,15 @@ import {
   touch,
 } from "@/theme";
 import { ContentDetail } from "@/types/content";
-import { highlightImageSource } from "@/utils/highlight";
+import {
+  highlightFallbackImage,
+  highlightImageSource,
+  highlightImages,
+} from "@/utils/highlight";
 
 const coverHeight = 180;
 const iconSize = fontSize.lg;
 const iconStrokeWidth = borders.strong;
-
-const detailImages: Record<string, ImageSourcePropType> = {
-  "corolla-main": require("@/assets/images/corolla-main.jpg"),
-  "corolla-side": require("@/assets/images/corolla-side.jpg"),
-  "corolla-news": require("@/assets/images/corolla-news.jpg"),
-  "yaris-cross": require("@/assets/images/yaris-cross.jpg"),
-};
-const fallbackImage = detailImages["corolla-news"];
 
 interface DetailState {
   content: ContentDetail | null;
@@ -153,6 +148,10 @@ export default function ContentDetailScreen() {
   }
 
   const content = state.content;
+  const sourceUrl = content.sourceUrl;
+  const sourceLabel = content.sourceName
+    ? `Ler na fonte: ${content.sourceName}`
+    : "Ler na fonte";
   const categoryLabel =
     content.category === "guide"
       ? "GUIA"
@@ -168,7 +167,11 @@ export default function ContentDetailScreen() {
   return (
     <Screen edges={["top", "bottom"]} header={header}>
       <Image
-        source={highlightImageSource(content, detailImages, fallbackImage)}
+        source={highlightImageSource(
+          content,
+          highlightImages,
+          highlightFallbackImage
+        )}
         style={styles.cover}
         resizeMode="cover"
       />
@@ -193,6 +196,23 @@ export default function ContentDetailScreen() {
           <Text style={styles.paragraph}>Conteúdo em preparação.</Text>
         )}
       </View>
+      {sourceUrl ? (
+        <InteractivePressable
+          style={styles.sourceLink}
+          onPress={() => {
+            void Linking.openURL(sourceUrl);
+          }}
+          accessibilityRole="link"
+          accessibilityLabel={sourceLabel}
+        >
+          <ExternalLink
+            size={iconSize}
+            strokeWidth={iconStrokeWidth}
+            color={colors.primary}
+          />
+          <Text style={styles.sourceLinkText}>{sourceLabel}</Text>
+        </InteractivePressable>
+      ) : null}
     </Screen>
   );
 }
@@ -251,6 +271,19 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     gap: spacing.md,
     maxWidth: layout.readingWidth,
+  },
+  sourceLink: {
+    marginTop: spacing.lg,
+    minHeight: touch.minTarget,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    alignSelf: "flex-start",
+  },
+  sourceLinkText: {
+    fontFamily: fonts.semiBold,
+    fontSize: fontSize.sm,
+    color: colors.primary,
   },
   paragraph: {
     fontFamily: fonts.regular,

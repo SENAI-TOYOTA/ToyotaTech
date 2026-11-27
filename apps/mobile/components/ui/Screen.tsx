@@ -2,6 +2,8 @@ import { colors, layout, spacing } from "@/theme";
 import { ReactNode } from "react";
 import {
   KeyboardAvoidingView,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   RefreshControl,
   ScrollView,
@@ -22,6 +24,8 @@ interface ScreenProps {
   contentStyle?: StyleProp<ViewStyle>;
   refreshing?: boolean;
   onRefresh?: () => void;
+  onEndReached?: () => void;
+  onEndReachedThreshold?: number;
 }
 
 export default function Screen({
@@ -34,11 +38,29 @@ export default function Screen({
   contentStyle,
   refreshing = false,
   onRefresh,
+  onEndReached,
+  onEndReachedThreshold = 0.5,
 }: ScreenProps) {
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!onEndReached) {
+      return;
+    }
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const threshold = onEndReachedThreshold * layoutMeasurement.height;
+    if (
+      layoutMeasurement.height + contentOffset.y >=
+      contentSize.height - threshold
+    ) {
+      onEndReached();
+    }
+  };
+
   const body = scroll ? (
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.content, contentStyle]}
+      onScroll={onEndReached ? handleScroll : undefined}
+      scrollEventThrottle={onEndReached ? 16 : undefined}
       refreshControl={
         onRefresh ? (
           <RefreshControl

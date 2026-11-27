@@ -27,11 +27,13 @@ import {
 
 type ButtonVariant = "primary" | "secondary" | "outline";
 type ButtonLayout = "cta" | "row";
+type ButtonShadowPosition = "left" | "right";
 
 interface ButtonProps {
   title: string;
   variant?: ButtonVariant;
   layout?: ButtonLayout;
+  shadowPosition?: ButtonShadowPosition;
   icon?: React.ReactNode;
   loading?: boolean;
   disabled?: boolean;
@@ -45,6 +47,7 @@ export default function Button({
   title,
   variant = "primary",
   layout = "cta",
+  shadowPosition = "left",
   icon,
   loading = false,
   disabled = false,
@@ -60,6 +63,7 @@ export default function Button({
     Animated.createAnimatedComponent(TouchableOpacity);
 
   const isRow = layout === "row";
+  const isShadowRight = shadowPosition === "right";
   const isInactive = disabled || loading;
   const hasPressFeedback = !isInactive;
   const hasShadow = variant !== "outline";
@@ -98,7 +102,7 @@ export default function Button({
             {
               translateX: pressProgress.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, -6],
+                outputRange: [0, isShadowRight ? 6 : -6],
               }),
             },
             {
@@ -154,9 +158,20 @@ export default function Button({
   }
 
   return (
-    <View style={[styles.wrapper, isRow && styles.wrapperRow, style]}>
+    <View
+      style={[
+        styles.wrapper,
+        isShadowRight ? styles.wrapperRight : styles.wrapperLeft,
+        isRow && styles.wrapperRow,
+        style,
+      ]}
+    >
       <View
-        style={[styles.shadowLayer, isInactive && styles.shadowLayerInactive]}
+        style={[
+          styles.shadowLayer,
+          isShadowRight ? styles.shadowLayerRight : styles.shadowLayerLeft,
+          isInactive && styles.shadowLayerInactive,
+        ]}
       />
       {renderSurface()}
     </View>
@@ -165,22 +180,36 @@ export default function Button({
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginLeft: elevation.offset,
     marginBottom: elevation.offset,
+  },
+  wrapperLeft: {
+    marginLeft: elevation.offset,
+  },
+  wrapperRight: {
+    marginRight: elevation.offset,
   },
   wrapperRow: {
     height: sizes.buttonRow,
   },
   shadowLayer: {
     position: "absolute",
+    borderWidth: borders.thin,
+    borderColor: colors.black,
+    borderRadius: radii.button,
+  },
+  shadowLayerLeft: {
     top: elevation.offset,
     left: -elevation.offset,
     right: elevation.offset,
     bottom: -elevation.offset,
     backgroundColor: colors.white,
-    borderWidth: borders.thin,
-    borderColor: colors.black,
-    borderRadius: radii.button,
+  },
+  shadowLayerRight: {
+    top: elevation.offset,
+    left: elevation.offset,
+    right: -elevation.offset,
+    bottom: -elevation.offset,
+    backgroundColor: "transparent",
   },
   shadowLayerInactive: {
     borderColor: colors.grayLight,

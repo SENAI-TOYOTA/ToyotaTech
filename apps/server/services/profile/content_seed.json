@@ -1,0 +1,573 @@
+[
+  {
+    "author": "Equipe ToyotaTech",
+    "body": [
+      "O sistema híbrido da Toyota alterna automaticamente entre o motor a combustão e o elétrico. Em trechos urbanos, manter a velocidade constante e evitar acelerações bruscas aumenta o tempo de rodagem no modo elétrico.",
+      "Outra dica é aproveitar a frenagem regenerativa: ao antecipar reduções e soltar o acelerador com suavidade, parte da energia volta para a bateria. O resultado aparece na redução do consumo sem alterar a rotina de manutenção."
+    ],
+    "category": "guide",
+    "categoryLabel": "HÍBRIDOS",
+    "description": "Dicas para maximizar o uso elétrico no seu Corolla.",
+    "id": "economia-hibrida",
+    "imageKey": "economia-hibrida",
+    "publishedAt": "26/11/2026",
+    "readingTime": 3,
+    "summary": "Veja como usar o modo elétrico com mais frequência no dia a dia.",
+    "title": "Economia Híbrida"
+  },
+  {
+    "author": "Equipe ToyotaTech",
+    "body": [
+      "O Toyota Safety Sense reúne sistemas que apoiam o motorista em situações de risco. O sensor frontal identifica veículos, pedestres e ciclistas à frente e alerta quando a distância diminui rapidamente.",
+      "A frenagem pré-colisão atua em camadas: primeiro emite o aviso sonoro e visual, depois aplica força de frenagem adicional e, se necessário, freia o veículo. Os limites de atuação variam conforme a velocidade e as condições da via, por isso o motorista deve manter atenção permanente."
+    ],
+    "category": "guide",
+    "categoryLabel": "SEGURANÇA",
+    "description": "Saiba como funcionam os radares de frenagem antes da colisão.",
+    "id": "toyota-safety-sense",
+    "imageKey": "toyota-safety-sense",
+    "publishedAt": "26/11/2026",
+    "readingTime": 4,
+    "summary": "Entenda os recursos de assistência à condução do seu Toyota.",
+    "title": "Toyota Safety Sense"
+  },
+  {
+    "author": "Equipe ToyotaTech",
+    "body": [
+      "Acessórios originais Toyota são desenvolvidos e testados para cada modelo, respeitando medidas, materiais e fixações previstas em projeto. Isso reduz riscos de incompatibilidade e preserva o funcionamento dos sistemas do veículo.",
+      "A instalação deve ser feita em concessionária autorizada, que registra o serviço e mantém a garantia dos componentes. Antes de escolher, confira a compatibilidade com a versão e o ano do seu Toyota."
+    ],
+    "category": "news",
+    "categoryLabel": "ACESSÓRIOS",
+    "description": "Customize sua Toyota com garantia e qualidade de fábrica.",
+    "id": "acessorios-originais",
+    "imageKey": "acessorios-originais",
+    "publishedAt": "26/11/2026",
+    "readingTime": 3,
+    "summary": "Conheça opções que preservam a garantia e o acabamento original.",
+    "title": "Acessórios Originais"
+  },
+  {
+    "author": "Equipe ToyotaTech",
+    "body": [
+      "O Corolla Altis Hybrid usa o sistema Toyota Hybrid Synergy Drive, que alterna entre o motor a combustão e o elétrico para reduzir consumo e emissões.",
+      "O pacote Toyota Safety Sense inclui frenagem autônoma de emergência, controle de cruzeiro adaptativo e alerta de ponto cego para o uso diário.",
+      "Na configuração demonstrada, o veículo aparece com pintura Branco Pérola, rodas de liga leve e central multimídia com integração sem fio."
+    ],
+    "category": "guide",
+    "categoryLabel": "LANÇAMENTOS",
+    "description": "Conheça o sedan híbrido que combina eficiência e conforto.",
+    "id": "corolla",
+    "imageKey": "corolla-main",
+    "publishedAt": "22/11/2026",
+    "readingTime": 4,
+    "summary": "O Corolla Altis híbrido combina eficiência, segurança e o conforto da linha 2025.",
+    "title": "Corolla Altis"
+  },
+  {
+    "author": "Equipe ToyotaTech",
+    "body": [
+      "O Yaris Cross combina o tamanho compacto com a praticidade de um SUV urbano, incluindo boa altura livre do solo e posição de dirigir elevada.",
+      "O conjunto híbrido prioriza suavidade e economia, especialmente em trajetos curtos e no trânsito.",
+      "O porta-malas e os assentos rebatíveis ajudam a adaptar o carro à rotina, de compras a viagens de fim de semana."
+    ],
+    "category": "guide",
+    "categoryLabel": "LANÇAMENTOS",
+    "description": "Design urbano e posição de dirigir elevada para o dia a dia.",
+    "id": "yaris",
+    "imageKey": "yaris-cross",
+    "publishedAt": "22/11/2026",
+    "readingTime": 3,
+    "summary": "Compacto, híbrido e com posição de dirigir elevada: o Yaris Cross para a cidade.",
+    "title": "Yaris Cross"
+  },
+  {
+    "author": "Equipe ToyotaTech",
+    "body": [
+      "A revisão programada segue o plano do fabricante e ajuda a preservar a garantia e o valor de revenda do veículo.",
+      "As concessionárias Toyota oferecem diagnóstico eletrônico, peças originais e acompanhamento do histórico de manutenção.",
+      "Pelo aplicativo, o proprietário pode consultar os documentos do veículo e acompanhar os próximos serviços recomendados."
+    ],
+    "category": "news",
+    "categoryLabel": "SERVIÇOS",
+    "description": "Revisão programada, peças originais e atendimento Toyota.",
+    "id": "services",
+    "imageKey": "servicos-toyota",
+    "publishedAt": "22/11/2026",
+    "readingTime": 3,
+    "summary": "Da revisão programada à troca de peças: como manter o veículo em dia.",
+    "title": "Serviços Toyota"
+  },
+  {
+    "author": "Equipe ToyotaTech",
+    "body": [
+      "Planejar a rota e manter o veículo em dia são hábitos simples que tornam cada viagem mais tranquila.",
+      "Acessórios originais e uma direção suave também contribuem para o conforto de quem está a bordo.",
+      "A proposta da ToyotaTech é reunir conteúdo e serviços do veículo em um único lugar, com informação clara e prática."
+    ],
+    "category": "news",
+    "categoryLabel": "VIDA A BORDO",
+    "description": "Ideias para aproveitar melhor cada trajeto com a sua Toyota.",
+    "id": "lifestyle",
+    "imageKey": "estilo-de-vida",
+    "publishedAt": "22/11/2026",
+    "readingTime": 3,
+    "summary": "Ideias para aproveitar melhor cada trajeto com a sua Toyota.",
+    "title": "Estilo de vida"
+  },
+  {
+    "id": "guia-economia-hibrida",
+    "title": "Como economizar com o híbrido flex no dia a dia",
+    "categoryLabel": "HÍBRIDOS",
+    "description": "Hábitos simples que aumentam o tempo de rodagem elétrica.",
+    "imageKey": "economia-hibrida",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "24/11/2026",
+    "readingTime": 3,
+    "summary": "Entenda como a frenagem regenerativa e a condução suave ajudam a reduzir o consumo no Corolla híbrido.",
+    "body": [
+      "O sistema híbrido alterna automaticamente entre o motor a combustão e o elétrico. Em trechos urbanos, manter a velocidade constante e evitar acelerações bruscas aumenta o tempo de rodagem no modo elétrico.",
+      "Aproveite a frenagem regenerativa: antecipe as reduções e solte o acelerador com suavidade para devolver energia à bateria. O resultado aparece no consumo e não exige mudanças na rotina de manutenção."
+    ],
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/guia-economia-hibrida.jpg"
+  },
+  {
+    "id": "guia-safety-sense",
+    "title": "Toyota Safety Sense: o que cada assistente faz",
+    "categoryLabel": "SEGURANÇA",
+    "description": "Entenda pré-colisão, controle de cruzeiro e assistência de faixa.",
+    "imageKey": "toyota-safety-sense",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "23/11/2026",
+    "readingTime": 3,
+    "summary": "Conheça os principais recursos do pacote de segurança ativa e quando eles atuam.",
+    "body": [
+      "O Toyota Safety Sense reúne sistemas que apoiam o motorista em situações de risco. O sensor frontal identifica veículos, pedestres e ciclistas e alerta quando a distância diminui rapidamente.",
+      "A frenagem pré-colisão atua em camadas: aviso sonoro e visual, força adicional de frenagem e, se necessário, frenagem automática. Os limites variam com a velocidade e as condições da via, por isso a atenção do motorista continua essencial."
+    ],
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/guia-safety-sense.jpg"
+  },
+  {
+    "id": "guia-acessorios-originais",
+    "title": "Acessórios originais x paralelos: o que muda na garantia",
+    "categoryLabel": "ACESSÓRIOS",
+    "description": "Por que peças originais preservam a garantia e o valor do carro.",
+    "imageKey": "acessorios-originais",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "21/11/2026",
+    "readingTime": 3,
+    "summary": "Acessórios originais são testados para cada modelo e reduzem riscos de incompatibilidade.",
+    "body": [
+      "Acessórios originais Toyota são desenvolvidos e testados para cada modelo, respeitando medidas, materiais e fixações de projeto. Isso reduz riscos de incompatibilidade e preserva o funcionamento dos sistemas do veículo.",
+      "A instalação deve ser feita em concessionária autorizada, que registra o serviço e mantém a garantia dos componentes. Antes de escolher, confira a compatibilidade com a versão e o ano do seu Toyota."
+    ],
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/guia-acessorios-originais.jpg"
+  },
+  {
+    "id": "guia-viagem-longa",
+    "title": "Checklist para pegar a estrada com a família",
+    "categoryLabel": "VIDA A BORDO",
+    "description": "Pneus, fluidos, documentos e conforto para uma viagem tranquila.",
+    "imageKey": "estilo-de-vida",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "20/11/2026",
+    "readingTime": 3,
+    "summary": "Uma revisão rápida antes de viajar evita imprevistos e deixa o trajeto mais confortável.",
+    "body": [
+      "Antes de sair, confira a pressão dos pneus, o nível dos fluidos, as palhetas e o funcionamento das luzes. Também vale revisar o estepe, o macaco e o carregador do celular.",
+      "Distribua a bagagem para não obstruir a visão e ajuste o apoio de cabeça e o volante. Faça pausas a cada duas horas e mantenha a documentação do veículo e dos ocupantes à mão."
+    ],
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/guia-viagem-longa.jpg"
+  },
+  {
+    "id": "guia-revisao-programada",
+    "title": "Revisão programada: o que conferir antes de ir à concessionária",
+    "categoryLabel": "SERVIÇOS",
+    "description": "Prepare o carro e evite surpresas na próxima manutenção.",
+    "imageKey": "servicos-toyota",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "19/11/2026",
+    "readingTime": 3,
+    "summary": "Anotar sintomas e conferir o plano de revisões ajuda a concessionária a identificar o que precisa ser feito.",
+    "body": [
+      "Antes da revisão, anote ruídos, vibrações ou mudanças de comportamento do carro. Leve o manual e o histórico de manutenção para a concessionária comparar o plano previsto com o uso real.",
+      "Confira se há campanhas de recall abertas pelo chassi e pergunte quais itens serão substituídos. A revisão na rede autorizada é o que mantém o programa Toyota 10 ativo."
+    ],
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/guia-revisao-programada.jpg"
+  },
+  {
+    "id": "guia-toyota-10",
+    "title": "Toyota 10: como funciona a garantia de até 10 anos",
+    "categoryLabel": "SERVIÇOS",
+    "description": "Entenda a extensão de garantia e o que ela cobre.",
+    "imageKey": "corolla-main",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "18/11/2026",
+    "readingTime": 3,
+    "summary": "O benefício é ativado pelas revisões na rede autorizada após os cinco anos de garantia de fábrica.",
+    "body": [
+      "O Toyota 10 estende a garantia por até 10 anos ou 200 mil km para uso particular, sem custo adicional. A cobertura é renovada a cada 12 meses ou 10 mil km e inclui componentes do motor, transmissão, freios, carroceria e sistema híbrido.",
+      "Para manter o benefício, as revisões precisam ser feitas na rede autorizada Toyota nos prazos do manual. O programa também vale para seminovos, desde que o histórico esteja regular."
+    ],
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/guia-toyota-10.jpg"
+  },
+  {
+    "id": "guia-toyota-app",
+    "title": "Toyota App: o que dá para fazer pelo celular",
+    "categoryLabel": "TECNOLOGIA",
+    "description": "Status, diagnóstico, revisões e serviços conectados.",
+    "imageKey": "corolla-side",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "17/11/2026",
+    "readingTime": 2,
+    "summary": "O aplicativo reúne informações do veículo, lembretes de revisão e serviços conectados em um só lugar.",
+    "body": [
+      "O Toyota App permite consultar status e diagnóstico do veículo, otimização de combustível e lembretes de revisão. Em modelos compatíveis, também oferece Wi-Fi, rastreamento, imobilização remota e assistência 24 horas.",
+      "Os recursos variam conforme a versão e o pacote de serviços conectados contratado. Vale conferir no aplicativo quais funções estão disponíveis para o seu Toyota."
+    ],
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/guia-toyota-app.jpg"
+  },
+  {
+    "id": "guia-pneus-tpms",
+    "title": "Pneus e TPMS: segurança que começa no chão",
+    "categoryLabel": "SEGURANÇA",
+    "description": "Pressão correta melhora estabilidade, consumo e durabilidade.",
+    "imageKey": "corolla-news",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "15/11/2026",
+    "readingTime": 2,
+    "summary": "O monitor de pressão alerta sobre níveis inadequados e ajuda a evitar desgaste irregular.",
+    "body": [
+      "O TPMS acompanha a pressão dos pneus e avisa quando algum está fora do nível recomendado. Pressão baixa aumenta o consumo, piora a estabilidade e acelera o desgaste.",
+      "Calibre os pneus a frio pelo menos uma vez por mês e antes de viagens longas. Não ignore o alerta: verifique se há furo, desgaste irregular ou danos na válvula."
+    ],
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/guia-pneus-tpms.jpg"
+  },
+  {
+    "id": "guia-primeiros-1000-km",
+    "title": "Primeiros 1.000 km: cuidados com o carro novo",
+    "categoryLabel": "VIDA A BORDO",
+    "description": "Amaciar o conjunto e criar uma rotina de manutenção.",
+    "imageKey": "yaris-cross",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "12/11/2026",
+    "readingTime": 2,
+    "summary": "Evitar acelerações bruscas e variar a velocidade ajuda no amaciamento dos componentes.",
+    "body": [
+      "Nos primeiros 1.000 km, evite acelerações e frenagens bruscas e varie a velocidade em viagens longas. Isso ajuda no assentamento dos componentes e permite que o motorista conheça o comportamento do carro.",
+      "Confira a pressão dos pneus, os níveis de fluidos e o manual do proprietário. Anote a data da primeira revisão e ative os lembretes no aplicativo."
+    ],
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/guia-primeiros-1000-km.jpg"
+  },
+  {
+    "id": "guia-corolla-ou-corolla-cross",
+    "title": "Corolla ou Corolla Cross: qual híbrido escolher",
+    "categoryLabel": "HÍBRIDOS",
+    "description": "Sedã ou SUV? Compare espaço, posição de dirigir e uso.",
+    "imageKey": "corolla-main",
+    "category": "guide",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "10/11/2026",
+    "readingTime": 3,
+    "summary": "Os dois usam o sistema híbrido flex, mas atendem perfis diferentes de espaço e posição de dirigir.",
+    "body": [
+      "O Corolla sedã prioriza conforto, porta-malas e uma posição de dirigir mais baixa. O Corolla Cross oferece posição elevada, acesso mais fácil e a praticidade de um SUV compacto.",
+      "Os dois podem ter o sistema híbrido flex, com foco em eficiência. A escolha depende do uso: cidade, família, bagagem e preferência por sedã ou SUV. Faça um test-drive nas duas versões antes de decidir."
+    ],
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/guia-corolla-ou-corolla-cross.jpg"
+  },
+  {
+    "id": "corolla-60-anos",
+    "title": "Corolla sedã celebra 60 anos com linha completa nas concessionárias",
+    "categoryLabel": "LANÇAMENTOS",
+    "description": "Sedã completa seis décadas com versões 2.0 flex e híbrida flex.",
+    "imageKey": "corolla-main",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "16/10/2026",
+    "readingTime": 3,
+    "summary": "Após a transferência de produção para Sorocaba, a linha completa do Corolla voltou às concessionárias no ano em que o modelo completa 60 anos.",
+    "body": [
+      "O Corolla sedã voltou a ter todas as versões disponíveis na rede Toyota depois da parada técnica para a transferência da produção de Indaiatuba para Sorocaba. A linha segue com as opções 2.0 flex e 1.8 híbrida flex, com potência combinada de 122 cv nesta última.",
+      "O modelo é produzido no Brasil desde 1998 e, em 2019, foi o primeiro híbrido flex fabricado em série no mundo. Os clientes também contam com o programa Toyota 10, que permite estender a garantia por até 10 anos ao manter as revisões na rede autorizada."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/corolla-seda-celebra-60-anos-com-linha-completa-novamente-disponivel-nas-concessionarias-toyota/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-corolla-60-anos.jpg"
+  },
+  {
+    "id": "rav4-blindagem",
+    "title": "RAV4 ganha blindagem certificada com garantia de até 10 anos",
+    "categoryLabel": "SEGURANÇA",
+    "description": "SUV recebe proteção balística Nível III-A integrada à garantia Toyota 10.",
+    "imageKey": "toyota-safety-sense",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "05/10/2026",
+    "readingTime": 3,
+    "summary": "A opção de Blindagem Certificada do RAV4 foi desenvolvida com a Avallon e passa a contar com a mesma cobertura de até 10 anos do programa Toyota 10.",
+    "body": [
+      "A Toyota passou a oferecer blindagem certificada para o RAV4 2026, com proteção Nível III-A e ensaios que incluíram mais de 560 disparos. A solução usa mantas de aramida e polietileno, sem chapas de aço, para preservar a estrutura e a dinâmica original do SUV.",
+      "A proteção balística acompanha o programa Toyota 10: a cobertura pode chegar a 10 anos ou 200 mil km para uso particular, desde que as revisões sejam feitas na rede autorizada. O projeto já segue as exigências previstas para 2027."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/novo-toyota-rav4-ganha-opcao-de-blindagem-certificada-com-ate-10-anos-de-garantia/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-rav4-blindagem.jpg"
+  },
+  {
+    "id": "corolla-cross-xrv-hybrid",
+    "title": "Corolla Cross XRV Hybrid amplia a linha híbrida",
+    "categoryLabel": "HÍBRIDOS",
+    "description": "Nova versão de entrada híbrida flex traz monitor de ponto cego e RCTA.",
+    "imageKey": "economia-hibrida",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "02/10/2026",
+    "readingTime": 3,
+    "summary": "A versão XRV Hybrid combina o pacote da XRE com o sistema híbrido flex e chega como porta de entrada para o Corolla Cross eletrificado.",
+    "body": [
+      "O Corolla Cross ganhou a versão XRV Hybrid, posicionada como entrada na linha eletrificada do SUV. Ela reúne o pacote de equipamentos da XRE com o conjunto híbrido flex, além de monitor de ponto cego, alerta de tráfego cruzado traseiro e retrovisores que inclinam na ré.",
+      "O sistema usa motor 1.8 flex de ciclo Atkinson e dois motores elétricos, com 122 cv combinados. A Toyota destaca consumo até 30% menor que versões só a combustão e redução de até 70% nas emissões de CO₂ com etanol."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/corolla-cross-ganha-versao-xrv-hybrid-e-amplia-opcoes-da-toyota-no-segmento-dos-suvs-hibridos-no-brasil/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-corolla-cross-xrv-hybrid.jpg"
+  },
+  {
+    "id": "gr-corolla-interlagos",
+    "title": "GR Corolla é confirmado no Brasil com 304 cv",
+    "categoryLabel": "VIDA A BORDO",
+    "description": "Esportivo chega com motor 1.6 turbo e câmbio manual de seis marchas.",
+    "imageKey": "estilo-de-vida",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "25/08/2026",
+    "readingTime": 2,
+    "summary": "A GAZOO Racing confirmou o novo GR Corolla no país e levou o modelo ao Festival Interlagos, ao lado do GR Yaris e de um Stock Car.",
+    "body": [
+      "O GR Corolla desembarca no Brasil com o motor 1.6 turbo de três cilindros ajustado para 304 cv e 40,8 kgfm, sempre com câmbio manual de seis marchas. O visual foi renovado e o modelo foi apresentado no Festival Interlagos 2026.",
+      "No evento, o público também pôde ver o GR Yaris e fazer test-drive com as versões GR-Sport do Corolla Sedan e do Corolla Cross. A GAZOO Racing aproveitou para vender produtos oficiais e disponibilizar simuladores de corrida."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/gazoo-racing-confirma-novo-gr-corolla-para-o-brasil-e-revela-o-esportivo-no-festival-interlagos-2026/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-gr-corolla-interlagos.jpg"
+  },
+  {
+    "id": "rav4-plug-in-hybrid",
+    "title": "RAV4 Plug-in Hybrid chega ao Brasil com 329 cv",
+    "categoryLabel": "HÍBRIDOS",
+    "description": "Versão XSE tem autonomia elétrica de até 61 km e tração AWD.",
+    "imageKey": "economia-hibrida",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "21/08/2026",
+    "readingTime": 4,
+    "summary": "A versão XSE do RAV4 PHEV combina motor 2.5 e três motores elétricos, com 329 cv e até 61 km no modo 100% elétrico.",
+    "body": [
+      "O RAV4 Plug-in Hybrid chegou ao Brasil na versão XSE, com conjunto de 329 cv, aceleração de 0 a 100 km/h em 5,7 s e tração integral AWD. A bateria de 22,7 kWh permite até 61 km em modo elétrico, segundo o Inmetro.",
+      "A recarga aceita até 11 kW em corrente alternada e 50 kW em corrente contínua. O modelo também traz central de 12,9 polegadas, painel digital, head-up display e o pacote Toyota Safety Sense 4.0."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/toyota-lanca-rav4-plug-in-hybrid-no-brasil-e-amplia-oferta-de-veiculos-eletrificados/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-rav4-plug-in-hybrid.jpg"
+  },
+  {
+    "id": "festival-japao-yaris-cross",
+    "title": "Toyota celebra 60 anos do Corolla no Festival do Japão",
+    "categoryLabel": "VIDA A BORDO",
+    "description": "Marca customizou um Yaris Cross com a Pilot e celebrou a cultura nikkei.",
+    "imageKey": "estilo-de-vida",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "09/07/2026",
+    "readingTime": 2,
+    "summary": "Na 27ª edição do Festival do Japão, a Toyota celebrou os 60 anos do Corolla e apresentou um Yaris Cross com intervenção artística da Pilot.",
+    "body": [
+      "A Toyota participou da 27ª edição do Festival do Japão, em São Paulo, com uma ação que celebrou os 60 anos do Corolla. O destaque foi um Yaris Cross customizado pelo artista Marcelo Anache com o marcador Pintor, da Pilot.",
+      "O evento também teve espaço para a cultura pop japonesa, apresentações de taiko, danças tradicionais, workshops e demonstrações de artes marciais. A marca reforçou a conexão com a comunidade nipo-brasileira e com a história do Corolla no país."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/toyota-celebra-60-anos-do-corolla-e-customiza-yaris-cross-em-parceria-com-a-pilot-na-27a-edicao-do-festival-do-japao-em-sao-paulo/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-festival-japao-yaris-cross.jpg"
+  },
+  {
+    "id": "sw4-lideranca",
+    "title": "SW4 fecha o primeiro semestre na liderança dos SUVs grandes",
+    "categoryLabel": "LANÇAMENTOS",
+    "description": "SUV somou 6.780 emplacamentos e segue na frente do segmento.",
+    "imageKey": "corolla-main",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "09/07/2026",
+    "readingTime": 2,
+    "summary": "O SW4 encerrou o primeiro semestre de 2026 com 6.780 unidades emplacadas e 838 à frente do segundo colocado, segundo a Fenabrave.",
+    "body": [
+      "O Toyota SW4 liderou os SUVs grandes no primeiro semestre de 2026, com 6.780 emplacamentos e 838 unidades de vantagem sobre o segundo colocado. O modelo combina motor 2.8 turbodiesel, capacidade para sete ocupantes e o pacote Toyota Safety Sense.",
+      "Apresentado no Brasil em 1992, o SW4 foi o primeiro SUV da Toyota vendido no país. A geração atual segue com o programa Toyota 10, que permite estender a garantia por até 10 anos."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/toyota-sw4-encerra-o-primeiro-semestre-de-2026-na-lideranca/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-sw4-lideranca.jpg"
+  },
+  {
+    "id": "bz4x-estreia",
+    "title": "bZ4X estreia como primeiro elétrico da Toyota no Brasil",
+    "categoryLabel": "TECNOLOGIA",
+    "description": "SUV elétrico chega em lote de 99 unidades e garantia de até 10 anos.",
+    "imageKey": "corolla-side",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "23/06/2026",
+    "readingTime": 3,
+    "summary": "O bZ4X chegou ao mercado brasileiro com preço de R$ 419.990, lote inicial de 99 unidades e cobertura de até 10 anos pelo Toyota 10.",
+    "body": [
+      "O bZ4X é o primeiro modelo 100% elétrico da Toyota no Brasil. O SUV chegou em um lote inicial de 99 unidades, com preço de R$ 419.990 e a proposta de unir eletrificação, espaço interno e o DNA de qualidade da marca.",
+      "A Toyota destaca a cobertura de até 10 anos para o sistema elétrico por meio do programa Toyota 10, além de revisões programadas na rede autorizada. O modelo faz parte da estratégia multipathway da marca, que combina híbridos, plug-in e elétricos."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/toyota-estreia-bz4x-e-amplia-portfolio-de-eletrificados-com-seu-primeiro-modelo-100-eletrico-no-brasil/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-bz4x-estreia.jpg"
+  },
+  {
+    "id": "corolla-cross-2027",
+    "title": "Corolla Cross 2027 atualiza visual e versão GR Sport",
+    "categoryLabel": "LANÇAMENTOS",
+    "description": "SUV ganha novo design, rodas exclusivas e acabamento esportivo.",
+    "imageKey": "corolla-main",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "16/06/2026",
+    "readingTime": 2,
+    "summary": "A linha 2027 do Corolla Cross trouxe quatro versões, com destaque para o GR Sport e suas atualizações visuais e de acabamento.",
+    "body": [
+      "O Corolla Cross 2027 foi atualizado com quatro versões: XRE, XRX, GR-Sport e XRX Hybrid. A versão GR Sport recebeu grade trapezoidal, para-choques exclusivos, rodas com centro preto e detalhes esportivos na cabine.",
+      "Todas as versões seguem incluídas no programa Toyota 10, que pode estender a garantia por até 10 anos. A linha também mantém o pacote Toyota Safety Sense e as opções híbridas flex."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/toyota-corolla-cross-e-atualizado-para-linha-2027-e-versao-gr-sport-do-suv-traz-novo-visual/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-corolla-cross-2027.jpg"
+  },
+  {
+    "id": "toyota-revenda",
+    "title": "Toyota lidera valor de revenda em quatro categorias",
+    "categoryLabel": "SERVIÇOS",
+    "description": "Corolla, Hilux, SW4 e Corolla Hybrid se destacam na premiação.",
+    "imageKey": "servicos-toyota",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "23/04/2026",
+    "readingTime": 2,
+    "summary": "Estudo da Suiv para a Quatro Rodas apontou a Toyota como a fabricante com mais veículos leves de melhor valor de revenda em 12 meses.",
+    "body": [
+      "A Toyota ficou em primeiro lugar em quatro categorias da premiação Melhor Revenda 2026, com Corolla, Corolla Hybrid, Hilux e SW4 liderando seus segmentos. O estudo comparou preços da tabela Fipe com os valores de seminovos um ano depois.",
+      "A marca atribui o resultado ao pós-venda previsível, às revisões com preços fixos e ao programa Toyota 10. Corolla Cross, Corolla Cross Hybrid e RAV4 Hybrid também ficaram acima da média do mercado."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/toyota-registra-melhores-valores-de-revenda-em-veiculos-leves-no-brasil-e-reforca-estrategia-de-pos-venda/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-toyota-revenda.jpg"
+  },
+  {
+    "id": "rav4-2026",
+    "title": "Novo RAV4 estreia com duas versões híbridas full",
+    "categoryLabel": "LANÇAMENTOS",
+    "description": "SUV chega em pré-venda com preços a partir de R$ 317.190.",
+    "imageKey": "corolla-main",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "14/04/2026",
+    "readingTime": 3,
+    "summary": "A nova geração do RAV4 chegou ao Brasil nas versões S e SX, ambas híbridas full, com foco em eficiência e custo de propriedade.",
+    "body": [
+      "O RAV4 2026 estreou no Brasil em duas configurações híbridas full, S e SX, com preços a partir de R$ 317.190. O SUV mantém o conceito Go Anywhere, Do Anything e reforça o DNA de qualidade, confiabilidade e durabilidade da Toyota.",
+      "A marca destaca o programa Peace of Mind, com revisões competitivas, baixo custo de manutenção e alto valor de revenda. O modelo também traz rodas de 20 polegadas em todas as versões e o pacote Toyota Safety Sense."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/novo-toyota-rav4-estreia-no-brasil-com-duas-versoes-hibridas-full-maistecnologia-e-preco-a-partir-de-r-317-mil/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-rav4-2026.jpg"
+  },
+  {
+    "id": "gr-yaris-lote",
+    "title": "GR Yaris esgota primeiro lote antes da estreia",
+    "categoryLabel": "VIDA A BORDO",
+    "description": "Hot hatch chegou com 198 unidades e preço único de R$ 354.990.",
+    "imageKey": "estilo-de-vida",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "31/03/2026",
+    "readingTime": 2,
+    "summary": "O primeiro lote do GR Yaris foi vendido antes da chegada às lojas, com 99 unidades manuais e 99 automáticas.",
+    "body": [
+      "O GR Yaris chegou ao Brasil com o primeiro lote totalmente vendido: 99 unidades com câmbio manual e 99 com transmissão automática, todas por R$ 354.990. Os primeiros proprietários participaram de uma imersão no Autódromo Velocittà.",
+      "O hot hatch tem DNA de rali, teto de fibra de carbono aparente, rodas forjadas de 18 polegadas e freios de alta performance. O modelo foi desenvolvido para entregar desempenho e dirigibilidade de competição."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/gr-yaris-chega-as-lojas-com-primeiro-lote-totalmente-vendido-antes-mesmo-da-estreia-no-brasil/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-gr-yaris-lote.jpg"
+  },
+  {
+    "id": "corolla-gli-hybrid",
+    "title": "Corolla GLi Hybrid estreia com foco no Small Business",
+    "categoryLabel": "LANÇAMENTOS",
+    "description": "Versão híbrida flex com foco em custo total de propriedade.",
+    "imageKey": "corolla-main",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-corolla-gli-hybrid.jpg",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "08/09/2025",
+    "readingTime": 2,
+    "summary": "A versão GLi Hybrid traz o sistema híbrido flex full e foco no segmento Small Business.",
+    "body": [
+      "O Corolla GLi Hybrid chegou ao Brasil com o sistema híbrido flex full, combinando motor 1.8 flex e motor elétrico. A versão foi posicionada para o segmento Small Business, com foco em eficiência e custo total de propriedade.",
+      "O modelo mantém os atributos de conforto e confiabilidade da linha Corolla e conta com o pacote Toyota Safety Sense. A cobertura do programa Toyota 10 pode chegar a 10 anos."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/toyota-corolla-gli-hybrid-estreia-no-brasil-com-tecnologia-hibrida-flex-full-e-foco-no-segmento-small-business/"
+  },
+  {
+    "id": "yaris-cross-producao",
+    "title": "Yaris Cross entra em produção em Sorocaba",
+    "categoryLabel": "LANÇAMENTOS",
+    "description": "SUV compacto híbrido flex passa a ser fabricado no Brasil.",
+    "imageKey": "corolla-main",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "27/01/2026",
+    "readingTime": 2,
+    "summary": "A Toyota iniciou a produção do Yaris Cross em Sorocaba, marcando a entrada da marca no segmento de SUVs compactos.",
+    "body": [
+      "O Yaris Cross começou a ser produzido na fábrica de Sorocaba, dentro do ciclo de investimentos de R$ 11,5 bilhões até 2030. O modelo é o primeiro SUV compacto híbrido flex full da Toyota no Brasil.",
+      "O SUV combina motor 1.5 flex e motor elétrico, com foco em eficiência e baixo consumo. Ele se junta ao Corolla e ao Corolla Cross no portfólio de eletrificados fabricados no país."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/toyota-inicia-producao-do-novo-yaris-cross-no-brasil-e-estreia-no-segmento-de-suvs-compactos/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-yaris-cross-producao.jpg"
+  },
+  {
+    "id": "yaris-cross-xr",
+    "title": "Yaris Cross ganha versão XR e amplia a linha",
+    "categoryLabel": "LANÇAMENTOS",
+    "description": "Nova configuração chega para ampliar a presença do SUV compacto.",
+    "imageKey": "corolla-main",
+    "category": "news",
+    "author": "Equipe ToyotaTech",
+    "publishedAt": "14/01/2026",
+    "readingTime": 2,
+    "summary": "A Toyota anunciou a versão XR do Yaris Cross, inicialmente destinada a frotas e clientes estratégicos.",
+    "body": [
+      "O Yaris Cross ganhou a versão XR, que amplia a presença do SUV compacto no mercado brasileiro. A configuração foi anunciada inicialmente para atendimento a frotas e clientes estratégicos.",
+      "O modelo mantém a proposta de unir eficiência, espaço interno e posição de dirigir elevada. A linha segue com opções híbridas flex e a cobertura do programa Toyota 10."
+    ],
+    "sourceName": "Toyota Comunica",
+    "sourceUrl": "https://www.toyotacomunica.com.br/toyota-yaris-cross-estreia-versao-xr-e-amplia-presenca-do-suv-compacto-no-segmento/",
+    "imageUrl": "https://toyotatech-content-886885695506.s3.us-east-1.amazonaws.com/content/news-yaris-cross-xr.jpg"
+  }
+]
